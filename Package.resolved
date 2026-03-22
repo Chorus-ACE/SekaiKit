@@ -1,0 +1,33 @@
+{
+  "originHash" : "5dc6ede3c7333bea5b2d2ee690acc2d3f9778de6715889ff5e070204c1c27749",
+  "pins" : [
+    {
+      "identity" : "alamofire",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/Alamofire",
+      "state" : {
+        "revision" : "7be73f6c2b5cd90e40798b06ebd5da8f9f79cf88",
+        "version" : "5.11.0"
+      }
+    },
+    {
+      "identity" : "swift-gyb",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swift-library/swift-gyb",
+      "state" : {
+        "revision" : "f76833ee01a7f9c8cf0dd0a7e2ddb7083bdc28dd",
+        "version" : "0.0.1"
+      }
+    },
+    {
+      "identity" : "swiftyjson",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SwiftyJSON/SwiftyJSON",
+      "state" : {
+        "revision" : "af76cf3ef710b6ca5f8c05f3a31307d44a3c5828",
+        "version" : "5.0.2"
+      }
+    }
+  ],
+  "version" : 3
+}
