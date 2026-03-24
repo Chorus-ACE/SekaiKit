@@ -113,27 +113,26 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     }
     
     public var fullNameRuby: LocalizableData<String> {
-        var components = PersonNameComponents()
-        let formatter = PersonNameComponentsFormatter()
-        formatter.style = .default
-        
         switch givenNameRuby {
         case .localized(let localizedData):
             var result: LocalizedData<String> = .init()
             
             for locale in localizedData.allAvailableLocales {
-                components.familyName = self.familyNameRuby.localizedData?[locale] ?? self.familyName.majorValue
-                components.givenName = self.givenNameRuby.localizedData?[locale] ?? self.familyName.majorValue
-                
-                result.updateValue(formatter.string(from: components), forLocale: locale)
+                result.updateValue(combineNames(self.familyNameRuby.localizedData?[locale] ?? self.familyName.majorValue ?? "", self.givenNameRuby.localizedData?[locale] ?? self.familyName.majorValue ?? ""), forLocale: locale)
             }
             
             return .localized(result)
         case .unlocalized(let t):
-            components.familyName = self.familyNameRuby.majorValue
-            components.givenName = self.givenNameRuby.majorValue
-            
-            return .unlocalized(formatter.string(from: components))
+            return .unlocalized(combineNames(self.familyNameRuby.majorValue ?? "", self.givenNameRuby.majorValue ?? ""))
+        }
+        
+        // Don't use formatter since all family names are expected at first.
+        func combineNames(_ familyName: String, _ givenName: String) -> String {
+            if familyName.allSatisfy({ $0.isASCII }) {
+                return "\(familyName) \(givenName)"
+            } else {
+                return "\(familyName)\(givenName)"
+            }
         }
     }
     

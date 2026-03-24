@@ -9,6 +9,12 @@
             "state" : "translated",
             "value" : "Female"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "女"
+          }
         }
       }
     },
@@ -19,6 +25,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Male"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "男"
           }
         }
       }
@@ -31,6 +43,12 @@
             "state" : "translated",
             "value" : "Secret"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秘密"
+          }
         }
       }
     },
@@ -41,6 +59,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ichika Hoshino"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "星乃一歌"
           }
         }
       }
@@ -53,6 +77,12 @@
             "state" : "translated",
             "value" : "Attribute"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "属性"
+          }
         }
       }
     },
@@ -63,6 +93,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Rarity"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稀有度"
           }
         }
       }
@@ -75,6 +111,12 @@
             "state" : "translated",
             "value" : "Skill"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技能"
+          }
         }
       }
     },
@@ -85,6 +127,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Card Source"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来源"
           }
         }
       }
@@ -97,6 +145,12 @@
             "state" : "translated",
             "value" : "Character"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "角色"
+          }
         }
       }
     },
@@ -107,6 +161,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Support Unit"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附属组合"
           }
         }
       }
@@ -119,6 +179,12 @@
             "state" : "translated",
             "value" : "Unit"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "组合"
+          }
         }
       }
     },
@@ -126,6 +192,12 @@
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "MORE MORE JUMP!"
+          }
+        },
+        "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "MORE MORE JUMP!"
@@ -141,6 +213,12 @@
             "state" : "translated",
             "value" : "Leo/need"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leo/need"
+          }
         }
       }
     },
@@ -151,6 +229,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "VIRTURAL SINGER"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "虚拟歌手"
           }
         }
       }
@@ -163,6 +247,12 @@
             "state" : "translated",
             "value" : "Nightcord at 25:00"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "25时，在Nightcord"
+          }
         }
       }
     },
@@ -174,6 +264,12 @@
             "state" : "translated",
             "value" : "Vivid BAD SQUAD"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vivid BAD SQUAD"
+          }
         }
       }
     },
@@ -181,6 +277,12 @@
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wonderlands×Showtime"
+          }
+        },
+        "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wonderlands×Showtime"

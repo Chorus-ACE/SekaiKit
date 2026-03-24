@@ -50,6 +50,15 @@ public enum LocalizableData<T> {
         
         return LocalizableData.localized(combinedResult)
     }
+    
+    public var isEmpty: Bool {
+        switch self {
+        case .localized(let localizedData):
+            return localizedData.isEmpty
+        case .unlocalized(let t):
+            return t == nil
+        }
+    }
 }
 
 extension LocalizableData: Sendable where T: Sendable {}
