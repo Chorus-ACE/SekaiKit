@@ -7,290 +7,50 @@
 
 import Foundation
 
-/// Access Bestdori API directly, fetch Swifty raw data.
-///
-/// Each methods in ``SekaiAPI`` fetches raw data from Sekai Viewer API directly
-/// makes them Swifty and return them.
-public final class SekaiAPI {
-    private init() {}
-    
+@frozen
+public enum SekaiLocale: String, CaseIterable, Codable, SekaiCache.Cacheable {
+    case jp
+    case en
+    case tw
+    case cn
+    case kr
+}
+
+extension SekaiLocale {
     @usableFromInline
     @safe
     nonisolated(unsafe)
-    internal static var _preferredLocale = Locale(rawValue: UserDefaults.standard.string(forKey: "_SekaiKit_SekaiAPIPreferredLocale") ?? "jp") ?? .jp
+    internal static var _primaryLocale = SekaiLocale(rawValue: UserDefaults.standard.string(forKey: "_SekaiKit_SekaiAPIPreferredLocale") ?? "jp") ?? .jp
+    
     /// The preferred locale.
     @inlinable
-    public static var preferredLocale: Locale {
-        _read {
-            yield _preferredLocale
+    public static var primaryLocale: SekaiLocale {
+        get {
+            _primaryLocale
         }
         set {
-            _preferredLocale = newValue
+            _primaryLocale = newValue
             UserDefaults.standard.set(newValue.rawValue, forKey: "_SekaiKit_SekaiAPIPreferredLocale")
         }
     }
     @usableFromInline
     @safe
     nonisolated(unsafe)
-    internal static var _secondaryLocale = Locale(rawValue: UserDefaults.standard.string(forKey: "_SekaiKit_SekaiAPISecondaryLocale") ?? "en") ?? .en
+    internal static var _secondaryLocale = SekaiLocale(rawValue: UserDefaults.standard.string(forKey: "_SekaiKit_SekaiAPISecondaryLocale") ?? "en") ?? .en
     /// The secondary preferred locale.
     @inlinable
-    public static var secondaryLocale: Locale {
-        _read {
-            yield _secondaryLocale
+    public static var secondaryLocale: SekaiLocale {
+        get {
+            _secondaryLocale
         }
         set {
             _secondaryLocale = newValue
             UserDefaults.standard.set(newValue.rawValue, forKey: "_SekaiKit_SekaiAPISecondaryLocale")
         }
     }
-    
-    /// Represent a specific country or region which localized in PJSK.
-    @frozen
-    public enum Locale: String, CaseIterable, Codable, SekaiCache.Cacheable {
-        @inlinable
-        public static var primaryLocale: Self {
-            _read {
-                yield preferredLocale
-            }
-            _modify {
-                yield &preferredLocale
-            }
-        }
-        @inlinable
-        public static var secondaryLocale: Self {
-            _read {
-                yield SekaiAPI.secondaryLocale
-            }
-            _modify {
-                yield &SekaiAPI.secondaryLocale
-            }
-        }
-        
-        case jp
-        case en
-        case tw
-        case cn
-        case kr
-    }
-    
-    /// Represent data which differently in different locale.
-    ///
-    /// Data in different locales is optional
-    /// because some data isn't available in all locales.
-    /// There's no guarantee that there's always at least
-    /// one locale's data is available in a bunch of localized data.
-    /// That is, a `LocalizedData` may has all properties `nil`.
-    ///
-    /// Generally, if data is not available in a locale,
-    /// you can use the `jp`'s as fallback.
-    /// Some data, like region-specific contents, may not be available in `jp`.
-    @_eagerMove
-    public struct LocalizedData<T>: _DestructorSafeContainer {
-        public var jp: T?
-        public var en: T?
-        public var tw: T?
-        public var cn: T?
-        public var kr: T?
-        
-        @usableFromInline
-        internal init(jp: T?, en: T?, tw: T?, cn: T?, kr: T?) {
-            self.jp = jp
-            self.en = en
-            self.tw = tw
-            self.cn = cn
-            self.kr = kr
-        }
-        
-        @inlinable
-        public init(builder: (Locale) -> T?) {
-            self.init(
-                jp: builder(.jp),
-                en: builder(.en),
-                tw: builder(.tw),
-                cn: builder(.cn),
-                kr: builder(.kr)
-            )
-        }
-        
-        @inlinable
-        public init(
-            repeating item: T?,
-            forLocale locales: Set<Locale> = .init(SekaiAPI.Locale.allCases)
-        ) {
-            if _fastPath(locales.count == 5) {
-                self.init(jp: item, en: item, tw: item, cn: item, kr: item)
-            } else {
-                self.init {
-                    locales.contains($0) ? item : nil
-                }
-            }
-        }
-        
-        @inlinable
-        public init(
-            _jp: T? = nil,
-            en: T? = nil,
-            tw: T? = nil,
-            cn: T? = nil,
-            kr: T? = nil
-        ) {
-            self.init(jp: _jp, en: en, tw: tw, cn: cn, kr: kr)
-        }
-        
-        /// Get localized data for locale.
-        /// - Parameter locale: required locale for data.
-        /// - Returns: localized data, nil if not available.
-        @inlinable
-        public func forLocale(_ locale: Locale) -> T? {
-            switch locale {
-            case .jp: self.jp
-            case .en: self.en
-            case .tw: self.tw
-            case .cn: self.cn
-            case .kr: self.kr
-            }
-        }
-        /// Check if the data available in specific locale.
-        /// - Parameter locale: the locale to check.
-        /// - Returns: if the data available.
-        @inlinable
-        public func availableInLocale(_ locale: Locale) -> Bool {
-            forLocale(locale) != nil
-        }
-        /// Get localized data for preferred locale.
-        /// - Parameter allowsFallback: Whether to allow fallback to other locales
-        /// if data isn't available in preferred locale.
-        /// - Returns: localized data for preferred locale, nil if not available.
-        public func forPreferredLocale(allowsFallback: Bool = true) -> T? {
-            forLocale(preferredLocale) ?? (allowsFallback ? (forLocale(.jp) ?? forLocale(.en) ?? forLocale(.tw) ?? forLocale(.cn) ?? forLocale(.kr) ?? logger.warning("Failed to lookup any candidate of \(T.self) for preferred locale", evaluate: nil)) : nil)
-        }
-        /// Get localized data for secondary locale.
-        /// - Parameter allowsFallback: Whether to allow fallback to other locales
-        /// if data isn't available in secondary locale.
-        /// - Returns: localized data for secondary locale, nil if not available.
-        public func forSecondaryLocale(allowsFallback: Bool = true) -> T? {
-            forLocale(secondaryLocale) ?? (allowsFallback ? (forLocale(.jp) ?? forLocale(.en) ?? forLocale(.tw) ?? forLocale(.cn) ?? forLocale(.kr) ?? logger.warning("Failed to lookup any candidate of \(T.self) for secondary locale", evaluate: nil)) : nil)
-        }
-        /// Check if the data available in preferred locale.
-        /// - Returns: if the data available.
-        @inlinable
-        public func availableInPreferredLocale() -> Bool {
-            forPreferredLocale(allowsFallback: false) != nil
-        }
-        /// Check if the data available in secondary locale.
-        /// - Returns: if the data available.
-        @inlinable
-        public func availableInSecondaryLocale() -> Bool {
-            forSecondaryLocale(allowsFallback: false) != nil
-        }
-        /// Check if the available locale of data.
-        ///
-        /// This function checks if data available in preferred locale first,
-        /// if not provided or not available, it checks from jp to kr respectively.
-        ///
-        /// - Parameter locale: preferred first locale.
-        /// - Returns: first available locale of data, nil if none.
-        @inlinable
-        public func availableLocale(prefer locale: Locale? = nil) -> Locale? {
-            if availableInLocale(locale ?? preferredLocale) {
-                return locale ?? preferredLocale
-            }
-            for locale in Locale.allCases where availableInLocale(locale) {
-                return locale
-            }
-            return nil
-        }
-        
-        @inlinable
-        public mutating func set(_ newValue: T?, forLocale locale: Locale) {
-            switch locale {
-            case .jp: self.jp = newValue
-            case .en: self.en = newValue
-            case .tw: self.tw = newValue
-            case .cn: self.cn = newValue
-            case .kr: self.kr = newValue
-            }
-        }
-        
-        @available(*, deprecated, renamed: "set(_:forLocale:)")
-        @inlinable
-        @inline(__always)
-        public mutating func _set(_ newValue: T?, forLocale locale: Locale) {
-            set(newValue, forLocale: locale)
-        }
-        
-        @inlinable
-        public subscript(_ locale: Locale) -> T? {
-            @inline(__always)
-            get { forLocale(locale) }
-            
-            _modify {
-                switch locale {
-                case .jp: yield &jp
-                case .en: yield &en
-                case .tw: yield &tw
-                case .cn: yield &cn
-                case .kr: yield &kr
-                }
-            }
-        }
-        
-        @available(
-            *,
-             deprecated,
-             renamed: "subscript(_:)",
-             message: "Use subscript without argument label instead."
-        )
-        @inlinable
-        @inline(__always)
-        public subscript(_mutating locale: Locale) -> T? {
-            _read { yield self[locale] }
-            _modify { yield &self[locale] }
-        }
-        
-        public var allAvailableLocales: Set<Locale> {
-            var result: Set<Locale> = []
-            for locale in Locale.allCases where availableInLocale(locale) {
-                result.insert(locale)
-            }
-            return result
-        }
-        
-        @inlinable
-        public var allUnavailableLocales: Set<Locale> {
-            Set(Locale.allCases).subtracting(allAvailableLocales)
-        }
-    }
-    
-    /// Represent a constellation
-    @frozen
-    public enum Constellation: String, SekaiCache.Cacheable {
-        case aries
-        case taurus
-        case gemini
-        case cancer
-        case leo
-        case virgo
-        case libra
-        case scorpio
-        case sagittarius
-        case capricorn
-        case aquarius
-        case pisces
-    }
-    
-    /// Attribute of cards
-    @frozen
-    public enum Attribute: String, Sendable, CaseIterable, Hashable, SekaiCache.Cacheable {
-        case powerful
-        case cool
-        case happy
-        case pure
-    }
 }
 
-extension SekaiAPI.Locale {
+extension SekaiLocale {
     @usableFromInline
     internal init?(rawIntValue value: Int) {
         switch value {
@@ -344,12 +104,184 @@ extension SekaiAPI.Locale {
     }
 }
 
-extension SekaiAPI.LocalizedData: Sendable where T: Sendable {}
-extension SekaiAPI.LocalizedData: Equatable where T: Equatable {}
-extension SekaiAPI.LocalizedData: Hashable where T: Hashable {}
-extension SekaiAPI.LocalizedData: SekaiCache.Cacheable, Codable where T: SekaiCache.Cacheable {}
+extension SekaiLocale: Comparable {
+    public static func < (lhs: borrowing SekaiLocale, rhs: borrowing SekaiLocale) -> Bool {
+        lhs.rawIntValue < rhs.rawIntValue
+    }
+}
 
-extension SekaiAPI.LocalizedData {
+@_eagerMove
+public struct LocalizedData<T>: _DestructorSafeContainer {
+    public var jp: T?
+    public var en: T?
+    public var tw: T?
+    public var cn: T?
+    public var kr: T?
+    
+    @usableFromInline
+    internal init(jp: T?, en: T?, tw: T?, cn: T?, kr: T?) {
+        self.jp = jp
+        self.en = en
+        self.tw = tw
+        self.cn = cn
+        self.kr = kr
+    }
+    
+    @inlinable
+    public init(builder: (SekaiLocale) -> T?) {
+        self.init(
+            jp: builder(.jp),
+            en: builder(.en),
+            tw: builder(.tw),
+            cn: builder(.cn),
+            kr: builder(.kr)
+        )
+    }
+    
+    @inlinable
+    public init(
+        repeating item: T?,
+        forLocale locales: Set<SekaiLocale> = .init(SekaiLocale.allCases)
+    ) {
+        if _fastPath(locales.count == 5) {
+            self.init(jp: item, en: item, tw: item, cn: item, kr: item)
+        } else {
+            self.init {
+                locales.contains($0) ? item : nil
+            }
+        }
+    }
+    
+    @inlinable
+    public init(
+        _jp: T? = nil,
+        en: T? = nil,
+        tw: T? = nil,
+        cn: T? = nil,
+        kr: T? = nil
+    ) {
+        self.init(jp: _jp, en: en, tw: tw, cn: cn, kr: kr)
+    }
+    
+    /// Get localized data for locale.
+    /// - Parameter locale: required locale for data.
+    /// - Returns: localized data, nil if not available.
+    @inlinable
+    public func forLocale(_ locale: SekaiLocale) -> T? {
+        switch locale {
+        case .jp: self.jp
+        case .en: self.en
+        case .tw: self.tw
+        case .cn: self.cn
+        case .kr: self.kr
+        }
+    }
+    /// Check if the data available in specific locale.
+    /// - Parameter locale: the locale to check.
+    /// - Returns: if the data available.
+    @inlinable
+    public func availableInLocale(_ locale: SekaiLocale) -> Bool {
+        forLocale(locale) != nil
+    }
+    /// Get localized data for preferred locale.
+    /// - Parameter allowsFallback: Whether to allow fallback to other locales
+    /// if data isn't available in preferred locale.
+    /// - Returns: localized data for preferred locale, nil if not available.
+    public func forPreferredLocale(allowsFallback: Bool = true) -> T? {
+        forLocale(SekaiLocale.primaryLocale) ?? (allowsFallback ? (forLocale(.jp) ?? forLocale(.en) ?? forLocale(.tw) ?? forLocale(.cn) ?? forLocale(.kr) ?? logger.warning("Failed to lookup any candidate of \(T.self) for preferred locale", evaluate: nil)) : nil)
+    }
+    /// Get localized data for secondary locale.
+    /// - Parameter allowsFallback: Whether to allow fallback to other locales
+    /// if data isn't available in secondary locale.
+    /// - Returns: localized data for secondary locale, nil if not available.
+    public func forSecondaryLocale(allowsFallback: Bool = true) -> T? {
+        forLocale(SekaiLocale.secondaryLocale) ?? (allowsFallback ? (forLocale(.jp) ?? forLocale(.en) ?? forLocale(.tw) ?? forLocale(.cn) ?? forLocale(.kr) ?? logger.warning("Failed to lookup any candidate of \(T.self) for secondary locale", evaluate: nil)) : nil)
+    }
+    /// Check if the data available in preferred locale.
+    /// - Returns: if the data available.
+    @inlinable
+    public func availableInPreferredLocale() -> Bool {
+        forPreferredLocale(allowsFallback: false) != nil
+    }
+    /// Check if the data available in secondary locale.
+    /// - Returns: if the data available.
+    @inlinable
+    public func availableInSecondaryLocale() -> Bool {
+        forSecondaryLocale(allowsFallback: false) != nil
+    }
+    /// Check if the available locale of data.
+    ///
+    /// This function checks if data available in preferred locale first,
+    /// if not provided or not available, it checks from jp to kr respectively.
+    ///
+    /// - Parameter locale: preferred first locale.
+    /// - Returns: first available locale of data, nil if none.
+    @inlinable
+    public func availableLocale(prefer locale: SekaiLocale? = nil) -> SekaiLocale? {
+        if availableInLocale(locale ?? .primaryLocale) {
+            return locale ?? .primaryLocale
+        }
+        for locale in SekaiLocale.allCases where availableInLocale(locale) {
+            return locale
+        }
+        return nil
+    }
+    
+    @inlinable
+    public mutating func updateValue(_ newValue: T?, forLocale locale: SekaiLocale) {
+        switch locale {
+        case .jp: self.jp = newValue
+        case .en: self.en = newValue
+        case .tw: self.tw = newValue
+        case .cn: self.cn = newValue
+        case .kr: self.kr = newValue
+        }
+    }
+    
+    @inlinable
+    public subscript(_ locale: SekaiLocale) -> T? {
+        @inline(__always)
+        get { forLocale(locale) }
+        
+        _modify {
+            switch locale {
+            case .jp: yield &jp
+            case .en: yield &en
+            case .tw: yield &tw
+            case .cn: yield &cn
+            case .kr: yield &kr
+            }
+        }
+    }
+    
+    public var allAvailableLocales: [SekaiLocale] {
+        let expectedLocales = [SekaiLocale.primaryLocale, SekaiLocale.secondaryLocale] + SekaiLocale.allCases.drop(while: { $0 == .primaryLocale || $0 == .secondaryLocale })
+        
+        var availableLocales: [SekaiLocale] = []
+        for locale in SekaiLocale.allCases where self.availableInLocale(locale) {
+            availableLocales.append(locale)
+        }
+        
+        return expectedLocales.filter({ availableLocales.contains($0) })
+    }
+    
+    public var allUnavailableLocales: [SekaiLocale] {
+        let availableLocales = self.allAvailableLocales
+        return SekaiLocale.allCases.filter({ !availableLocales.contains($0) })
+    }
+    
+    public var dictionarized: [SekaiLocale: T] {
+        return [.jp: self.jp, .en: self.en, .tw: self.tw, .cn: self.cn, .tw: self.tw].compactMapValues({ $0 })
+    }
+}
+
+
+extension LocalizedData: Sendable where T: Sendable {}
+extension LocalizedData: Equatable where T: Equatable {}
+extension LocalizedData: Hashable where T: Hashable {}
+extension LocalizedData: SekaiCache.Cacheable, Codable where T: SekaiCache.Cacheable {}
+
+extension LocalizedData {
     /// Returns localized data containing the results of mapping the given closure
     /// over each locales.
     ///
@@ -359,10 +291,10 @@ extension SekaiAPI.LocalizedData {
     /// - Returns: Localized data containing the transformed elements of this
     ///   sequence.
     @inlinable
-    public func map<R, E>(_ transform: (T?) throws(E) -> R?) throws(E) -> SekaiAPI.LocalizedData<R> {
-        var result = SekaiAPI.LocalizedData<R>(jp: nil, en: nil, tw: nil, cn: nil, kr: nil)
-        for locale in SekaiAPI.Locale.allCases {
-            result._set(try transform(self.forLocale(locale)), forLocale: locale)
+    public func map<R, E>(_ transform: (T?) throws(E) -> R?) throws(E) -> LocalizedData<R> {
+        var result = LocalizedData<R>(jp: nil, en: nil, tw: nil, cn: nil, kr: nil)
+        for locale in SekaiLocale.allCases {
+            result.updateValue(try transform(self.forLocale(locale)), forLocale: locale)
         }
         return result
     }
@@ -395,7 +327,7 @@ extension SekaiAPI.LocalizedData {
         _ transform: (T?) throws -> ElementOfResult?
     ) rethrows -> [ElementOfResult] {
         var result: [ElementOfResult] = []
-        for locale in SekaiAPI.Locale.allCases {
+        for locale in SekaiLocale.allCases {
             if let newElement = try transform(self.forLocale(locale)) {
                 result.append(newElement)
             }
@@ -404,7 +336,7 @@ extension SekaiAPI.LocalizedData {
     }
     
     @inlinable
-    public func enumerated() -> [(locale: SekaiAPI.Locale, element: T?)] {
+    public func enumerated() -> [(locale: SekaiLocale, element: T?)] {
         compactMap { $0 }.enumerated().map { (.init(rawIntValue: $0.offset)!, $0.element) }
     }
 
@@ -434,7 +366,7 @@ extension SekaiAPI.LocalizedData {
     }
 }
 
-extension SekaiAPI.LocalizedData where T: Collection {
+extension LocalizedData where T: Collection {
     @inlinable
     public var isValueEmpty: Bool {
         self.jp?.isEmpty != false
@@ -445,7 +377,7 @@ extension SekaiAPI.LocalizedData where T: Collection {
     }
 }
 
-extension SekaiAPI.LocalizedData where T: Equatable {
+extension LocalizedData where T: Equatable {
     @inlinable
     public func contains(_ element: T?) -> Bool {
         for locale in SekaiLocale.allCases {
@@ -456,6 +388,3 @@ extension SekaiAPI.LocalizedData where T: Equatable {
         return false
     }
 }
-
-public typealias SekaiLocale = SekaiAPI.Locale
-public typealias LocalizedData = SekaiAPI.LocalizedData

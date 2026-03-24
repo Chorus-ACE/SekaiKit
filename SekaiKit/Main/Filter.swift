@@ -354,7 +354,7 @@ extension SekaiFilter.Unit: SekaiFilter._Selectable {
         self.localizedName
     }
     public var selectorImageURL: URL? {
-        Bundle.module.url(forResource: "unit_ts_\(self.numericID)_penlight", withExtension: "png")
+        Bundle.module.url(forResource: "unit_logo_\(self.numericID)", withExtension: "png")
     }
 }
 
@@ -363,7 +363,7 @@ extension SekaiFilter.SupportingUnit: SekaiFilter._Selectable {
         self.value.localizedName
     }
     public var selectorImageURL: URL? {
-        Bundle.module.url(forResource: "unit_ts_\(self.value.numericID)_penlight", withExtension: "png")
+        Bundle.module.url(forResource: "unit_logo_\(self.value.numericID)", withExtension: "png")
     }
 }
 

@@ -6,36 +6,38 @@
 //
 
 import Foundation
-internal import SwiftyJSON
+import SekaiKitMacro
 import SwiftUI
+internal import SwiftyJSON
 
-public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
+@LocalizationsCombinable
+public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachable, LocalizationsCombinable {
     public var id: Int
     /// Sequence value always equals to `id`.
     public var _sequence: Int
     public var resourceID: Int
     
-    public var familyName: String?
-    public var givenName: String
-    public var familyNameRuby: String?
-    public var givenNameRuby: String?
+    public var familyName: LocalizableData<String>
+    public var givenName: LocalizableData<String>
+    public var familyNameRuby: LocalizableData<String>
+    public var givenNameRuby: LocalizableData<String>
     public var familyNameEnglish: String?
     public var givenNameEnglish: String
     
     public var gender: Gender
     public var height: Measurement<UnitLength>
-    public var characterVoice: String?
+    public var characterVoice: LocalizableData<String>
     public var birthday: DateComponents?
-    public var literalBirthday: String
-    public var school: String?
-    public var schoolClass: String?
+    public var literalBirthday: LocalizableData<String>
+    public var school: LocalizableData<String>
+    public var schoolClass: LocalizableData<String>
     
-    public var hobby: String?
-    public var specialSkill: String?
-    public var favoriteFood: String?
-    public var dislikedFood: String?
-    public var weakness: String?
-    public var introduction: String
+    public var hobby: LocalizableData<String>
+    public var specialSkill: LocalizableData<String>
+    public var favoriteFood: LocalizableData<String>
+    public var dislikedFood: LocalizableData<String>
+    public var weakness: LocalizableData<String>
+    public var introduction: LocalizableData<String>
     public var introductionStoryID: String
     
     public var live2DHeightAdjustment: Float
@@ -58,7 +60,11 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     public enum Gender: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
         case male
         case female
-        case secret // Mizuki Only
+        case secret // Mizuki only
+        
+        public var localizedName: String {
+            NSLocalizedString("Character.gender.\(self.rawValue)", bundle: #bundle, comment: "")
+        }
     }
     
     public enum Figure: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
@@ -69,7 +75,7 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     
     public enum BreastSize: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
         case none
-        case extraSmall = "ss" // Mizuki only.
+        case extraSmall = "ss" // Mizuki only
         case small = "s"
         case medium = "m"
         case large = "l"
@@ -81,14 +87,54 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
         case unit
     }
     
-    public var fullName: String {
+    public var fullName: LocalizableData<String> {
         var components = PersonNameComponents()
-        components.familyName = self.familyName
-        components.givenName = self.givenName
-
+        let formatter = PersonNameComponentsFormatter()
+        formatter.style = .default        
+        
+        switch givenName {
+        case .localized(let localizedData):
+            var result: LocalizedData<String> = .init()
+            
+            for locale in localizedData.allAvailableLocales {
+                components.familyName = self.familyName.localizedData?[locale] ?? self.familyName.majorValue
+                components.givenName = self.givenName.localizedData?[locale] ?? self.familyName.majorValue
+                
+                result.updateValue(formatter.string(from: components), forLocale: locale)
+            }
+            
+            return .localized(result)
+        case .unlocalized(let t):
+            components.familyName = self.familyName.majorValue
+            components.givenName = self.givenName.majorValue
+            
+            return .unlocalized(formatter.string(from: components))
+        }
+    }
+    
+    public var fullNameRuby: LocalizableData<String> {
+        var components = PersonNameComponents()
         let formatter = PersonNameComponentsFormatter()
         formatter.style = .default
-        return formatter.string(from: components)
+        
+        switch givenNameRuby {
+        case .localized(let localizedData):
+            var result: LocalizedData<String> = .init()
+            
+            for locale in localizedData.allAvailableLocales {
+                components.familyName = self.familyNameRuby.localizedData?[locale] ?? self.familyName.majorValue
+                components.givenName = self.givenNameRuby.localizedData?[locale] ?? self.familyName.majorValue
+                
+                result.updateValue(formatter.string(from: components), forLocale: locale)
+            }
+            
+            return .localized(result)
+        case .unlocalized(let t):
+            components.familyName = self.familyNameRuby.majorValue
+            components.givenName = self.givenNameRuby.majorValue
+            
+            return .unlocalized(formatter.string(from: components))
+        }
     }
     
     public var color: Color? {
@@ -96,8 +142,8 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     }
 }
 
-extension Character {
-    public static func all(forLocale locale: SekaiLocale = .primaryLocale) async -> [Character]? {
+extension Character: ListGettable {
+    public static func allForLocale(_ locale: SekaiLocale) async -> [Character]? {
         let groupResult = await withTasksResult {
             await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/characterProfiles.json")
         } _: {
@@ -135,25 +181,25 @@ extension Character {
                     id: av["characterId"].intValue,
                     _sequence: bv["seq"].intValue,
                     resourceID: bv["resourceId"].intValue,
-                    familyName: bv["firstName"].string,
-                    givenName: bv["givenName"].stringValue,
-                    familyNameRuby: bv["firstNameRuby"].string,
-                    givenNameRuby: bv["givenNameRuby"].string,
+                    familyName: bv["firstName"].string.localizable(),
+                    givenName: bv["givenName"].string.localizable(),
+                    familyNameRuby: bv["firstNameRuby"].string.localizable(),
+                    givenNameRuby: bv["givenNameRuby"].string.localizable(),
                     familyNameEnglish: bv["firstNameEnglish"].string,
                     givenNameEnglish: bv["givenNameEnglish"].stringValue,
                     gender: Gender(rawValue: bv["gender"].stringValue) ?? .female,
                     height: Measurement(value: bv["height"].doubleValue, unit: .centimeters),
-                    characterVoice: av["characterVoice"].string,
+                    characterVoice: av["characterVoice"].string.localizable(),
                     birthday: parseToDateComponents(av["birthday"].stringValue),
-                    literalBirthday: av["birthday"].stringValue,
-                    school: av["school"].string,
-                    schoolClass: av["schoolYear"].string,
-                    hobby: av["hobby"].string,
-                    specialSkill: av["specialSkill"].string,
-                    favoriteFood: av["favoriteFood"].string,
-                    dislikedFood: av["hatedFood"].string,
-                    weakness: av["weak"].string,
-                    introduction: av["introduction"].stringValue,
+                    literalBirthday: av["birthday"].string.localizable(),
+                    school: av["school"].string.localizable(),
+                    schoolClass: av["schoolYear"].string.localizable(),
+                    hobby: av["hobby"].string.localizable(),
+                    specialSkill: av["specialSkill"].string.localizable(),
+                    favoriteFood: av["favoriteFood"].string.localizable(),
+                    dislikedFood: av["hatedFood"].string.localizable(),
+                    weakness: av["weak"].string.localizable(),
+                    introduction: av["introduction"].string.localizable(),
                     introductionStoryID: av["scenarioId"].stringValue,
                     live2DHeightAdjustment: bv["live2dHeightAdjustment"].floatValue,
                     figure: Figure(rawValue: bv["figure"].stringValue) ?? .lady,
@@ -224,5 +270,8 @@ extension Character {
 }
 
 extension Character: TitleDescribable {
-    public var title: String { fullName }
+    public var title: String { fullName.majorValue ?? "" }
 }
+
+
+

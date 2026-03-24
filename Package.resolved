@@ -1,5 +1,5 @@
 {
-  "originHash" : "5dc6ede3c7333bea5b2d2ee690acc2d3f9778de6715889ff5e070204c1c27749",
+  "originHash" : "6ffcfa6d479c56ced34d88ae89d7353f0df8c0682334f197acf313719663a81c",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -17,6 +17,15 @@
       "state" : {
         "revision" : "f76833ee01a7f9c8cf0dd0a7e2ddb7083bdc28dd",
         "version" : "0.0.1"
+      }
+    },
+    {
+      "identity" : "swift-syntax",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-syntax.git",
+      "state" : {
+        "revision" : "64889f0c732f210a935a0ad7cda38f77f876262d",
+        "version" : "509.1.1"
       }
     },
     {

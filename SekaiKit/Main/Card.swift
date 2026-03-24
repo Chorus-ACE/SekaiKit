@@ -6,13 +6,15 @@
 //
 
 import Foundation
+import SekaiKitMacro
 
-public struct Card: Hashable, Identifiable, Sendable, SekaiCachable {
+@LocalizationsCombinable
+public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, LocalizationsCombinable {
     public var id: Int
     /// This value always equals to ten times `id`.
     public var _sequence: Int
     
-    public var name: String
+    public var name: LocalizableData<String>
     public var characterID: Int
     public var unit: Unit
     public var supportUnit: Unit?
@@ -27,9 +29,9 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable {
     public var isInitiallySpecialTrained: Bool = false // Rarely `true`
     
     public var skillID: Int
-    public var cardSkillName: String
+    public var cardSkillName: LocalizableData<String>
     public var specialTrainingSkillID: Int? // Rarely not nil
-    public var specialTrainingSkillName: String? // Rarely not nil
+    public var specialTrainingSkillName: LocalizableData<String> // Rarely not nil
     
     public var cardParameters: [ParameterType: [Int: Int]]
     public var specialTrainingFixedBonus: [ParameterType: Int]
@@ -121,7 +123,7 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable {
 }
 
 extension Card: ListGettable {
-    public static func all(forLocale locale: SekaiLocale = .primaryLocale) async -> [Card]? {
+    public static func allForLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Card]? {
         let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/cards.json")
         print("https://sekai-world.github.io/\(locale._databasePath)/cards.json")
         
@@ -138,7 +140,7 @@ extension Card: ListGettable {
                     result.append(.init(
                         id: value["id"].intValue,
                         _sequence: value["seq"].intValue,
-                        name: value["prefix"].stringValue,
+                        name: value["prefix"].string.localizable(),
                         characterID: value["characterId"].intValue,
                         unit: Unit(member: value["characterId"].intValue) ?? .virturalSinger,
                         supportUnit: Unit(rawValue: value["supportUnit"].stringValue),
@@ -149,9 +151,9 @@ extension Card: ListGettable {
                         gachaPhrase: value["gachaPhrase"].stringValue.nilIfEqual(to: "-"),
                         isInitiallySpecialTrained: value["initialSpecialTrainingStatus"].stringValue == "done",
                         skillID: value["skillId"].intValue,
-                        cardSkillName: value["cardSkillName"].stringValue,
+                        cardSkillName: value["cardSkillName"].string.localizable(),
                         specialTrainingSkillID: value["specialTrainingSkillId"].int,
-                        specialTrainingSkillName: value["specialTrainingSkillName"].string,
+                        specialTrainingSkillName: value["specialTrainingSkillName"].string.localizable(),
                         cardParameters: cardParams,
                         specialTrainingFixedBonus: [.performance: value["specialTrainingPower1BonusFixed"].intValue, .technique: value["specialTrainingPower3BonusFixed"].intValue, .stamina: value["specialTrainingPower2BonusFixed"].intValue],
 //                        specialTrainingCosts: [], // TODO

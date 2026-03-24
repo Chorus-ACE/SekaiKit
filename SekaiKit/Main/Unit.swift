@@ -75,4 +75,8 @@ extension Unit {
     public func logoImageURL(in locale: SekaiLocale = SekaiLocale.primaryLocale) -> URL {
         .init(string: "https://sekai.best/images/\(locale.rawValue)/logol_outline/logo_\(self.rawValue).png")!
     }
+    
+    public var iconImageURL: URL {
+        Bundle.module.url(forResource: "unit_logo_\(self.numericID)", withExtension: "png")!
+    }
 }
