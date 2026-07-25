@@ -217,8 +217,8 @@ extension Character: ListGettable {
 
 extension Character: GettableByID {
     public init?(id: Int) async {
-        let _allCharacters = await SekaiCache.withDirectCache(id: "AllCharacters") { await Character.all() }
-        guard let allCharacters = _allCharacters, let item = allCharacters.first(where: { $0.id == id }) else {
+        let allCharacters = await SekaiCache.withDirectCache(id: "AllCharacters") { await Character.all() }
+        guard let item = allCharacters?.first(where: { $0.id == id }) else {
             return nil
         }
         self = item
@@ -269,7 +269,7 @@ extension Character {
 }
 
 extension Character: TitleDescribable {
-    public var title: String { fullName.majorValue ?? "" }
+    public var title: LocalizableData<String> { fullName }
 }
 
 

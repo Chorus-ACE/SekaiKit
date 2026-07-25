@@ -6,7 +6,7 @@
 //
 
 public protocol TitleDescribable {
-    var title: String { get }
+    var title: LocalizableData<String> { get }
 }
 
 public protocol GettableByID {

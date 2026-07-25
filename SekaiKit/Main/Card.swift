@@ -174,5 +174,5 @@ extension Card: ListGettable {
 }
 
 extension Card: TitleDescribable {
-    public var title: String { self.title }
+    public var title: LocalizableData<String> { self.name }
 }

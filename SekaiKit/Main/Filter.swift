@@ -8,6 +8,7 @@
 import Foundation
 internal import CryptoKit
 
+// Declaration of values
 public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
     public var character: Set<Self.Character> = Set(Self.Character.allCases) { didSet { store() } }
     public var unit: Set<Self.Unit> = Set(Self.Unit.allCases) { didSet { store() } }
@@ -106,24 +107,9 @@ public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
     }
 }
 
-//public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
-//    public var character: Set<Self.Character> = Set(Self.Character.allCases)
-//    public var unit: Set<Unit> = Set(Unit.allCases)
-//    public var supportUnit: Set<Unit> = Set(Unit.allSupportableUnits)
-//    public var cardAttribute: Set<Card.Attribute> = Set(Card.Attribute.allCases)
-//    public var cardRarity: Set<Card.Rarity> = Set(Card.Rarity.allCases)
-//    public var cardSource: Set<Card.SourceType> = Set(Card.SourceType.allCases)
-//    public var skill: Int? = nil
-//}
-//
-public extension SekaiFilter {
-    public typealias Unit = SekaiKit.Unit
-    public typealias CardAttribute = Card.Attribute
-    public typealias CardRarity = Card.Rarity
-    public typealias CardSource = Card.SourceType
-    public typealias Skill = SekaiKit.Skill
-    
-    enum Keys: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
+// Declaration of Key
+extension SekaiFilter {
+    public enum Key: Int, CaseIterable, Comparable, Hashable, Identifiable {
         case character
         case unit
         case supportUnit
@@ -132,12 +118,45 @@ public extension SekaiFilter {
         case cardSource
         case skill
         
+        public var id: Int { self.rawValue }
+        
         public var localizedName: String {
             NSLocalizedString("Filter.keys.\(self.rawValue)", bundle: #bundle, comment: "")
         }
+        
+        @inlinable
+        public static func < (lhs: SekaiFilter.Key, rhs: SekaiFilter.Key) -> Bool {
+            lhs.rawValue < rhs.rawValue
+        }
     }
+}
+
+// Sorting Key
+extension Set<SekaiFilter.Key> {
+    @inlinable
+    public func sorted() -> [SekaiFilter.Key] {
+        self.sorted { $0.rawValue < $1.rawValue }
+    }
+}
+extension Array<SekaiFilter.Key> {
+    @inlinable
+    public func sorted() -> [SekaiFilter.Key] {
+        self.sorted { $0.rawValue < $1.rawValue }
+    }
+}
+
+
+// Defining Types
+public extension SekaiFilter {
+    // existing types
+    typealias Unit = SekaiKit.Unit
+    typealias CardAttribute = Card.Attribute
+    typealias CardRarity = Card.Rarity
+    typealias CardSource = Card.SourceType
+    typealias Skill = SekaiKit.Skill
     
-    public enum Character: Int, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
+    // characters
+    enum Character: Int, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
         case ichika = 1
         case saki
         case honami
@@ -175,7 +194,8 @@ public extension SekaiFilter {
         }
     }
     
-    public struct SupportingUnit: Hashable, Codable, Sendable, SekaiCachable {
+    // supporting units
+    struct SupportingUnit: Hashable, Codable, Sendable, SekaiCachable {
         public var value: SekaiKit.Unit
         
         public static var allCases: [SupportingUnit] {
@@ -184,58 +204,8 @@ public extension SekaiFilter {
     }
 }
 
-extension SekaiFilter {
-    public enum Key: Int, CaseIterable, Hashable {
-        case character
-        case unit
-        case supportUnit
-        case cardAttribute
-        case cardRarity
-        case cardSource
-        case skill
-    }
-}
 
-extension SekaiFilter.Key: Identifiable {
-    public var id: Int { self.rawValue }
-}
-
-extension Set<SekaiFilter.Key> {
-    @inlinable
-    public func sorted() -> [SekaiFilter.Key] {
-        self.sorted { $0.rawValue < $1.rawValue }
-    }
-}
-extension Array<SekaiFilter.Key> {
-    @inlinable
-    public func sorted() -> [SekaiFilter.Key] {
-        self.sorted { $0.rawValue < $1.rawValue }
-    }
-}
-
-extension SekaiFilter.Key {
-    @inline(never)
-    public var localizedString: String {
-        switch self {
-        case .character: String(localized: "Filter.key.character", bundle: #bundle)
-        case .unit: String(localized: "Filter.key.unit", bundle: #bundle)
-        case .supportUnit: String(localized: "Filter.key.support-unit", bundle: #bundle)
-        case .cardAttribute: String(localized: "Filter.key.card-attribute", bundle: #bundle)
-        case .cardRarity: String(localized: "Filter.key.card-rarity", bundle: #bundle)
-        case .cardSource: String(localized: "Filter.key.card-source", bundle: #bundle)
-        case .skill: String(localized: "Filter.key.skill", bundle: #bundle)
-        }
-    }
-}
-
-
-extension SekaiFilter.Key: Comparable {
-    @inlinable
-    public static func < (lhs: SekaiFilter.Key, rhs: SekaiFilter.Key) -> Bool {
-        lhs.rawValue < rhs.rawValue
-    }
-}
-
+// Conform to Collection
 extension SekaiFilter: MutableCollection {
     public typealias Element = AnyHashable
     
@@ -265,24 +235,15 @@ extension SekaiFilter: MutableCollection {
         }
     }
     
-    /// Update a value of filter for key.
-    ///
-    /// - Parameters:
-    ///   - value: Type-erased value.
-    ///   - key: Key for filter item.
-    ///
-    /// The underlying value of type-erased value passed to this method must match the actual value type of key,
-    /// or this method logs the event and does nothing.
+    
     public mutating func updateValue(_ value: AnyHashable, forKey key: Key) {
         let expectedValueType = type(of: self[key])
         let valueType = type(of: value)
         typeCheck: if valueType != expectedValueType {
-//            if key == .released && valueType == Bool.self {
-//                break typeCheck
-//            }
             logger.critical("Failed to update value of filter, expected \(expectedValueType), but got \(valueType)")
             return
         }
+        
         switch key {
         case .character:
             self.character = value as! Set<Self.Character>
@@ -302,6 +263,8 @@ extension SekaiFilter: MutableCollection {
     }
 }
 
+
+// Option Labels
 extension SekaiFilter {
     @_typeEraser(_AnySelectable)
     public protocol _Selectable: Hashable {
@@ -332,6 +295,7 @@ extension SekaiFilter {
         public var selectorImageURL: URL? { _selectorImageURL }
     }
 }
+
 extension SekaiFilter._Selectable {
     public var selectorImageURL: URL? { nil }
     

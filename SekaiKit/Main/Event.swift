@@ -7,31 +7,33 @@
 
 
 import Foundation
+import SekaiKitMacro
 
+@LocalizationsCombinable
 public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
     public var id: Int
-    public var title: String
+    public var title: LocalizableData<String>
     public var eventType: Event.EventType
     
     /// The time when the event starts displaying, aka `eventOnlyComponentDisplayStartAt`.
-    public var displayingStartDate: Date
+    public var displayingStartDate: LocalizableData<Date>
     /// The time when the event starts, aka `startAt`.
-    public var startDate: Date
+    public var startDate: LocalizableData<Date>
     /// The time when the event aggregates, aka `aggregateAt`.
-    public var aggregateDate: Date
+    public var aggregateDate: LocalizableData<Date>
     /// The time when the ranking of the event is announced, aka `rankingAnnounceAt`.
-    public var rankingAnnouncementDate: Date
+    public var rankingAnnouncementDate: LocalizableData<Date>
     /// The time when distribution of the rewards starts, aka `distributionStartAt`
-    public var distributionStartDate: Date
+    public var distributionStartDate: LocalizableData<Date>
     /// The time when the event stops displaying, aka `eventOnlyComponentDisplayEndAt`.
-    public var displayingEndDate: Date
+    public var displayingEndDate: LocalizableData<Date>
     /// The time when the event closes, aka `closedAt`.
-    public var closedDate: Date
+    public var closedDate: LocalizableData<Date>
     /// The time when distribution of the rewards ends, aka `distributionEndAt`.
-    public var distributionEndDate: Date
+    public var distributionEndDate: LocalizableData<Date>
     
     
-    public var virturalLiveID: Int?
+    public var virturalLiveID: LocalizableData<Int>
     public var unit: Unit?
     public var isCountLeaderCharacterPlay: Bool // Rarely `true`
     public var eventRankingRewardRanges: [EventRankingRewardRange]
@@ -90,17 +92,17 @@ extension Event {
                 
                 result.append(Event(
                     id: av["id"].intValue,
-                    title: av["name"].stringValue,
+                    title: av["name"].string.localizable(),
                     eventType: EventType(rawValue: av["eventType"].stringValue) ?? .marathon,
-                    displayingStartDate: av["eventOnlyComponentDisplayStartAt"].dateValue,
-                    startDate: av["startAt"].dateValue,
-                    aggregateDate: av["aggregateAt"].dateValue,
-                    rankingAnnouncementDate: av["rankingAnnounceAt"].dateValue,
-                    distributionStartDate: av["distributionStartAt"].dateValue,
-                    displayingEndDate: av["eventOnlyComponentDisplayEndAt"].dateValue,
-                    closedDate: av["closedAt"].dateValue,
-                    distributionEndDate: av["distributionEndAt"].dateValue,
-                    virturalLiveID: av["virturalLiveId"].int,
+                    displayingStartDate: av["eventOnlyComponentDisplayStartAt"].date.localizable(),
+                    startDate: av["startAt"].date.localizable(),
+                    aggregateDate: av["aggregateAt"].date.localizable(),
+                    rankingAnnouncementDate: av["rankingAnnounceAt"].date.localizable(),
+                    distributionStartDate: av["distributionStartAt"].date.localizable(),
+                    displayingEndDate: av["eventOnlyComponentDisplayEndAt"].date.localizable(),
+                    closedDate: av["closedAt"].date.localizable(),
+                    distributionEndDate: av["distributionEndAt"].date.localizable(),
+                    virturalLiveID: av["virturalLiveId"].int.localizable(),
                     unit: Unit(rawValue: av["unit"].stringValue),
                     isCountLeaderCharacterPlay: av["isCountLeaderCharacterPlay"].boolValue,
                     eventRankingRewardRanges: eventRankingRewardRange,
@@ -115,12 +117,12 @@ extension Event {
     }
 }
 
-public struct ExtendedCharacter: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
-    public var character: Character
-    
-    public var id: Int { self.character.id }
-}
-
-extension Character: ExtendedTypeConvertible {
-    public typealias ExtendedType = ExtendedCharacter
-}
+//public struct ExtendedCharacter: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
+//    public var character: Character
+//    
+//    public var id: Int { self.character.id }
+//}
+//
+//extension Character: ExtendedTypeConvertible {
+//    public typealias ExtendedType = ExtendedCharacter
+//}
