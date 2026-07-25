@@ -371,3 +371,14 @@ extension Set: SekaiCache.Cacheable where Element: SekaiCache.Cacheable {}
 extension Optional: SekaiCache.Cacheable where Wrapped: SekaiCache.Cacheable {}
 
 public protocol SekaiCachable: SekaiCache.Cacheable {}
+extension Array: SekaiCachable where Element: SekaiCachable {}
+
+
+@inline(__always)
+public func withSekaiCache<Result: Sendable & SekaiCachable>(
+    id: String,
+    trait: SekaiCache.CacheTrait = .invocationElidable,
+    invocation: sending @escaping () async -> Result?
+) -> SekaiCache.Promise<Result?> {
+    SekaiCache.withCache(id: id, trait: trait, invocation: invocation)
+}
