@@ -10,7 +10,7 @@ import Foundation
 import SekaiKitMacro
 
 @LocalizationsCombinable
-public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
+public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, LocalizationsCombinable {
     public var id: Int
     public var title: LocalizableData<String>
     public var eventType: Event.EventType
@@ -32,8 +32,7 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
     /// The time when distribution of the rewards ends, aka `distributionEndAt`.
     public var distributionEndDate: LocalizableData<Date>
     
-    
-    public var virturalLiveID: LocalizableData<Int>
+    public var virturalLiveID: Int
     public var unit: Unit?
     public var isCountLeaderCharacterPlay: Bool // Rarely `true`
     public var eventRankingRewardRanges: [EventRankingRewardRange]
@@ -45,6 +44,10 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
         case marathon
         case cheerfulCarnival = "cheerful_carnival"
         case worldLink = "world_bloom"
+        
+        public var localizedName: String {
+            NSLocalizedString("Event.type.\(self.rawValue)", bundle: #bundle, comment: "")
+        }
     }
     
     public struct EventRankingRewardRange: Codable, Hashable, Sendable, SekaiCachable {
@@ -63,8 +66,8 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
     }
 }
 
-extension Event {
-    public static func all(forLocale locale: SekaiLocale = .primaryLocale) async -> [Event]? {
+extension Event: ListGettable {
+    public static func allForLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Event]? {
         let groupResult = await withTasksResult {
             await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/events.json")
         } _: {
@@ -102,7 +105,7 @@ extension Event {
                     displayingEndDate: av["eventOnlyComponentDisplayEndAt"].date.localizable(),
                     closedDate: av["closedAt"].date.localizable(),
                     distributionEndDate: av["distributionEndAt"].date.localizable(),
-                    virturalLiveID: av["virturalLiveId"].int.localizable(),
+                    virturalLiveID: av["virturalLiveId"].intValue,
                     unit: Unit(rawValue: av["unit"].stringValue),
                     isCountLeaderCharacterPlay: av["isCountLeaderCharacterPlay"].boolValue,
                     eventRankingRewardRanges: eventRankingRewardRange,
@@ -117,12 +120,24 @@ extension Event {
     }
 }
 
-//public struct ExtendedCharacter: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
-//    public var character: Character
-//    
-//    public var id: Int { self.character.id }
-//}
-//
-//extension Character: ExtendedTypeConvertible {
-//    public typealias ExtendedType = ExtendedCharacter
-//}
+// https://storage.sekai.best/sekai-jp-assets/home/banner/event_ofprayer_2026/event_ofprayer_2026.webp
+
+extension Event {
+    public var bannerImageURL: URL {
+        self.bannerImageURL()
+    }
+    
+    public func bannerImageURL(in locale: SekaiLocale = .primaryLocale) -> URL {
+        .init(string: "https://storage.sekai.best/\(locale._assetsPath)/home/banner/\(self.assetBundleName)/\(self.assetBundleName).webp")!
+    }
+    
+    public var logoImageURL: URL {
+        self.bannerImageURL(in: .primaryLocale)
+    }
+    
+    public func logoImageURL(in locale: SekaiLocale = .primaryLocale) -> URL {
+        .init(string: "https://storage.sekai.best/\(locale._assetsPath)/event/\(self.assetBundleName)/logo/logo.webp")!
+    }
+}
+
+extension Event: TitleDescribable {}

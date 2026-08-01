@@ -18,7 +18,7 @@ public protocol SekaiFilterable {
 extension Card: SekaiFilterable {
     @inlinable
     public static var applicableFilteringKeys: [SekaiFilter.Key] {
-        [.character, .unit, .supportUnit, .cardAttribute, .cardSource, .cardRarity, .skill]
+        [.character, .unit, .supportUnit, .attribute, .cardSource, .cardRarity, .skill]
     }
     
     public func _matches<ValueType>(_ value: ValueType) -> Bool? {
@@ -28,17 +28,63 @@ extension Card: SekaiFilterable {
             return self.unit == unit
         } else if let supportUnit = value as? SekaiFilter.SupportingUnit {
             return self.supportUnit == supportUnit.value
-        } else if let cardAttribute = value as? SekaiFilter.CardAttribute {
-            return self.attribute == cardAttribute
+        } else if let attribute = value as? SekaiFilter.Attribute {
+            return self.attribute == attribute
         } else if let cardSource = value as? SekaiFilter.CardSource {
             return self.sourceType == cardSource
         } else if let cardRarity = value as? SekaiFilter.CardRarity {
-            return self.cardRarityType == cardRarity
+            return self.rarity == cardRarity
         } else if let skill = value as? SekaiFilter.Skill { // Skill
             return self.skillID == skill.id
         } else {
             return nil // Unexpected: unexpected value type
         }
+    }
+}
+
+extension Event: SekaiFilterable {
+    @inlinable
+    public static var applicableFilteringKeys: [SekaiFilter.Key] {
+        [.attribute]
+//        [.attribute, .character, .characterRequiresMatchAll, .server, .timelineStatus, .eventType]
+    }
+    
+    public func _matches<ValueType>(_ value: ValueType) -> Bool? {
+        // TODO
+//        if let attribute = value as? SekaiFilter.Attribute { // Attribute
+//            return self.attributes.contains { $0.attribute == attribute }
+//        } else if let character = value as? SekaiFilter.Character { // Character
+//            return self.characters.contains { $0.characterID == character.rawValue }
+//        } else if let server = value as? DoriFrontend.Filter.Server { // Server
+//            return self.startAt.availableInLocale(server)
+//        } else if let timelineStatusWithServers = value as? TimelineStatusWithServers { // Timeline Status with Servers
+//            switch timelineStatusWithServers.timelineStatus {
+//            case .ended:
+//                for singleLocale in timelineStatusWithServers.servers {
+//                    if (self.endAt.forLocale(singleLocale) ?? dateOfYear2100) < .now {
+//                        return true
+//                    }
+//                }
+//            case .ongoing:
+//                for singleLocale in timelineStatusWithServers.servers {
+//                    if (self.startAt.forLocale(singleLocale) ?? dateOfYear2100) < .now
+//                        && (self.endAt.forLocale(singleLocale) ?? .init(timeIntervalSince1970: 0)) > .now {
+//                        return true
+//                    }
+//                }
+//            case .upcoming:
+//                for singleLocale in timelineStatusWithServers.servers {
+//                    if (self.startAt.forLocale(singleLocale) ?? .init(timeIntervalSince1970: 0)) > .now {
+//                        return true
+//                    }
+//                }
+//            }
+//            return false
+//        } else if let eventType = value as? DoriFrontend.Filter.EventType { // Event Type
+//            return self.eventType == eventType
+//        } else {
+            return nil // Unexpected: unexpected value type
+//        }
     }
 }
 
@@ -65,8 +111,8 @@ extension Array where Element: SekaiFilterable {
                 element._matches(unit) ?? true
             }
         } .filter { element in
-            guard filter.cardAttribute != Set(SekaiFilter.CardAttribute.allCases) else { return true }
-            return filter.cardAttribute.contains { attribute in
+            guard filter.attribute != Set(SekaiFilter.Attribute.allCases) else { return true }
+            return filter.attribute.contains { attribute in
                 element._matches(attribute) ?? true
             }
         } .filter { element in

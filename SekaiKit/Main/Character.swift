@@ -256,11 +256,11 @@ internal func parseToDateComponents(_ input: String) -> DateComponents? {
 extension Character {
     @inlinable
     public var selectionImageURL: URL {
-        .init(string: "https://storage.sekai.best/\(SekaiLocale.primaryLocale._assetsPath)/character/character_select/chr_tl_\(self.id).webp")!
+        Self.selectionImageURL(forID: self.id)
     }
     @inlinable
     public func selectionImageURL(in locale: SekaiLocale = .primaryLocale) -> URL {
-        .init(string: "https://storage.sekai.best/\(locale._assetsPath)/character/character_select/chr_tl_\(self.id).webp")!
+        Self.selectionImageURL(forID: self.id, in: locale)
     }
     @inlinable
     public static func selectionImageURL(forID id: Int, in locale: SekaiLocale = .primaryLocale) -> URL {

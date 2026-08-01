@@ -1,6 +1,83 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Card.source-type.1" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanant"
+          }
+        }
+      }
+    },
+    "Card.source-type.2" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Birthday"
+          }
+        }
+      }
+    },
+    "Card.source-type.3" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Limited"
+          }
+        }
+      }
+    },
+    "Card.source-type.4" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Colorful Festival"
+          }
+        }
+      }
+    },
+    "Card.source-type.5" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bloom Festival"
+          }
+        }
+      }
+    },
+    "Card.source-type.6" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unit Event"
+          }
+        }
+      }
+    },
+    "Card.source-type.7" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Collaboration"
+          }
+        }
+      }
+    },
     "Character.gender.female" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -188,6 +265,89 @@
         }
       }
     },
+    "Sorter.keyword.id" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ID"
+          }
+        }
+      }
+    },
+    "Sorter.keyword.release-date.%@" : {
+      "extractionState" : "pasted",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Release Date (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "发布日期 (%@)"
+          }
+        }
+      }
+    },
+    "Sorter.keyword.starting-date.%@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start Date (%@)"
+          }
+        }
+      }
+    },
+    "Sorter.order.ascending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ascending"
+          }
+        }
+      }
+    },
+    "Sorter.order.descending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Descending"
+          }
+        }
+      }
+    },
+    "Sorter.order.newest-to-oldest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Newest to Oldest"
+          }
+        }
+      }
+    },
+    "Sorter.order.oldest-to-newest" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oldest to Newest"
+          }
+        }
+      }
+    },
     "Unit.idol" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -291,5 +451,5 @@
       }
     }
   },
-  "version" : "1.1"
+  "version" : "1.2"
 }

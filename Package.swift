@@ -12,7 +12,6 @@ let package = Package(
     ],
     products: [
         .library(name: "SekaiKit", targets: ["SekaiKit"]),
-        // 建议将宏公开为一个 Product，方便外部使用
         .library(name: "SekaiKitMacro", targets: ["SekaiKitMacro"])
     ],
     dependencies: [

@@ -10,7 +10,7 @@ import SwiftUI
 internal import SwiftyJSON
 
 
-internal let dateOfYear2100: Date = .init(timeIntervalSince1970: 4107477600)
+// internal let dateOfYear2100: Date = .init(timeIntervalSince1970: 4107477600)
 
 internal extension Array {
     subscript(access index: Int) -> Element? {

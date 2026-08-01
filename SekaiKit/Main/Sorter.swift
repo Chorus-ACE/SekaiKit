@@ -152,19 +152,7 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
         /// Localized description text for keyword.
         @inline(never)
         public var localizedString: String {
-            switch self {
-            case .releaseDate(let locale):
-                String(localized: "FILTER_SORT_KEYWORD_RELEASE_DATE_IN_\(locale.rawValue.uppercased())", bundle: #bundle)
-            case .difficultyReleaseDate(let locale):
-                String(localized: "FILTER_SORT_KEYWORD_DIFFICULTY_RELEASE_DATE_IN_\(locale.rawValue.uppercased())", bundle: #bundle)
-            case .mvReleaseDate(in: let locale):
-                String(localized: "FILTER_SORT_KEYWORD_MV_RELEASE_DATE_IN_\(locale.rawValue.uppercased())", bundle: #bundle)
-//            case .level(let difficultyLevel):
-//                String(localized: "FILTER_SORT_KEYWORD_LEVEL_FOR_\(difficultyLevel.rawStringValue.uppercased())", bundle: #bundle)
-            case .rarity: String(localized: "FILTER_SORT_KEYWORD_RARITY", bundle: #bundle)
-            case .maximumStat: String(localized: "FILTER_SORT_KEYWORD_MAXIMUM_STAT", bundle: #bundle)
-            case .id: String(localized: "FILTER_SORT_KEYWORD_ID", bundle: #bundle)
-            }
+            self.localizedString()
         }
         
         /// Localized description text for keyword.
@@ -175,16 +163,16 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
         public func localizedString(hasEndingDate: Bool = false) -> String {
             switch self {
             case .releaseDate(let locale):
-                hasEndingDate ? String(localized: "FILTER_SORT_KEYWORD_START_DATE_IN_\(locale.rawValue.uppercased())", bundle: #bundle) : String(localized: "FILTER_SORT_KEYWORD_RELEASE_DATE_IN_\(locale.rawValue.uppercased())", bundle: #bundle)
+                hasEndingDate ? String(localized: "Sorter.keyword.starting-date.\(locale.rawValue.uppercased())", bundle: #bundle) : String(localized: "Sorter.keyword.release-date.\(locale.rawValue.uppercased())", bundle: #bundle)
             case .difficultyReleaseDate(let locale):
-                String(localized: "FILTER_SORT_KEYWORD_DIFFICULTY_RELEASE_DATE_IN_\(locale.rawValue.uppercased())", bundle: #bundle)
-            case .mvReleaseDate(let locale):
-                String(localized: "FILTER_SORT_KEYWORD_MV_RELEASE_DATE_IN_\(locale.rawValue.uppercased())", bundle: #bundle)
+                String(localized: "Sorter.keyword.difficulty-release-date.\(locale.rawValue.uppercased())", bundle: #bundle)
+            case .mvReleaseDate(in: let locale):
+                String(localized: "Sorter.keyword.mv-release-date.\(locale.rawValue.uppercased())", bundle: #bundle)
 //            case .level(let difficultyLevel):
-//                String(localized: "FILTER_SORT_KEYWORD_LEVEL_FOR_\(difficultyLevel.rawStringValue.uppercased())", bundle: #bundle)
-            case .rarity: String(localized: "FILTER_SORT_KEYWORD_RARITY", bundle: #bundle)
-            case .maximumStat: String(localized: "FILTER_SORT_KEYWORD_MAXIMUM_STAT", bundle: #bundle)
-            case .id: String(localized: "FILTER_SORT_KEYWORD_ID", bundle: #bundle)
+//                String(localized: "Sorter.keyword.level.\(difficultyLevel.rawStringValue.uppercased())", bundle: #bundle)
+            case .rarity: String(localized: "Sorter.keyword.rarity", bundle: #bundle)
+            case .maximumStat: String(localized: "Sorter.keyword.max-power", bundle: #bundle)
+            case .id: String(localized: "Sorter.keyword.id", bundle: #bundle)
             }
         }
     }
@@ -198,19 +186,19 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
         let isAscending: Bool = (direction ?? self.direction) == .ascending
         switch keyword ?? self.keyword {
         case .releaseDate:
-            return isAscending ? String(localized: "FILTER_SORT_ORDER_OLDEST_TO_NEWEST", bundle: #bundle) : String(localized: "FILTER_SORT_ORDER_NEWEST_TO_OLDEST", bundle: #bundle)
+            return isAscending ? String(localized: "Sorter.order.oldest-to-newest", bundle: #bundle) : String(localized: "Sorter.order.newest-to-oldest", bundle: #bundle)
         case .difficultyReleaseDate:
-            return isAscending ? String(localized: "FILTER_SORT_ORDER_OLDEST_TO_NEWEST", bundle: #bundle) : String(localized: "FILTER_SORT_ORDER_NEWEST_TO_OLDEST", bundle: #bundle)
+            return isAscending ? String(localized: "Sorter.order.oldest-to-newest", bundle: #bundle) : String(localized: "Sorter.order.newest-to-oldest", bundle: #bundle)
         case .mvReleaseDate:
-            return isAscending ? String(localized: "FILTER_SORT_ORDER_OLDEST_TO_NEWEST", bundle: #bundle) : String(localized: "FILTER_SORT_ORDER_NEWEST_TO_OLDEST", bundle: #bundle)
+            return isAscending ? String(localized: "Sorter.order.oldest-to-newest", bundle: #bundle) : String(localized: "Sorter.order.newest-to-oldest", bundle: #bundle)
 //        case .level:
 //            return isAscending ? String(localized: "FILTER_SORT_ORDER_ASCENDING", bundle: #bundle) : String(localized: "FILTER_SORT_ORDER_DESCENDING", bundle: #bundle)
         case .rarity:
-            return isAscending ? String(localized: "FILTER_SORT_ORDER_ASCENDING", bundle: #bundle) : String(localized: "FILTER_SORT_ORDER_DESCENDING", bundle: #bundle)
+            return isAscending ? String(localized: "Sorter.order.ascending", bundle: #bundle) : String(localized: "Sorter.order.descending", bundle: #bundle)
         case .maximumStat:
-            return isAscending ? String(localized: "FILTER_SORT_ORDER_ASCENDING", bundle: #bundle) : String(localized: "FILTER_SORT_ORDER_DESCENDING", bundle: #bundle)
+            return isAscending ? String(localized: "Sorter.order.ascending", bundle: #bundle) : String(localized: "Sorter.order.descending", bundle: #bundle)
         case .id:
-            return isAscending ? String(localized: "FILTER_SORT_ORDER_ASCENDING", bundle: #bundle) : String(localized: "FILTER_SORT_ORDER_DESCENDING", bundle: #bundle)
+            return isAscending ? String(localized: "Sorter.order.ascending", bundle: #bundle) : String(localized: "Sorter.order.descending", bundle: #bundle)
         }
     }
     
@@ -250,33 +238,63 @@ extension Set<SekaiSorter.Keyword> {
         self.sorted { $0.rawValue < $1.rawValue }
     }
 }
-//
-//// MARK: extension PreviewEvent
-//extension SekaiEvents.PreviewEvent: DoriFrontend.Sortable {
-//    @inlinable
-//    public static var applicableSortingTypes: [DoriFrontend.Sorter.Keyword] {
-//        [.releaseDate(in: .jp), .releaseDate(in: .en), .releaseDate(in: .tw), .releaseDate(in: .cn), .releaseDate(in: .kr), .id]
-//    }
-//    
-//    @inlinable
-//    public static var hasEndingDate: Bool { true }
-//    
-//    public static func _compare<ValueType>(usingDoriSorter sorter: DoriFrontend.Sorter, lhs: ValueType, rhs: ValueType) -> Bool? {
-//        guard let castedLHS = lhs as? DoriAPI.Events.PreviewEvent, let castedRHS = rhs as? DoriAPI.Events.PreviewEvent else { return nil }
-//        switch sorter.keyword {
-//        case .releaseDate(let locale):
-//            return sorter.strictCompare(
-//                castedLHS.startAt.forLocale(locale)?.corrected(),
-//                castedRHS.startAt.forLocale(locale)?.corrected()
-//            ) ?? sorter.compare(castedLHS.id, castedRHS.id)
-//        case .id:
-//            return sorter.compare(castedLHS.id, castedRHS.id)
-//        default:
-//            return nil
-//        }
-//    }
-//}
-//
+
+extension Card: SekaiSortable {
+    public static var applicableSortingTypes: [SekaiSorter.Keyword] {
+        [.releaseDate(in: .jp), .releaseDate(in: .en), .releaseDate(in: .tw), .releaseDate(in: .cn), .releaseDate(in: .kr), .rarity, .maximumStat, .id]
+    }
+    
+    public static var hasEndingDate: Bool { false }
+    
+    public static func _compare<ValueType>(usingSekaiSorter sorter: SekaiSorter, lhs: ValueType, rhs: ValueType) -> Bool? {
+        
+        guard let castedLHS = lhs as? Card, let castedRHS = rhs as? Card else { return nil }
+        switch sorter.keyword {
+        case .releaseDate(let locale):
+            return sorter.strictCompare(
+                castedLHS.releaseDate.localizedData?.forLocale(locale)?.corrected(),
+                castedRHS.releaseDate.localizedData?.forLocale(locale)?.corrected()
+            ) ?? sorter.compare(castedLHS.id, castedRHS.id)
+        case .rarity:
+            return sorter.compare(castedLHS.rarity.integer ?? 0, castedRHS.rarity.integer ?? 0)
+        case .maximumStat:
+            return sorter.compare(castedLHS.maxPower, castedRHS.maxPower)
+        case .id:
+            return sorter.compare(castedLHS.id, castedRHS.id)
+        default:
+            return nil
+        }
+    }
+}
+
+
+
+// MARK: extension PreviewEvent
+extension Event: SekaiSortable {
+    @inlinable
+    public static var applicableSortingTypes: [SekaiSorter.Keyword] {
+        [.releaseDate(in: .jp), .releaseDate(in: .en), .releaseDate(in: .tw), .releaseDate(in: .cn), .releaseDate(in: .kr), .id]
+    }
+    
+    @inlinable
+    public static var hasEndingDate: Bool { true }
+    
+    public static func _compare<ValueType>(usingSekaiSorter sorter: SekaiSorter, lhs: ValueType, rhs: ValueType) -> Bool? {
+        guard let castedLHS = lhs as? Event, let castedRHS = rhs as? Event else { return nil }
+        switch sorter.keyword {
+        case .releaseDate(let locale):
+            return sorter.strictCompare(
+                castedLHS.startDate.localizedData?.forLocale(locale)?.corrected(),
+                castedRHS.startDate.localizedData?.forLocale(locale)?.corrected()
+            ) ?? sorter.compare(castedLHS.id, castedRHS.id)
+        case .id:
+            return sorter.compare(castedLHS.id, castedRHS.id)
+        default:
+            return nil
+        }
+    }
+}
+
 //// MARK: extension PreviewGacha
 //extension DoriAPI.Gachas.PreviewGacha: DoriFrontend.Sortable {
 //    @inlinable

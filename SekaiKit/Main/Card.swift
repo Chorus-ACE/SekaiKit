@@ -19,17 +19,17 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
     public var unit: Unit
     public var supportUnit: Unit?
     
-    public var cardRarityType: Rarity
+    public var rarity: Rarity
     public var attribute: Attribute
     
-    public var releaseDate: Date
+    public var releaseDate: LocalizableData<Date>
     public var sourceType: SourceType?
     public var gachaPhrase: String?
     
     public var isInitiallySpecialTrained: Bool = false // Rarely `true`
     
     public var skillID: Int
-    public var cardSkillName: LocalizableData<String>
+    public var skillName: LocalizableData<String>
     public var specialTrainingSkillID: Int? // Rarely not nil
     public var specialTrainingSkillName: LocalizableData<String> // Rarely not nil
     
@@ -40,9 +40,24 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
 //    public var masterLessonAchieveResources: [Int: [String]] // TODO
     
     public var archiveIsHidden: Bool = false // Rarely `true`
-    public var archivePublishedDate: Date
+    public var archivePublishedDate: LocalizableData<Date>
     
     public var assetbundleName: String
+    
+    public var maxPower: Int {
+        var maxPower = 0
+        for (_, value) in cardParameters {
+            maxPower += value.map(\.value).max() ?? 0
+        }
+        for (_, value) in specialTrainingFixedBonus {
+            maxPower += value
+        }
+        return maxPower
+    }
+    
+    public var canTrain: Bool {
+        return self.rarity.canTrain
+    }
     
     public enum ParameterType: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
         case performance = "param1"
@@ -80,6 +95,10 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
             }
         }
         
+        var canTrain: Bool {
+            return [Self.three, .four].contains(self)
+        }
+        
         var trainedMaxLevel: Int? {
             switch self {
             case .three:
@@ -105,12 +124,22 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
                 return NSLocalizedString("Card.rarity.birthday", bundle: #bundle, comment: "")
             }
         }
+        
+        public var integer: Int? {
+            switch self {
+            case .one: 1
+            case .two: 2
+            case .three: 3
+            case .four: 4
+            case .birthday: nil
+            }
+        }
     }
     
     public enum SourceType: Int, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
         case normal = 1
         case birthday
-        case termLimited
+        case termLimited 
         case colorfulFestivalLimited
         case bloomFestivalLimited
         case unitEventLimited
@@ -144,14 +173,14 @@ extension Card: ListGettable {
                         characterID: value["characterId"].intValue,
                         unit: Unit(member: value["characterId"].intValue) ?? .virturalSinger,
                         supportUnit: Unit(rawValue: value["supportUnit"].stringValue),
-                        cardRarityType: Rarity(rawValue: value["cardRarityType"].stringValue) ?? .one,
+                        rarity: Rarity(rawValue: value["cardRarityType"].stringValue) ?? .one,
                         attribute: Card.Attribute(rawValue: value["attr"].stringValue) ?? .cute,
-                        releaseDate: value["releaseAt"].dateValue,
+                        releaseDate: value["releaseAt"].date.localizable(),
                         sourceType: SourceType(rawValue: value["cardSupplyId"].intValue),
                         gachaPhrase: value["gachaPhrase"].stringValue.nilIfEqual(to: "-"),
                         isInitiallySpecialTrained: value["initialSpecialTrainingStatus"].stringValue == "done",
                         skillID: value["skillId"].intValue,
-                        cardSkillName: value["cardSkillName"].string.localizable(),
+                        skillName: value["cardSkillName"].string.localizable(),
                         specialTrainingSkillID: value["specialTrainingSkillId"].int,
                         specialTrainingSkillName: value["specialTrainingSkillName"].string.localizable(),
                         cardParameters: cardParams,
@@ -160,7 +189,7 @@ extension Card: ListGettable {
                         specialTrainingRewardResourceBoxID: value["specialTrainingRewardResourceBoxId"].int,
 //                        masterLessonAchieveResources: [:], // TODO
                         archiveIsHidden: value["archiveDisplayType"].string == "hide",
-                        archivePublishedDate: Date(timeIntervalSince1970: TimeInterval(value["archivePublishedAt"].intValue/1000)),
+                        archivePublishedDate: .unlocalized(Date(timeIntervalSince1970: TimeInterval(value["archivePublishedAt"].intValue/1000))),
                         assetbundleName: value["assetbundleName"].stringValue
                     ))
                 }
@@ -170,6 +199,28 @@ extension Card: ListGettable {
         } else {
             return nil
         }
+    }
+}
+
+extension Card {
+    @inlinable
+    public var beforeTrainingArtURL: URL { // No localizations available
+        .init(string: "https://storage.sekai.best/sekai-jp-assets/character/member/\(self.assetbundleName)/card_normal.webp")!
+    }
+
+    public var afterTrainingArtURL: URL? {
+        guard self.rarity.canTrain else { return nil }
+        return .init(string: "https://storage.sekai.best/sekai-jp-assets/character/member/\(self.assetbundleName)/card_after_training.webp")!
+    }
+    
+    @inlinable
+    public var beforeTrainingThumbnailURL: URL {
+        .init(string: "https://storage.sekai.best/sekai-jp-assets/thumbnail/chara/\(self.assetbundleName)_normal.webp")!
+    }
+    
+    public var afterTrainingThumbnailURL: URL? {
+        guard self.rarity.canTrain else { return nil }
+        return .init(string: "https://storage.sekai.best/sekai-jp-assets/thumbnail/chara/\(self.assetbundleName)_after_training.webp")!
     }
 }
 

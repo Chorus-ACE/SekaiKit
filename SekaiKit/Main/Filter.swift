@@ -13,7 +13,7 @@ public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
     public var character: Set<Self.Character> = Set(Self.Character.allCases) { didSet { store() } }
     public var unit: Set<Self.Unit> = Set(Self.Unit.allCases) { didSet { store() } }
     public var supportUnit: Set<Self.SupportingUnit> = Set(Self.SupportingUnit.allCases) { didSet { store() } }
-    public var cardAttribute: Set<Self.CardAttribute> = Set(Self.CardAttribute.allCases) { didSet { store() } }
+    public var attribute: Set<Self.Attribute> = Set(Self.Attribute.allCases) { didSet { store() } }
     public var cardRarity: Set<Self.CardRarity> = Set(Self.CardRarity.allCases) { didSet { store() } }
     public var cardSource: Set<Self.CardSource> = Set(Self.CardSource.allCases)
     public var skill: Skill? = nil { didSet { store() } }
@@ -22,7 +22,7 @@ public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
         character: Set<Self.Character> = Set(Self.Character.allCases),
         unit: Set<Self.Unit> = Set(Self.Unit.allCases),
         supportUnit: Set<Self.SupportingUnit> = Set(Self.SupportingUnit.allCases),
-        cardAttribute: Set<Self.CardAttribute> = Set(Self.CardAttribute.allCases),
+        attribute: Set<Self.Attribute> = Set(Self.Attribute.allCases),
         cardRarity: Set<Self.CardRarity> = Set(Self.CardRarity.allCases),
         cardSource: Set<Self.CardSource> = Set(Self.CardSource.allCases),
         skill: Skill? = nil
@@ -30,7 +30,7 @@ public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
         self.character = character
         self.unit = unit
         self.supportUnit = supportUnit
-        self.cardAttribute = cardAttribute
+        self.attribute = attribute
         self.cardRarity = cardRarity
         self.cardSource = cardSource
         self.skill = skill
@@ -56,7 +56,7 @@ public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
         character != Set(Self.Character.allCases) ||
         unit != Set(Self.Unit.allCases) ||
         supportUnit != Set(Self.SupportingUnit.allCases) ||
-        cardAttribute != Set(Self.CardAttribute.allCases) ||
+        attribute != Set(Self.Attribute.allCases) ||
         cardRarity != Set(Self.CardRarity.allCases) ||
         cardSource != Set(Self.CardSource.allCases) ||
         skill != nil
@@ -67,7 +67,7 @@ public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
             \(character.sorted { $0.rawValue < $1.rawValue })\
             \(unit.sorted { $0.rawValue < $1.rawValue })\
             \(supportUnit.sorted { $0.value.rawValue < $1.value.rawValue })\
-            \(cardAttribute.sorted { $0.rawValue < $1.rawValue })\
+            \(attribute.sorted { $0.rawValue < $1.rawValue })\
             \(cardRarity.sorted { $0.rawValue < $1.rawValue })\
             \(cardSource.sorted { $0.rawValue < $1.rawValue })\
             \(skill?.id)
@@ -80,7 +80,7 @@ public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
         character = Set(Self.Character.allCases)
         unit = Set(Self.Unit.allCases)
         supportUnit = Set(Self.SupportingUnit.allCases)
-        cardAttribute = Set(Self.CardAttribute.allCases)
+        attribute = Set(Self.Attribute.allCases)
         cardRarity = Set(Self.CardRarity.allCases)
         cardSource = Set(Self.CardSource.allCases)
         skill = nil
@@ -113,7 +113,7 @@ extension SekaiFilter {
         case character
         case unit
         case supportUnit
-        case cardAttribute
+        case attribute
         case cardRarity
         case cardSource
         case skill
@@ -150,7 +150,7 @@ extension Array<SekaiFilter.Key> {
 public extension SekaiFilter {
     // existing types
     typealias Unit = SekaiKit.Unit
-    typealias CardAttribute = Card.Attribute
+    typealias Attribute = Card.Attribute
     typealias CardRarity = Card.Rarity
     typealias CardSource = Card.SourceType
     typealias Skill = SekaiKit.Skill
@@ -224,7 +224,7 @@ extension SekaiFilter: MutableCollection {
             case .character: self.character
             case .unit: self.unit
             case .supportUnit: self.supportUnit
-            case .cardAttribute: self.cardAttribute
+            case .attribute: self.attribute
             case .cardRarity: self.cardRarity
             case .cardSource: self.cardSource
             case .skill: self.skill
@@ -251,8 +251,8 @@ extension SekaiFilter: MutableCollection {
             self.unit = value as! Set<Self.Unit>
         case .supportUnit:
             self.supportUnit = value as! Set<Self.SupportingUnit>
-        case .cardAttribute:
-            self.cardAttribute = value as! Set<Self.CardAttribute>
+        case .attribute:
+            self.attribute = value as! Set<Self.Attribute>
         case .cardRarity:
             self.cardRarity = value as! Set<Self.CardRarity>
         case .cardSource:
@@ -331,9 +331,9 @@ extension SekaiFilter.SupportingUnit: SekaiFilter._Selectable {
     }
 }
 
-extension SekaiFilter.CardAttribute: SekaiFilter._Selectable {
+extension SekaiFilter.Attribute: SekaiFilter._Selectable {
     public var selectorText: String {
-        self.rawValue.uppercased()
+        self.rawValue.capitalized
     }
     public var selectorImageURL: URL? {
         Bundle.module.url(forResource: "icon_attribute_\(self.rawValue)", withExtension: "png")
@@ -381,8 +381,8 @@ extension SekaiFilter.Key {
             (.multiple, SekaiFilter.SupportingUnit.allCases.map {
                 SelectorItem(SekaiFilter._AnySelectable($0))
             })
-        case .cardAttribute:
-            (.multiple, SekaiFilter.CardAttribute.allCases.map {
+        case .attribute:
+            (.multiple, SekaiFilter.Attribute.allCases.map {
                 SelectorItem(SekaiFilter._AnySelectable($0))
             })
         case .cardSource:

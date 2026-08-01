@@ -1,17 +1,72 @@
-////===---*- Greatdori! -*---------------------------------------------------===//
-////
-//// PreCache.swift
-////
-//// This source file is part of the Greatdori! open source project
-////
-//// Copyright (c) 2025 the Greatdori! project authors
-//// Licensed under Apache License v2.0
-////
-//// See https://greatdori.com/LICENSE.txt for license information
-//// See https://greatdori.com/CONTRIBUTORS.txt for the list of Greatdori! project authors
-////
-////===----------------------------------------------------------------------===//
+//===---*- Greatdori! -*---------------------------------------------------===//
 //
+// PreCache.swift
+//
+// This source file is part of the Greatdori! open source project
+//
+// Copyright (c) 2025 the Greatdori! project authors
+// Licensed under Apache License v2.0
+//
+// See https://greatdori.com/LICENSE.txt for license information
+// See https://greatdori.com/CONTRIBUTORS.txt for the list of Greatdori! project authors
+//
+//===----------------------------------------------------------------------===//
+
+import Foundation
+import SwiftUI
+import SwiftyJSON
+
+extension SekaiCache {
+    public struct PreCache: Sendable, Hashable, Decodable {
+        public static let current: Self = preCache
+        
+        public var characters: [CachedCharacter]
+        
+        public struct CachedCharacter: Codable, Hashable, Identifiable, SekaiCachable, Sendable {
+            public var id: Int
+            
+            public var familyName: LocalizedData<String>
+            public var givenName: LocalizedData<String>
+            
+            public var unit: String
+            public var birthday: DateComponents
+            public var color: Color
+            
+            public var fullName: LocalizedData<String> {
+                var components = PersonNameComponents()
+                let formatter = PersonNameComponentsFormatter()
+                formatter.style = .default
+                
+                var result: LocalizedData<String> = .init()
+                
+                for locale in givenName.allAvailableLocales {
+                    components.familyName = self.familyName[locale]
+                    components.givenName = self.givenName[locale]
+                    
+                    result.updateValue(formatter.string(from: components), forLocale: locale)
+                }
+                
+                return result
+            }
+        }
+    }
+    
+    @inline(never)
+    public static let preCache: PreCache = {
+        let decoder = PropertyListDecoder()
+        var characters: [PreCache.CachedCharacter] = []
+        
+        if let url = #bundle.url(forResource: "cachedCharacters", withExtension: "plist"),
+           let data = try? Data(contentsOf: url),
+           let array = try? decoder.decode([PreCache.CachedCharacter].self, from: data)
+        {
+            characters = array
+        }
+        
+        return .init(characters: characters)
+    }()
+}
+
 //import Foundation
 //
 //extension SekaiCache {
@@ -24,14 +79,14 @@
 //    /// like character list from `SekaiCache.preCache` without performing a network request.
 //    public struct PreCache: Sendable, Hashable, Decodable {
 //        public static let current: Self = preCache
-//        
+//
 //        public var bands: [SekaiAPI.Bands.Band]
 //        public var mainBands: [SekaiAPI.Bands.Band]
 //        public var characters: [SekaiAPI.Characters.PreviewCharacter]
 //        public var birthdayCharacters: [SekaiAPI.Characters.BirthdayCharacter]
 //        public var categorizedCharacters: SekaiFrontend.Characters.CategorizedCharacters
 //        public var characterDetails: [Int: SekaiAPI.Characters.Character] // [CharacterID: Detail]
-//        
+//
 //        public static var isAvailable: Bool {
 //#if DORIKIT_ENABLE_PRECACHE
 //            true
@@ -40,7 +95,7 @@
 //#endif
 //        }
 //    }
-//    
+//
 //    /// Get a ``PreCache``.
 //    @inline(never)
 //    public static let preCache: PreCache = {
@@ -53,7 +108,7 @@
 //        .init(bands: [], mainBands: [], characters: [], birthdayCharacters: [], categorizedCharacters: [:], characterDetails: [:])
 //        #endif
 //    }()
-//    
+//
 //    internal static func preCachedData(byID id: String) -> Any? {
 //        switch id {
 //        case "CharacterList": preCache.categorizedCharacters
