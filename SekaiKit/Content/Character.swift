@@ -8,7 +8,7 @@
 import Foundation
 import SekaiKitMacro
 import SwiftUI
-internal import SwiftyJSON
+import SwiftyJSON
 
 @LocalizationsCombinable
 public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachable, LocalizationsCombinable {
@@ -267,10 +267,4 @@ extension Character {
         .init(string: "https://storage.sekai.best/\(locale._assetsPath)/character/character_select/chr_tl_\(id).webp")!
     }
 }
-
-extension Character: TitleDescribable {
-    public var title: LocalizableData<String> { fullName }
-}
-
-
 

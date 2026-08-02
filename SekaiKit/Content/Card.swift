@@ -223,7 +223,3 @@ extension Card {
         return .init(string: "https://storage.sekai.best/sekai-jp-assets/thumbnail/chara/\(self.assetbundleName)_after_training.webp")!
     }
 }
-
-extension Card: TitleDescribable {
-    public var title: LocalizableData<String> { self.name }
-}

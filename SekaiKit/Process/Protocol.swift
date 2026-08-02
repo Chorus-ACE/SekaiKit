@@ -5,10 +5,6 @@
 //  Created by ThreeManager785 on 2026/2/1.
 //
 
-public protocol TitleDescribable {
-    var title: LocalizableData<String> { get }
-}
-
 public protocol GettableByID {
     init?(id: Int) async
 }
@@ -52,9 +48,4 @@ extension ListGettable where Self.ID: Comparable {
     public static func all() async -> [Self]? {
         return await self._all()?.sorted(by: { $0.id < $1.id })
     }
-}
-
-// MARK: - ExtendedTypeConvertible
-public protocol ExtendedTypeConvertible {
-    associatedtype ExtendedType
 }

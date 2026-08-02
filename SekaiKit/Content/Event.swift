@@ -139,5 +139,3 @@ extension Event {
         .init(string: "https://storage.sekai.best/\(locale._assetsPath)/event/\(self.assetBundleName)/logo/logo.webp")!
     }
 }
-
-extension Event: TitleDescribable {}

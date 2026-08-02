@@ -22,6 +22,10 @@ extension SekaiCache {
         
         public var characters: [CachedCharacter]
         
+        public func character(id: Int) -> CachedCharacter? {
+            return self.characters.first(where: { $0.id == id })
+        }
+        
         public struct CachedCharacter: Codable, Hashable, Identifiable, SekaiCachable, Sendable {
             public var id: Int
             

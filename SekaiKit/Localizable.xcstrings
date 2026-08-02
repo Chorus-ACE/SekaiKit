@@ -276,6 +276,28 @@
         }
       }
     },
+    "Sorter.keyword.max-power" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Max Power"
+          }
+        }
+      }
+    },
+    "Sorter.keyword.rarity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rarity"
+          }
+        }
+      }
+    },
     "Sorter.keyword.release-date.%@" : {
       "extractionState" : "pasted",
       "localizations" : {
