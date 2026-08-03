@@ -7,13 +7,13 @@
 
 import Foundation
 
-extension Card: NeoSekaiFilterable {
-    public static var filterKeys: [NeoSekaiFilter.Key] {
-        [Unit.filterKey, Card.Attribute.filterKey, Card.Rarity.filterKey, Character.filterKey]
+extension Card: SekaiFilterable {
+    public static var filterKeys: [SekaiFilter.Key] {
+        [Unit.filterKey, Card.Attribute.filterKey, Card.Rarity.filterKey, Character.filterKey, Card.SourceType.filterKey]
     }
     
-    public func _matches(_ filter: NeoSekaiFilter) -> Bool {
-        let alpha: [any SekaiFilterElementProtocol] = [self.unit, self.attribute, self.rarity]
+    public func _matches(_ filter: SekaiFilter) -> Bool {
+        let alpha: [any SekaiFilterElementProtocol] = [self.unit, self.attribute, self.rarity, self.sourceType]
         for a in alpha {
             if !filter.contains(a) {
                 return false
@@ -27,6 +27,18 @@ extension Card: NeoSekaiFilterable {
             }
         }
         
+        return true
+    }
+}
+
+extension Event: SekaiFilterable {
+    public static var filterKeys: [SekaiFilter.Key] {
+        [Card.Attribute.filterKey]
+    }
+    
+    public func _matches(_ filter: SekaiFilter) -> Bool {
+//        let alpha: [any SekaiFilterElementProtocol] = [self.eventType]
+        // TODO: Event Filter
         return true
     }
 }

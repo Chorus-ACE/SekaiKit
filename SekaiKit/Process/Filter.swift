@@ -2,429 +2,116 @@
 //  Filter.swift
 //  SekaiKit
 //
-//  Created by ThreeManager785 on 2026/2/28.
+//  Created by ThreeManager785 on 2026/8/2.
 //
 
 import Foundation
-internal import CryptoKit
 
-// Declaration of values
-public struct SekaiFilter: Hashable, Sendable, SekaiCachable {
-    public var character: Set<Self.Character> = Set(Self.Character.allCases) { didSet { store() } }
-    public var unit: Set<Self.Unit> = Set(Self.Unit.allCases) { didSet { store() } }
-    public var supportUnit: Set<Self.SupportingUnit> = Set(Self.SupportingUnit.allCases) { didSet { store() } }
-    public var attribute: Set<Self.Attribute> = Set(Self.Attribute.allCases) { didSet { store() } }
-    public var cardRarity: Set<Self.CardRarity> = Set(Self.CardRarity.allCases) { didSet { store() } }
-    public var cardSource: Set<Self.CardSource> = Set(Self.CardSource.allCases)
-    public var skill: Skill? = nil { didSet { store() } }
+public struct SekaiFilter: Hashable, Codable, Equatable {
+    public var configuration: [String: Set<Int>] = [:]
     
-    public init(
-        character: Set<Self.Character> = Set(Self.Character.allCases),
-        unit: Set<Self.Unit> = Set(Self.Unit.allCases),
-        supportUnit: Set<Self.SupportingUnit> = Set(Self.SupportingUnit.allCases),
-        attribute: Set<Self.Attribute> = Set(Self.Attribute.allCases),
-        cardRarity: Set<Self.CardRarity> = Set(Self.CardRarity.allCases),
-        cardSource: Set<Self.CardSource> = Set(Self.CardSource.allCases),
-        skill: Skill? = nil
-    ) {
-        self.character = character
-        self.unit = unit
-        self.supportUnit = supportUnit
-        self.attribute = attribute
-        self.cardRarity = cardRarity
-        self.cardSource = cardSource
-        self.skill = skill
+    public init(_ configuration: [String : Set<Int>]) {
+        self.configuration = configuration
     }
     
-    
-    private var recoveryID: String?
-    
-    public static func recoverable(id: String) -> Self {
-        let storageURL = URL(filePath: NSHomeDirectory() + "/Documents/SekaiKit_Filter_Status.plist")
-        let decoder = PropertyListDecoder()
-        var result: Self = if let _data = try? Data(contentsOf: storageURL),
-                              let storage = try? decoder.decode([String: Self].self, from: _data) {
-            storage[id] ?? .init()
-        } else {
-            .init()
+    public init(forKeys keys: [Self.Key]) {
+        var configuration: [String: Set<Int>] = [:]
+        for key in keys {
+            configuration[key.id] = Set(key.defaultValue.map(\.id))
         }
-        result.recoveryID = id
-        return result
-    }
-    
-    public var isFiltered: Bool {
-        character != Set(Self.Character.allCases) ||
-        unit != Set(Self.Unit.allCases) ||
-        supportUnit != Set(Self.SupportingUnit.allCases) ||
-        attribute != Set(Self.Attribute.allCases) ||
-        cardRarity != Set(Self.CardRarity.allCases) ||
-        cardSource != Set(Self.CardSource.allCases) ||
-        skill != nil
-    }
-    
-    public var identity: String {
-        let desc = """
-            \(character.sorted { $0.rawValue < $1.rawValue })\
-            \(unit.sorted { $0.rawValue < $1.rawValue })\
-            \(supportUnit.sorted { $0.value.rawValue < $1.value.rawValue })\
-            \(attribute.sorted { $0.rawValue < $1.rawValue })\
-            \(cardRarity.sorted { $0.rawValue < $1.rawValue })\
-            \(cardSource.sorted { $0.rawValue < $1.rawValue })\
-            \(skill?.id)
-            """
         
-        return String(SHA256.hash(data: desc.data(using: .utf8)!).map { $0.description }.joined().prefix(8))
+        self.configuration = configuration
     }
     
-    public mutating func clearAll() {
-        character = Set(Self.Character.allCases)
-        unit = Set(Self.Unit.allCases)
-        supportUnit = Set(Self.SupportingUnit.allCases)
-        attribute = Set(Self.Attribute.allCases)
-        cardRarity = Set(Self.CardRarity.allCases)
-        cardSource = Set(Self.CardSource.allCases)
-        skill = nil
-    }
+//    public var identity: String {
+//        "\(self)"
+//    }
     
-    private static let _storageLock = NSLock()
-    private func store() {
-        guard let recoveryID else { return }
-        DispatchQueue(label: "com.chrous-ace.sekai-kit.filter-store", qos: .utility).async {
-            Self._storageLock.lock()
-            let storageURL = URL(filePath: NSHomeDirectory() + "/Documents/SekaiKit_Filter_Status.plist")
-            let decoder = PropertyListDecoder()
-            let encoder = PropertyListEncoder()
-            if let _data = try? Data(contentsOf: storageURL),
-               var storage = try? decoder.decode([String: Self].self, from: _data) {
-                storage.updateValue(self, forKey: recoveryID)
-                try? encoder.encode(storage).write(to: storageURL)
-            } else {
-                let storage = [recoveryID: self]
-                try? encoder.encode(storage).write(to: storageURL)
+    public func isFiltering(referencing reference: [Self.Key]? = nil) -> Bool {
+        for (key, value) in configuration {
+            if value.isEmpty {
+                continue
+            } else if let reference, let allCases = reference.first(where: { $0.id == key })?.allCasesID, Set(allCases) == value {
+                continue
             }
-            Self._storageLock.unlock()
+            return true
         }
-    }
-}
-
-// Declaration of Key
-extension SekaiFilter {
-    public enum Key: Int, CaseIterable, Comparable, Hashable, Identifiable {
-        case character
-        case unit
-        case supportUnit
-        case attribute
-        case cardRarity
-        case cardSource
-        case skill
-        
-        public var id: Int { self.rawValue }
-        
-        public var localizedName: String {
-            NSLocalizedString("Filter.keys.\(self.rawValue)", bundle: #bundle, comment: "")
-        }
-        
-        @inlinable
-        public static func < (lhs: SekaiFilter.Key, rhs: SekaiFilter.Key) -> Bool {
-            lhs.rawValue < rhs.rawValue
-        }
-    }
-}
-
-// Sorting Key
-extension Set<SekaiFilter.Key> {
-    @inlinable
-    public func sorted() -> [SekaiFilter.Key] {
-        self.sorted { $0.rawValue < $1.rawValue }
-    }
-}
-extension Array<SekaiFilter.Key> {
-    @inlinable
-    public func sorted() -> [SekaiFilter.Key] {
-        self.sorted { $0.rawValue < $1.rawValue }
-    }
-}
-
-
-// Defining Types
-public extension SekaiFilter {
-    // existing types
-    typealias Unit = SekaiKit.Unit
-    typealias Attribute = Card.Attribute
-    typealias CardRarity = Card.Rarity
-    typealias CardSource = Card.SourceType
-    typealias Skill = SekaiKit.Skill
-    
-    // characters
-    enum Character: Int, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
-        case ichika = 1
-        case saki
-        case honami
-        case shiho
-        
-        case minori = 5
-        case haruka
-        case airi
-        case shizuku
-
-        case kohane = 9
-        case an
-        case akito
-        case toya
-        
-        case tsukasa = 13
-        case emu
-        case nene
-        case rui
-
-        case kanade = 17
-        case mafuyu
-        case ena
-        case mizuki
-
-        case miku = 21
-        case rin
-        case len
-        case luka
-        case meiko
-        case kaito
-        
-        public var name: String {
-            NSLocalizedString("Filter.key.character.\(self.rawValue)", bundle: #bundle, comment: "")
-        }
+        return false
     }
     
-    // supporting units
-    struct SupportingUnit: Hashable, Codable, Sendable, SekaiCachable {
-        public var value: SekaiKit.Unit
-        
-        public static var allCases: [SupportingUnit] {
-            return SekaiKit.Unit.allSupportableUnits.map(SupportingUnit.init)
-        }
-    }
-}
-
-
-// Conform to Collection
-extension SekaiFilter: MutableCollection {
-    public typealias Element = AnyHashable
-    
-    @inlinable
-    public var startIndex: Key { .character }
-    @inlinable
-    public var endIndex: Key { .skill }
-    @inlinable
-    public func index(after i: Key) -> Key {
-        .init(rawValue: i.rawValue + 1)!
-    }
-    
-    public subscript(position: Key) -> AnyHashable {
+    public subscript (index: String) -> Set<Int>? {
         get {
-            switch position {
-            case .character: self.character
-            case .unit: self.unit
-            case .supportUnit: self.supportUnit
-            case .attribute: self.attribute
-            case .cardRarity: self.cardRarity
-            case .cardSource: self.cardSource
-            case .skill: self.skill
+            return self.configuration[index]
+        }
+        set(newValue) {
+            if let newValue {
+                configuration[index] = newValue
+            } else {
+                configuration.removeValue(forKey: index)
             }
         }
-        set {
-            self.updateValue(newValue, forKey: position)
-        }
     }
     
-    
-    public mutating func updateValue(_ value: AnyHashable, forKey key: Key) {
-        let expectedValueType = type(of: self[key])
-        let valueType = type(of: value)
-        typeCheck: if valueType != expectedValueType {
-            logger.critical("Failed to update value of filter, expected \(expectedValueType), but got \(valueType)")
-            return
+    public struct Key: Hashable, Codable, Identifiable {
+        public let id: String
+        public let title: String
+        
+        public let allowMultipleSelection: Bool
+        public let options: [Option]
+        private let _defaultValue: [Option]?
+        
+        public var defaultValue: [Option] {
+            self._defaultValue ?? options
         }
         
-        switch key {
-        case .character:
-            self.character = value as! Set<Self.Character>
-        case .unit:
-            self.unit = value as! Set<Self.Unit>
-        case .supportUnit:
-            self.supportUnit = value as! Set<Self.SupportingUnit>
-        case .attribute:
-            self.attribute = value as! Set<Self.Attribute>
-        case .cardRarity:
-            self.cardRarity = value as! Set<Self.CardRarity>
-        case .cardSource:
-            self.cardSource = value as! Set<Self.CardSource>
-        case .skill:
-            self.skill = value as! Skill?
+        public var allCasesID: [Int] {
+            self.options.map(\.id)
+        }
+        
+        public init(id: String, title: String? = nil, allowMultipleSelection: Bool = true, options: [Option], defaultOptions: [Option]? = nil
+        ) {
+            self.id = id
+            self.title = title ?? NSLocalizedString("Filter.key.\(id)", bundle: #bundle, comment: "")
+            self.allowMultipleSelection = allowMultipleSelection
+            self.options = options
+            self._defaultValue = defaultOptions
+        }
+        
+        public struct Option: Hashable, Codable, Identifiable {
+            public var id: Int
+            public var selectorName: String
+            public var selectorImage: URL?
         }
     }
 }
 
-
-// Option Labels
 extension SekaiFilter {
-    @_typeEraser(_AnySelectable)
-    public protocol _Selectable: Hashable {
-        var selectorText: String { get }
-        var selectorImageURL: URL? { get }
-    }
-    public struct _AnySelectable: _Selectable, Equatable, Hashable {
-        private let _selectorText: String
-        private let _selectorImageURL: URL?
-        
-        public let value: AnyHashable
-        
-        public init<T: _Selectable>(erasing value: T) {
-            self._selectorText = value.selectorText
-            self._selectorImageURL = value.selectorImageURL
-            self.value = value
+    internal func contains(key: String, value: Int) -> Bool {
+        if let allowlist = self[key], !allowlist.contains(value) {
+            return false
         }
-        public init<T: _Selectable>(_ value: T) {
-            self.init(erasing: value)
-        }
-        internal init<T: _Selectable>(_ value: T, selectorText: String, selectorImageURL: URL? = nil) {
-            self._selectorText = selectorText
-            self._selectorImageURL = selectorImageURL
-            self.value = value
-        }
-        
-        public var selectorText: String { _selectorText }
-        public var selectorImageURL: URL? { _selectorImageURL }
-    }
-}
-
-extension SekaiFilter._Selectable {
-    public var selectorImageURL: URL? { nil }
-    
-    public func isEqual(to selectable: any SekaiFilter._Selectable) -> Bool {
-        self.selectorText == selectable.selectorText
-    }
-}
-
-extension SekaiFilter.Character: SekaiFilter._Selectable {
-    public var selectorText: String {
-        self.name
-    }
-    public var selectorImageURL: URL? {
-        Bundle.module.url(forResource: "chr_ts_\(self.rawValue)", withExtension: "png")
-    }
-}
-
-extension SekaiFilter.Unit: SekaiFilter._Selectable {
-    public var selectorText: String {
-        self.localizedName
-    }
-    public var selectorImageURL: URL? {
-        Bundle.module.url(forResource: "unit_logo_\(self.numericID)", withExtension: "png")
-    }
-}
-
-extension SekaiFilter.SupportingUnit: SekaiFilter._Selectable {
-    public var selectorText: String {
-        self.value.localizedName
-    }
-    public var selectorImageURL: URL? {
-        Bundle.module.url(forResource: "unit_logo_\(self.value.numericID)", withExtension: "png")
-    }
-}
-
-extension SekaiFilter.Attribute: SekaiFilter._Selectable {
-    public var selectorText: String {
-        self.rawValue.capitalized
-    }
-    public var selectorImageURL: URL? {
-        Bundle.module.url(forResource: "icon_attribute_\(self.rawValue)", withExtension: "png")
-    }
-}
-
-extension SekaiFilter.CardSource: SekaiFilter._Selectable {
-    public var selectorText: String {
-        self.localizedName
-    }
-}
-
-extension SekaiFilter.CardRarity: SekaiFilter._Selectable {
-    public var selectorText: String {
-        self.localizedName
-    }
-    public var selectorImageURL: URL? {
-        Bundle.module.url(forResource: self.rawValue, withExtension: "png")
-    }
-}
-
-extension Optional<SekaiFilter.Skill>: SekaiFilter._Selectable {
-    @inline(never)
-    public var selectorText: String {
-        if let skill = self {
-            skill.description // FIXME: Localization?
-        } else {
-            String(localized: "Filter.skill.any", bundle: #bundle)
-        }
-    }
-}
-
-extension SekaiFilter.Key {
-    public var selector: (type: SelectionType, items: [SelectorItem<SekaiFilter._AnySelectable>]) {
-        switch self {
-        case .character:
-            (.multiple, SekaiFilter.Character.allCases.map {
-                SelectorItem(SekaiFilter._AnySelectable($0))
-            })
-        case .unit:
-            (.multiple, SekaiFilter.Unit.allCases.map {
-                SelectorItem(SekaiFilter._AnySelectable($0))
-            })
-        case .supportUnit:
-            (.multiple, SekaiFilter.SupportingUnit.allCases.map {
-                SelectorItem(SekaiFilter._AnySelectable($0))
-            })
-        case .attribute:
-            (.multiple, SekaiFilter.Attribute.allCases.map {
-                SelectorItem(SekaiFilter._AnySelectable($0))
-            })
-        case .cardSource:
-            (.multiple, SekaiFilter.CardSource.allCases.map {
-                SelectorItem(SekaiFilter._AnySelectable($0))
-            })
-        case .cardRarity:
-            (.multiple, SekaiFilter.CardRarity.allCases.map {
-                SelectorItem(SekaiFilter._AnySelectable($0))
-            })
-        case .skill:
-//            (.single, Skills.all.map {
-//                SelectorItem(SekaiFilter._AnySelectable($0))
-//            } ?? [])
-            (.single, [])
-            
-            // FIXME: All Skills
-        }
+        return true
     }
     
-    public struct SelectorItem<T: SekaiFilter._Selectable> {
-        public let item: T
-        
-        internal init(_ item: T) {
-            self.item = item
-        }
-        
-        public var text: String {
-            item.selectorText
-        }
-        public var imageURL: URL? {
-            item.selectorImageURL
-        }
-    }
-    
-    @frozen
-    public enum SelectionType {
-        case single
-        case multiple
+    internal func contains<T: SekaiFilterElementProtocol>(_ item: T) -> Bool {
+        self.contains(key: T.filterKey.id, value: item.filterValue)
     }
 }
 
 
-extension SekaiFilter.Key.SelectorItem: Equatable where T: Equatable {}
-extension SekaiFilter.Key.SelectorItem: Hashable where T: Hashable {}
+public protocol SekaiFilterable {
+    static var filterKeys: [SekaiFilter.Key] { get }
+    
+    func _matches(_ filter: SekaiFilter) -> Bool
+}
+
+extension Array where Element: SekaiFilterable {
+    public func filter(withSekaiFilter filter: SekaiFilter) -> [Element] {
+        guard filter.isFiltering(referencing: Element.filterKeys) else { return self }
+        return self.filter { $0._matches(filter) }
+    }
+    
+    mutating func filter(withSekaiFilter filter: SekaiFilter) {
+        self = self.filter(withSekaiFilter: filter)
+    }
+}

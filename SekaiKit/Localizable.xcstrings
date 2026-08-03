@@ -129,6 +129,107 @@
         }
       }
     },
+    "Event.type.cheerful_carnival" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cheerful Carnival"
+          }
+        }
+      }
+    },
+    "Event.type.marathon" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marathon"
+          }
+        }
+      }
+    },
+    "Event.type.world_bloom" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "World Link"
+          }
+        }
+      }
+    },
+    "Filter.key.attribute" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Attribute"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "属性"
+          }
+        }
+      }
+    },
+    "Filter.key.card-skill" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Skill"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技能"
+          }
+        }
+      }
+    },
+    "Filter.key.card-source" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Card Source"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "来源"
+          }
+        }
+      }
+    },
+    "Filter.key.character" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Character"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "角色"
+          }
+        }
+      }
+    },
     "Filter.key.character.1" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -146,24 +247,7 @@
         }
       }
     },
-    "Filter.keys.cardAttribute" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Attribute"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "属性"
-          }
-        }
-      }
-    },
-    "Filter.keys.cardRarity" : {
+    "Filter.key.rarity" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -180,58 +264,7 @@
         }
       }
     },
-    "Filter.keys.cardSkill" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Skill"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "技能"
-          }
-        }
-      }
-    },
-    "Filter.keys.cardSource" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Card Source"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "来源"
-          }
-        }
-      }
-    },
-    "Filter.keys.character" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Character"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "角色"
-          }
-        }
-      }
-    },
-    "Filter.keys.supportUnit" : {
+    "Filter.key.supportUnit" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -248,7 +281,7 @@
         }
       }
     },
-    "Filter.keys.unit" : {
+    "Filter.key.unit" : {
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

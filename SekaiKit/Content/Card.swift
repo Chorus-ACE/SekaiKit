@@ -23,7 +23,7 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
     public var attribute: Attribute
     
     public var releaseDate: LocalizableData<Date>
-    public var sourceType: SourceType?
+    public var sourceType: SourceType
     public var gachaPhrase: String?
     
     public var isInitiallySpecialTrained: Bool = false // Rarely `true`
@@ -176,7 +176,7 @@ extension Card: ListGettable {
                         rarity: Rarity(rawValue: value["cardRarityType"].stringValue) ?? .one,
                         attribute: Card.Attribute(rawValue: value["attr"].stringValue) ?? .cute,
                         releaseDate: value["releaseAt"].date.localizable(),
-                        sourceType: SourceType(rawValue: value["cardSupplyId"].intValue),
+                        sourceType: SourceType(rawValue: value["cardSupplyId"].intValue) ?? .normal,
                         gachaPhrase: value["gachaPhrase"].stringValue.nilIfEqual(to: "-"),
                         isInitiallySpecialTrained: value["initialSpecialTrainingStatus"].stringValue == "done",
                         skillID: value["skillId"].intValue,
