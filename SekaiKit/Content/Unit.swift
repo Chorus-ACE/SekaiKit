@@ -66,6 +66,17 @@ public enum Unit: String, Hashable, CaseIterable, Codable, Sendable, SekaiCachab
     }
 }
 
+
+//public struct UnitInfo: Hashable, Codable, Sendable, Identifiable, SekaiCachable {
+//    public var id: Int { get }
+//    public var name: String
+//    public var description: String
+//    
+//    public static func allInLocale(_ locale: SekaiLocale) async -> [UnitInfo]? {
+//        <#code#>
+//    }
+//}
+
 extension Unit {
     @inlinable
     public var logoImageURL: URL {

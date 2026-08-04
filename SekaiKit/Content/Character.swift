@@ -142,7 +142,7 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
 }
 
 extension Character: ListGettable {
-    public static func allForLocale(_ locale: SekaiLocale) async -> [Character]? {
+    public static func allInLocale(_ locale: SekaiLocale) async -> [Character]? {
         let groupResult = await withTasksResult {
             await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/characterProfiles.json")
         } _: {

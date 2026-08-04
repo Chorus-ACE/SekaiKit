@@ -6,6 +6,10 @@
 //
 
 // WIP
+//
+//struct EventStories: Hashable {
+//    var eventID: Int
+//}
 
 struct Episode: Hashable {
     var id: Int

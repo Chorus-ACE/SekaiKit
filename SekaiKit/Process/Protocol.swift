@@ -16,21 +16,21 @@ public protocol LocalizationsCombinable {
 }
 
 public protocol ListGettable: Identifiable, Sendable, LocalizationsCombinable {
-    static func allForLocale(_ locale: SekaiLocale) async -> [Self]?
+    static func allInLocale(_ locale: SekaiLocale) async -> [Self]?
 }
 
 extension ListGettable {
     private static func _all() async -> [Self]? {
         let groupResult = await withTasksResult {
-            await Self.allForLocale(.jp)
+            await Self.allInLocale(.jp)
         } _: {
-            await Self.allForLocale(.en)
+            await Self.allInLocale(.en)
         } _: {
-            await Self.allForLocale(.tw)
+            await Self.allInLocale(.tw)
         } _: {
-            await Self.allForLocale(.cn)
+            await Self.allInLocale(.cn)
         }  _: {
-            await Self.allForLocale(.kr)
+            await Self.allInLocale(.kr)
         }
         
         let allResults: [SekaiLocale: [Self]] = [.jp: groupResult.0, .en: groupResult.1, .tw: groupResult.2, .cn: groupResult.3, .kr: groupResult.4].compactMapValues({ $0 })

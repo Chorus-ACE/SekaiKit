@@ -65,7 +65,7 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
         case stamina = "param2"
     }
     
-    public enum Attribute: String, Hashable, CaseIterable, Sendable, SekaiCachable {
+    public enum Attribute: String, Hashable, CaseIterable, Sendable, SekaiCachable, RawRepresentable {
         case cute
         case mysterious
         case cool
@@ -113,13 +113,13 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
         public var localizedName: String {
             switch self {
             case .one:
-                return "1"
+                return "1★"
             case .two:
-                return "2"
+                return "2★"
             case .three:
-                return "3"
+                return "3★"
             case .four:
-                return "4"
+                return "4★"
             case .birthday:
                 return NSLocalizedString("Card.rarity.birthday", bundle: #bundle, comment: "")
             }
@@ -152,9 +152,8 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
 }
 
 extension Card: ListGettable {
-    public static func allForLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Card]? {
+    public static func allInLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Card]? {
         let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/cards.json")
-        print("https://sekai-world.github.io/\(locale._databasePath)/cards.json")
         
         if let json {
             let task = Task.detached(priority: .userInitiated) {

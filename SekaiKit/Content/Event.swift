@@ -67,22 +67,22 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
 }
 
 extension Event: ListGettable {
-    public static func allForLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Event]? {
+    public static func allInLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Event]? {
         let groupResult = await withTasksResult {
             await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/events.json")
-        } _: {
-            await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/eventStories.json")
 //        } _: {
-//            await requestJSON("https://sekai-world.github.io/\(locale.databasePath)/gameCharacterUnits.json")
+//            await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/eventStories.json")
         }
         
-        guard let alfa = groupResult.0 else { return nil }
-        guard let bravo = groupResult.1 else { return nil }
-//        let charlie = groupResult.2
+        guard let alfa = groupResult else { return nil }
+//        guard let bravo = groupResult.1 else { return nil }
         
         let task = Task.detached(priority: .userInitiated) {
             var result: [Event] = []
             for (key, av) in alfa {
+                let id = av["id"].intValue
+//                guard let bv = bravo.array?.first(where: { $0["id"].int == id }) else { continue }
+                
                 var eventRankingRewardRange: [EventRankingRewardRange] = []
                 for range in av["eventRankingRewardRanges"].arrayValue {
                     var singleRangeRewards: [EventRankingRewardRange.EventRankingReward] = []
@@ -94,7 +94,7 @@ extension Event: ListGettable {
                 }
                 
                 result.append(Event(
-                    id: av["id"].intValue,
+                    id: id,
                     title: av["name"].string.localizable(),
                     eventType: EventType(rawValue: av["eventType"].stringValue) ?? .marathon,
                     displayingStartDate: av["eventOnlyComponentDisplayStartAt"].date.localizable(),
@@ -111,6 +111,7 @@ extension Event: ListGettable {
                     eventRankingRewardRanges: eventRankingRewardRange,
                     assetBundleName: av["assetbundleName"].stringValue,
                     bgmAssetbundleName: av["assetbundleName"].stringValue
+//                    outline: bv["outline"].string.localizable()
                 ))
 //                guard let bv = bravo.arrayValue[access: Int(key)!] else { continue }
             }

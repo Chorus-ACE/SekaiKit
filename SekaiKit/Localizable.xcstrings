@@ -1,6 +1,17 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Card.rarity.birthday" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Birthday"
+          }
+        }
+      }
+    },
     "Card.source-type.1" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -202,12 +213,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Card Source"
+            "value" : "Card Type"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "来源"
           }
         }
@@ -226,23 +237,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "角色"
-          }
-        }
-      }
-    },
-    "Filter.key.character.1" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ichika Hoshino"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "星乃一歌"
           }
         }
       }

@@ -52,7 +52,7 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
         }
     }
     
-    public struct Key: Hashable, Codable, Identifiable {
+    public struct Key: Hashable, Codable, Identifiable, Sendable {
         public let id: String
         public let title: String
         
@@ -77,7 +77,7 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
             self._defaultValue = defaultOptions
         }
         
-        public struct Option: Hashable, Codable, Identifiable {
+        public struct Option: Hashable, Codable, Identifiable, Sendable {
             public var id: Int
             public var selectorName: String
             public var selectorImage: URL?
