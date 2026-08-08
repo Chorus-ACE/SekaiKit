@@ -51,13 +51,13 @@ extension Event: SekaiFilterable {
         
         if requiresMatchAll {
             if !selectedCharacters.allSatisfy({ character in
-                self.characters.contains(character)
+                characters.contains(character)
             }) {
                 return false
             }
         } else {
             if !characters.contains(where: { character in
-                self.characters.contains(character)
+                characters.contains(character)
             }) {
                 return false
             }

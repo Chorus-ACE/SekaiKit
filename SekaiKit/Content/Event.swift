@@ -28,7 +28,7 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
     /// The time when the event stops displaying, aka `eventOnlyComponentDisplayEndAt`.
     public var displayingEndDate: LocalizableData<Date>
     /// The time when the event closes, aka `closedAt`.
-    public var closedDate: LocalizableData<Date>
+    public var endDate: LocalizableData<Date>
     /// The time when distribution of the rewards ends, aka `distributionEndAt`.
     public var distributionEndDate: LocalizableData<Date>
     
@@ -137,7 +137,7 @@ extension Event: ListGettable {
                     rankingAnnouncementDate: av["rankingAnnounceAt"].date.localizable(),
                     distributionStartDate: av["distributionStartAt"].date.localizable(),
                     displayingEndDate: av["eventOnlyComponentDisplayEndAt"].date.localizable(),
-                    closedDate: av["closedAt"].date.localizable(),
+                    endDate: av["closedAt"].date.localizable(),
                     distributionEndDate: av["distributionEndAt"].date.localizable(),
                     unit: Unit(rawValue: av["unit"].stringValue),
                     attribute: attrResult[id],

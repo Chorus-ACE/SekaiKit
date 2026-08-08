@@ -30,9 +30,9 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
     
     public func isFiltering(referencing reference: [Self.Key]? = nil) -> Bool {
         for (key, value) in configuration {
-            if value.isEmpty {
-                continue
-            } else if let reference, let defaultOptions = (reference.first(where: { $0.id == key })?.defaultValue.map(\.id)), value == Set(defaultOptions) {
+//            if value.isEmpty {
+//                continue
+            if let reference, let defaultOptions = (reference.first(where: { $0.id == key })?.defaultValue.map(\.id)), value == Set(defaultOptions) {
                 continue
             }
             return true
