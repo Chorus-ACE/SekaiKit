@@ -19,7 +19,26 @@ public enum Unit: String, Hashable, CaseIterable, Codable, Sendable, SekaiCachab
         NSLocalizedString("Unit.\(self.rawValue)", bundle: #bundle, comment: "")
     }
     
-    public var numericID: Int {
+    public var name: LocalizedData<String> {
+        .init(repeating: "Unit Localized Name Placeholder")
+//        switch self {
+//        case .virturalSinger:
+//                .init(jp: "", en: "", tw: "", cn: "", kr: "")
+//        case .leoNeed:
+//            <#code#>
+//        case .moreMoreJump:
+//            <#code#>
+//        case .vividBadSquad:
+//            <#code#>
+//        case .wonderlandsShowtime:
+//            <#code#>
+//        case .nightcordAt25:
+//            <#code#>
+//        }
+//        NSLocalizedString("Unit.\(self.rawValue)", bundle: #bundle, comment: "")
+    }
+    
+    public var intRawValue: Int {
         switch self {
         case .virturalSinger:
             return 6
@@ -88,6 +107,6 @@ extension Unit {
     }
     
     public var iconImageURL: URL {
-        Bundle.module.url(forResource: "unit_logo_\(self.numericID)", withExtension: "png")!
+        Bundle.module.url(forResource: "unit_logo_\(self.intRawValue)", withExtension: "png")!
     }
 }

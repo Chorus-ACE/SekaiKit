@@ -254,17 +254,37 @@ internal func parseToDateComponents(_ input: String) -> DateComponents? {
 }
 
 extension Character {
-    @inlinable
     public var selectionImageURL: URL {
         Self.selectionImageURL(forID: self.id)
     }
-    @inlinable
+    
     public func selectionImageURL(in locale: SekaiLocale = .primaryLocale) -> URL {
         Self.selectionImageURL(forID: self.id, in: locale)
     }
-    @inlinable
+    
     public static func selectionImageURL(forID id: Int, in locale: SekaiLocale = .primaryLocale) -> URL {
+        //        Bundle.module.url(forResource: "chr_ts_\(id)", withExtension: "png") ??
         .init(string: "https://storage.sekai.best/\(locale._assetsPath)/character/character_select/chr_tl_\(id).webp")!
     }
 }
 
+extension Character {
+    public var iconImageURL: URL? {
+        Self.iconImageURL(forID: self.id)
+    }
+    
+    public static func iconImageURL(forID id: Int) -> URL? {
+        let mappedID = Self.mapVirtualSingerID(id)
+        return Bundle.module.url(forResource: "chr_ts_\(mappedID)", withExtension: "png")
+    }
+}
+
+extension Character {
+    public static func mapVirtualSingerID(_ id: Int, includeMiku: Bool = false) -> Int {
+        var vsMappingID: [ClosedRange: Int] = [32...36: 22, 37...41: 23, 42...46: 24, 47...51: 25, 52...56: 26]
+        if includeMiku {
+            vsMappingID.updateValue(21, forKey: 27...31)
+        }
+        return vsMappingID.first { $0.key.contains(id) }?.value ?? id
+    }
+}

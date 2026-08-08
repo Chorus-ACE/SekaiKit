@@ -292,6 +292,39 @@
         }
       }
     },
+    "Filter.option.matching.match-all" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match All"
+          }
+        }
+      }
+    },
+    "Filter.option.matching.match-any" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match Any"
+          }
+        }
+      }
+    },
+    "Filter.option.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other"
+          }
+        }
+      }
+    },
     "Sorter.keyword.id" : {
       "extractionState" : "manual",
       "localizations" : {

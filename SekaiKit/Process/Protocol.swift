@@ -49,3 +49,13 @@ extension ListGettable where Self.ID: Comparable {
         return await self._all()?.sorted(by: { $0.id < $1.id })
     }
 }
+
+// MARK: - ExtendedTypeConvertible
+public protocol ExtendedTypeConvertible {
+    associatedtype ExtendedType: GettableByID, Sendable
+}
+
+extension Event: ExtendedTypeConvertible {
+    public typealias ExtendedType = ExtendedEvent
+}
+

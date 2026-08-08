@@ -24,7 +24,7 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
     
     public var releaseDate: LocalizableData<Date>
     public var sourceType: SourceType
-    public var gachaPhrase: String?
+    public var gachaPhrase: LocalizableData<String>
     
     public var isInitiallySpecialTrained: Bool = false // Rarely `true`
     
@@ -71,6 +71,14 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
         case cool
         case happy
         case pure
+        
+        public var name: String {
+            self.rawValue.uppercased()
+        }
+        
+        public var iconImageURL: URL {
+            Bundle.module.url(forResource: "icon_attribute_\(self.rawValue)", withExtension: "png")!
+        }
     }
     
     public enum Rarity: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
@@ -176,7 +184,7 @@ extension Card: ListGettable {
                         attribute: Card.Attribute(rawValue: value["attr"].stringValue) ?? .cute,
                         releaseDate: value["releaseAt"].date.localizable(),
                         sourceType: SourceType(rawValue: value["cardSupplyId"].intValue) ?? .normal,
-                        gachaPhrase: value["gachaPhrase"].stringValue.nilIfEqual(to: "-"),
+                        gachaPhrase: value["gachaPhrase"].stringValue.nilIfEqual(to: "-").localizable(),
                         isInitiallySpecialTrained: value["initialSpecialTrainingStatus"].stringValue == "done",
                         skillID: value["skillId"].intValue,
                         skillName: value["cardSkillName"].string.localizable(),
@@ -198,6 +206,16 @@ extension Card: ListGettable {
         } else {
             return nil
         }
+    }
+}
+
+extension Card: GettableByID {
+    public init?(id: Int) async {
+        let allItems = await SekaiCache.withDirectCache(id: "AllCards") { await Card.all() }
+        guard let item = allItems?.first(where: { $0.id == id }) else {
+            return nil
+        }
+        self = item
     }
 }
 

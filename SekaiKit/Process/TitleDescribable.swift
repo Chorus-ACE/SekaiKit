@@ -18,3 +18,7 @@ extension Card: TitleDescribable {
 }
 
 extension Event: TitleDescribable {}
+
+extension ExtendedEvent: TitleDescribable {
+    public var title: LocalizableData<String> { self.event.title }
+}

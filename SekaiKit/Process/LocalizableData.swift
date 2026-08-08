@@ -59,6 +59,21 @@ public enum LocalizableData<T> {
             return t == nil
         }
     }
+
+    @inlinable
+    public func map<R, E>(_ transform: (T?) throws(E) -> R?) throws(E) -> LocalizableData<R> {
+        switch self {
+        case .localized(let localizedData):
+            return .localized(try localizedData.map(transform))
+        case .unlocalized(let t):
+            return .unlocalized(try transform(t))
+        }
+//        var result = LocalizableData<R>(jp: nil, en: nil, tw: nil, cn: nil, kr: nil)
+//        for locale in SekaiLocale.allCases {
+//            result.updateValue(try transform(self.forLocale(locale)), forLocale: locale)
+//        }
+//        return result
+    }
 }
 
 extension LocalizableData: Sendable where T: Sendable {}
@@ -105,6 +120,23 @@ extension LocalizableData: ExpressibleByBooleanLiteral where T: ExpressibleByBoo
 extension LocalizableData: ExpressibleByNilLiteral {
     public init(nilLiteral: ()) {
         self = .unlocalized(nil)
+    }
+}
+
+
+extension LocalizableData where T: Collection {
+    public var isCollectionEmpty: Bool {
+        switch self {
+        case .localized(let localizedData):
+            for locale in localizedData.allAvailableLocales {
+                if !(localizedData[locale]?.isEmpty ?? true) {
+                    return false
+                }
+            }
+            return true
+        case .unlocalized(let t):
+            return t?.isEmpty ?? true
+        }
     }
 }
 

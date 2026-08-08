@@ -8,12 +8,17 @@
 import Foundation
 
 protocol SekaiFilterElementProtocol {
-    var filterValue: Int { get }
+    var filterValue: Int? { get }
     static var filterKey: SekaiFilter.Key { get }
 }
 
+extension Optional: SekaiFilterElementProtocol where Wrapped: SekaiFilterElementProtocol {
+    var filterValue: Int? { self?.filterValue }
+    static var filterKey: SekaiFilter.Key { Wrapped.filterKey }
+}
+
 extension Unit: SekaiFilterElementProtocol {
-    var filterValue: Int { self.numericID }
+    var filterValue: Int? { self.intRawValue }
     static let filterKey = {
         SekaiFilter.Key(id: "unit", options: Self.allCases.map({
             .init(id: $0.filterValue,
@@ -24,7 +29,7 @@ extension Unit: SekaiFilterElementProtocol {
 }
 
 extension Card.Attribute: SekaiFilterElementProtocol {
-    var filterValue: Int {
+    var filterValue: Int? {
         switch self {
         case .cute: 0
         case .mysterious: 1
@@ -37,13 +42,13 @@ extension Card.Attribute: SekaiFilterElementProtocol {
     static let filterKey = {
         SekaiFilter.Key(id: "attribute", options: Self.allCases.map({
             .init(id: $0.filterValue,
-                  selectorName: $0.rawValue.uppercased(),
-                  selectorImage: Bundle.module.url(forResource: "icon_attribute_\($0.rawValue)", withExtension: "png")) }))
+                  selectorName: $0.name,
+                  selectorImage: $0.iconImageURL) }))
     }()
 }
 
 extension Card.Rarity: SekaiFilterElementProtocol {
-    var filterValue: Int { self.integer ?? 0 }
+    var filterValue: Int? { self.integer ?? 0 }
     
     static let filterKey = {
         SekaiFilter.Key(id: "rarity", options: Self.allCases.map({
@@ -54,18 +59,25 @@ extension Card.Rarity: SekaiFilterElementProtocol {
 }
 
 extension Character: SekaiFilterElementProtocol {
-    var filterValue: Int { self.id }
+    var filterValue: Int? { self.id }
     
     static let filterKey = {
         SekaiFilter.Key(id: "character", options: SekaiCache.preCache.characters.map({
             .init(id: $0.id,
                   selectorName: $0.fullName.forPreferredLocale() ?? "",
-                  selectorImage: Bundle.module.url(forResource: "chr_ts_\($0.id)", withExtension: "png")) }))
+                  selectorImage: Character.iconImageURL(forID: $0.id)) }))
     }()
 }
 
+extension Character {
+    static let matchingStrategyKey = SekaiFilter.Key(id: "characterMatchingStrategy", allowMultipleSelection: false, options: [
+        .init(id: 0, selectorName: NSLocalizedString("Filter.option.matching.match-any", bundle: #bundle, comment: "")),
+        .init(id: 1, selectorName: NSLocalizedString("Filter.option.matching.match-all", bundle: #bundle, comment: ""))
+    ])
+}
+
 extension SekaiLocale: SekaiFilterElementProtocol {
-    var filterValue: Int { self.rawIntValue }
+    var filterValue: Int? { self.rawIntValue }
     
     static let filterKey = {
         SekaiFilter.Key(id: "locale", options: Self.allCases.map({
@@ -75,7 +87,7 @@ extension SekaiLocale: SekaiFilterElementProtocol {
 }
 
 extension Card.SourceType: SekaiFilterElementProtocol {
-    var filterValue: Int { self.rawValue }
+    var filterValue: Int? { self.rawValue }
     
     static let filterKey = {
         SekaiFilter.Key(id: "card-source", options: Self.allCases.map({
@@ -85,7 +97,7 @@ extension Card.SourceType: SekaiFilterElementProtocol {
 }
 
 extension Event.EventType: SekaiFilterElementProtocol {
-    var filterValue: Int {
+    var filterValue: Int? {
         switch self {
         case .marathon: 0
         case .cheerfulCarnival: 1
@@ -96,6 +108,6 @@ extension Event.EventType: SekaiFilterElementProtocol {
     static let filterKey = {
         SekaiFilter.Key(id: "rarity", options: Self.allCases.map({
             .init(id: $0.filterValue,
-                  selectorName: "Filter.key.event-type.\($0.rawValue)") }))
+                  selectorName: $0.localizedName) }))
     }()
 }

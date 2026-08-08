@@ -8,14 +8,15 @@
 import Foundation
 
 public struct SekaiFilter: Hashable, Codable, Equatable {
-    public var configuration: [String: Set<Int>] = [:]
+    public var configuration: [String: Set<Int?>] = [:]
+//    public var matchingMethod
     
-    public init(_ configuration: [String : Set<Int>]) {
+    public init(_ configuration: [String : Set<Int?>]) {
         self.configuration = configuration
     }
     
     public init(forKeys keys: [Self.Key]) {
-        var configuration: [String: Set<Int>] = [:]
+        var configuration: [String: Set<Int?>] = [:]
         for key in keys {
             configuration[key.id] = Set(key.defaultValue.map(\.id))
         }
@@ -31,7 +32,7 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
         for (key, value) in configuration {
             if value.isEmpty {
                 continue
-            } else if let reference, let allCases = reference.first(where: { $0.id == key })?.allCasesID, Set(allCases) == value {
+            } else if let reference, let defaultOptions = (reference.first(where: { $0.id == key })?.defaultValue.map(\.id)), value == Set(defaultOptions) {
                 continue
             }
             return true
@@ -39,7 +40,7 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
         return false
     }
     
-    public subscript (index: String) -> Set<Int>? {
+    public subscript (index: String) -> Set<Int?>? {
         get {
             return self.configuration[index]
         }
@@ -56,15 +57,23 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
         public let id: String
         public let title: String
         
-        public let allowMultipleSelection: Bool
-        public let options: [Option]
-        private let _defaultValue: [Option]?
+        public private(set) var allowMultipleSelection: Bool
+        public private(set) var options: [Option]
+        private var _defaultValue: [Option]?
         
         public var defaultValue: [Option] {
-            self._defaultValue ?? options
+            if let _defaultValue {
+                return _defaultValue
+            } else if allowMultipleSelection {
+                return self.options
+            } else if let first = self.options.first {
+                return [first]
+            } else {
+                return []
+            }
         }
         
-        public var allCasesID: [Int] {
+        public var allOptionsID: [Int?] {
             self.options.map(\.id)
         }
         
@@ -78,23 +87,39 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
         }
         
         public struct Option: Hashable, Codable, Identifiable, Sendable {
-            public var id: Int
+            public var id: Int?
             public var selectorName: String
             public var selectorImage: URL?
+            
+            public static let other = Self.init(id: nil, selectorName: NSLocalizedString("Filter.option.other", bundle: #bundle, comment: ""), selectorImage: nil)
+            
+            init(id: Int?, selectorName: String, selectorImage: URL? = nil) {
+                self.id = id
+                self.selectorName = selectorName
+                self.selectorImage = selectorImage
+            }
+        }
+        
+        public var withOtherOption: Self {
+            var mutatingSelf = self
+            if !self.allOptionsID.contains(nil) {
+                mutatingSelf.options.append(Option.other)
+            }
+            return mutatingSelf
         }
     }
 }
 
 extension SekaiFilter {
-    internal func contains(key: String, value: Int) -> Bool {
+    internal func permits(_ value: Int?, inKey key: String) -> Bool {
         if let allowlist = self[key], !allowlist.contains(value) {
             return false
         }
         return true
     }
     
-    internal func contains<T: SekaiFilterElementProtocol>(_ item: T) -> Bool {
-        self.contains(key: T.filterKey.id, value: item.filterValue)
+    internal func permits<T: SekaiFilterElementProtocol>(_ item: T?) -> Bool {
+        self.permits(item?.filterValue, inKey: T.filterKey.id)
     }
 }
 

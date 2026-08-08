@@ -32,8 +32,15 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
     /// The time when distribution of the rewards ends, aka `distributionEndAt`.
     public var distributionEndDate: LocalizableData<Date>
     
-    public var virturalLiveID: Int
     public var unit: Unit?
+    public var attribute: Card.Attribute?
+    public var characters: [Int]
+    
+    public var attributeBonus: Int?
+    public var characterBonus: Int
+    
+    public var virturalLiveID: Int
+    
     public var isCountLeaderCharacterPlay: Bool // Rarely `true`
     public var eventRankingRewardRanges: [EventRankingRewardRange]
     
@@ -70,15 +77,41 @@ extension Event: ListGettable {
     public static func allInLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Event]? {
         let groupResult = await withTasksResult {
             await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/events.json")
-//        } _: {
-//            await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/eventStories.json")
+        } _: {
+            await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/eventDeckBonuses.json")
         }
         
-        guard let alfa = groupResult else { return nil }
-//        guard let bravo = groupResult.1 else { return nil }
+        guard let alfa = groupResult.0 else { return nil }
+        guard let bravo = groupResult.1 else { return nil }
         
         let task = Task.detached(priority: .userInitiated) {
             var result: [Event] = []
+            
+            var charResult: [Int: [Int]] = [:]
+            var charPercentResult: [Int: Int] = [:]
+            var attrResult: [Int: Card.Attribute] = [:]
+            var attrPercentResult: [Int: Int] = [:]
+            
+            for (_, value) in bravo {
+                let eventID = value["eventId"].intValue
+                
+                let char = value["gameCharacterUnitId"].int
+                let attr = value["cardAttr"].string
+                
+                let percentage = value["bonusRate"].intValue
+                
+                if let char, attr == nil {
+                    let castedChar = Character.mapVirtualSingerID(char, includeMiku: true)
+                    if !(charResult[eventID]?.contains(castedChar) ?? false) {
+                        charResult[eventID] = (charResult[eventID] ?? []) + [castedChar]
+                    }
+                    charPercentResult[eventID] = percentage
+                } else if let attr, let castedAttr = Card.Attribute(rawValue: attr), char == nil {
+                    attrResult[eventID] = castedAttr
+                    attrPercentResult[eventID] = percentage
+                }
+            }
+            
             for (key, av) in alfa {
                 let id = av["id"].intValue
 //                guard let bv = bravo.array?.first(where: { $0["id"].int == id }) else { continue }
@@ -93,6 +126,7 @@ extension Event: ListGettable {
                     eventRankingRewardRange.append(EventRankingRewardRange(upperBound: range["fromRank"].intValue, lowerBound: range["toRank"].intValue, includeLowerBound: range["isToRankBorder"].boolValue, eventRankingRewards: singleRangeRewards))
                 }
                 
+                
                 result.append(Event(
                     id: id,
                     title: av["name"].string.localizable(),
@@ -105,19 +139,32 @@ extension Event: ListGettable {
                     displayingEndDate: av["eventOnlyComponentDisplayEndAt"].date.localizable(),
                     closedDate: av["closedAt"].date.localizable(),
                     distributionEndDate: av["distributionEndAt"].date.localizable(),
-                    virturalLiveID: av["virturalLiveId"].intValue,
                     unit: Unit(rawValue: av["unit"].stringValue),
+                    attribute: attrResult[id],
+                    characters: charResult[id] ?? [],
+                    attributeBonus: attrPercentResult[id],
+                    characterBonus: charPercentResult[id] ?? 0,
+                    virturalLiveID: av["virturalLiveId"].intValue,
                     isCountLeaderCharacterPlay: av["isCountLeaderCharacterPlay"].boolValue,
                     eventRankingRewardRanges: eventRankingRewardRange,
                     assetBundleName: av["assetbundleName"].stringValue,
                     bgmAssetbundleName: av["assetbundleName"].stringValue
 //                    outline: bv["outline"].string.localizable()
                 ))
-//                guard let bv = bravo.arrayValue[access: Int(key)!] else { continue }
             }
             return result
         }
         return await task.value
+    }
+}
+
+extension Event: GettableByID {
+    public init?(id: Int) async {
+        let allItems = await SekaiCache.withDirectCache(id: "AllEvents") { await Event.all() }
+        guard let item = allItems?.first(where: { $0.id == id }) else {
+            return nil
+        }
+        self = item
     }
 }
 
@@ -138,5 +185,12 @@ extension Event {
     
     public func logoImageURL(in locale: SekaiLocale = .primaryLocale) -> URL {
         .init(string: "https://storage.sekai.best/\(locale._assetsPath)/event/\(self.assetBundleName)/logo/logo.webp")!
+    }
+}
+
+
+extension Event {
+    public var backgroundMusicURL: URL {
+        .init(string: "https:storage.sekai.best/sekai-jp-assets/event/\(self.assetBundleName)/bgm/\(self.assetBundleName)_top.mp3")!
     }
 }
