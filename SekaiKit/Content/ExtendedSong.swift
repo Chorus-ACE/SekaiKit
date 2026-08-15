@@ -23,11 +23,17 @@ public struct ExtendedSong: Hashable, Sendable, Identifiable, SekaiCachable, Get
         }
         
         guard let song = groupResult.0 else { return nil }
-        let vocals = groupResult.1
+        var vocals = groupResult.1
+        
+        var matchingVocals = vocals?.filter({ $0.musicID == id })
+        if matchingVocals == nil {
+            vocals = await Song.VocalVersion.all()
+            matchingVocals = vocals?.filter({ $0.musicID == id })
+        }
         
         self.id = id
         self.song = song
-        self.vocals = vocals?.filter({ $0.musicID == id }) ?? []
+        self.vocals = matchingVocals
     }
 }
 
@@ -38,13 +44,23 @@ extension Song {
         public var musicID: Int
         
         public var caption: LocalizableData<String>
-        public var type: String
+        public var type: VocalType
         public var publishDate: Date
         
         public var releaseCondition: Int
-        public var assetbundleName: String
+        public var assetBundleName: String
         
         public var characters: [VocalCharacter]
+        
+        public enum VocalType: String, Hashable, Sendable, SekaiCachable {
+            case virtualSinger = "virtual_singer"
+            case sekai
+            case anotherVocal = "another_vocal"
+            case original = "original_song"
+            case live = "streaming_live"
+            case instrumental
+            case aprilFools = "april_fool_2022" // Not necessary 2022
+        }
         
         public static func allInLocale(_ locale: SekaiLocale = .primaryLocale) async -> [VocalVersion]? {
             let groupResult = await withTasksResult {
@@ -58,7 +74,7 @@ extension Song {
             }
             
             guard let vocals = groupResult.0 else { return nil }
-            guard let externalCharacters = groupResult.1 else { return nil }
+            let externalCharacters = groupResult.1
             
             let task = Task.detached(priority: .userInitiated) {
                 var result: [VocalVersion] = []
@@ -70,17 +86,10 @@ extension Song {
                         let characterID = c["characterId"].intValue
                         if c["characterType"] == "game_character" {
                             if let gameChar = SekaiCache.preCache.character(id: characterID) {
-                                characters.append(.init(name: .localized(gameChar.fullName), id: characterID, isInternalCharacter: true))
+                                characters.append(.init(name: .localized(gameChar.fullName), characterID: characterID, isInternalCharacter: true))
                             }
-                        } else {
-                            // FIXME: Debug Only
-                            if c["characterType"] != "outside_character" {
-                                fatalError()
-                            }
-                            
-                            if let externalChar = externalCharacters.first(where: { $0.id == characterID }) {
-                                characters.append(externalChar)
-                            }
+                        } else if let externalChar = externalCharacters?.first(where: { $0.id == characterID }) {
+                            characters.append(externalChar)
                         }
                     }
                     
@@ -88,16 +97,13 @@ extension Song {
                         id: vocal["id"].intValue,
                         musicID: vocal["musicId"].intValue,
                         caption: vocal["caption"].string.localizable(),
-                        type: vocal["publishDate"].stringValue,
-                        publishDate: vocal["publishDate"].dateValue,
+                        type: VocalType(rawValue: vocal["musicVocalType"].stringValue) ?? .virtualSinger,
+                        publishDate: vocal["archivePublishedAt"].dateValue,
                         releaseCondition: vocal["releaseCondition"].intValue,
-                        assetbundleName: vocal["assetbundleName"].stringValue,
+                        assetBundleName: vocal["assetbundleName"].stringValue,
                         characters: characters
                     ))
                 }
-                
-                print(Set(result.map(\.type)))
-                
                 return result
             }
             return await task.value
@@ -109,8 +115,11 @@ extension Song.VocalVersion {
     @LocalizationsCombinable
     public struct VocalCharacter: Hashable, Sendable, SekaiCachable, LocalizationsCombinable, ListGettable {
         public var name: LocalizableData<String>
-        public var id: Int
+        public var characterID: Int
         public var isInternalCharacter: Bool
+        public var id: Int {
+            characterID * (isInternalCharacter ? -1 : 1)
+        }
         
         public static func allInLocale(_ locale: SekaiLocale) async -> [Song.VocalVersion.VocalCharacter]? {
             guard let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/outsideCharacters.json") else { return nil }
@@ -120,7 +129,7 @@ extension Song.VocalVersion {
                 let id = char["id"].intValue
                 let name = char["name"].stringValue
                 
-                results.append(.init(name: .unlocalized(name), id: id, isInternalCharacter: false))
+                results.append(.init(name: .unlocalized(name), characterID: id, isInternalCharacter: false))
             }
             
             return results

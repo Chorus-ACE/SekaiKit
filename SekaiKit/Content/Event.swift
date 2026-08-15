@@ -39,7 +39,7 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
     public var attributeBonus: Int?
     public var characterBonus: Int
     
-    public var virturalLiveID: Int
+    public var virtualLiveID: Int
     
     public var isCountLeaderCharacterPlay: Bool // Rarely `true`
     public var eventRankingRewardRanges: [EventRankingRewardRange]
@@ -144,7 +144,7 @@ extension Event: ListGettable {
                     characters: charResult[id] ?? [],
                     attributeBonus: attrPercentResult[id],
                     characterBonus: charPercentResult[id] ?? 0,
-                    virturalLiveID: av["virturalLiveId"].intValue,
+                    virtualLiveID: av["virtualLiveId"].intValue,
                     isCountLeaderCharacterPlay: av["isCountLeaderCharacterPlay"].boolValue,
                     eventRankingRewardRanges: eventRankingRewardRange,
                     assetBundleName: av["assetbundleName"].stringValue,

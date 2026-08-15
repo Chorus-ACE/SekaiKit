@@ -167,7 +167,7 @@ extension Character: ListGettable {
                     for cv in colors {
                         colorInfo.append(CharacterColors(
                             id: cv["id"].intValue,
-                            unit: Unit(rawValue: cv["unit"].stringValue) ?? .virturalSinger,
+                            unit: Unit(rawValue: cv["unit"].stringValue) ?? .virtualSinger,
                             mainColor: Color(hex: cv["colorCode"].stringValue) ?? .white,
                             skinColor: Color(hex: cv["skinColorCode"].stringValue) ?? .white,
                             skinShadowColor1: Color(hex: cv["skinShadowColorCode1"].stringValue) ?? .white,
@@ -203,7 +203,7 @@ extension Character: ListGettable {
                     live2DHeightAdjustment: bv["live2dHeightAdjustment"].floatValue,
                     figure: Figure(rawValue: bv["figure"].stringValue) ?? .lady,
                     breastSize: BreastSize(rawValue: bv["breastSize"].stringValue) ?? .none,
-                    unit: Unit(rawValue: bv["unit"].stringValue) ?? .virturalSinger,
+                    unit: Unit(rawValue: bv["unit"].stringValue) ?? .virtualSinger,
                     supportUnitType: SupportUnitType(rawValue: bv["supportUnitType"].stringValue) ?? .none,
                     colorInfo: colorInfo
                 ))

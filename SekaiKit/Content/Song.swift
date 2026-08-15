@@ -60,7 +60,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
     
     public enum Category: String, Hashable, Sendable, Codable, CaseIterable, SekaiCachable {
         case all = "all"
-        case virturalSinger = "vocaloid"
+        case virtualSinger = "vocaloid"
         case leoNeed = "light_music_club"
         case moreMoreJump = "idol"
         case vividBadSquad = "street"
@@ -70,7 +70,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         
         public var correspondingUnit: Unit? {
             switch self {
-            case .virturalSinger: .virturalSinger
+            case .virtualSinger: .virtualSinger
             case .leoNeed: .leoNeed
             case .moreMoreJump: .moreMoreJump
             case .vividBadSquad: .vividBadSquad
@@ -126,7 +126,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
     
     public var majorCategory: Category {
         let filteredCategories = self.categories.filter({ $0.correspondingUnit != nil })
-        let majorUnits = filteredCategories.filter({ $0 != .virturalSinger })
+        let majorUnits = filteredCategories.filter({ $0 != .virtualSinger })
         if majorUnits.count == 1 {
             return majorUnits.first! // Commissioned
         } else if majorUnits.count > 1 {
@@ -282,5 +282,18 @@ extension Song {
     public static func chartImageURL(id: Int, difficulty: Song.Difficulty, preferSVG: Bool = true) -> URL {
         let stringID = "\(id < 1000 ? "0" : "")\(id < 100 ? "0" : "")\(id < 10 ? "0" : "")\(id)"
         return URL(string: "https://storage.sekai.best/sekai-music-charts/jp/\(stringID)/\(difficulty.rawValue).\(preferSVG ? "svg" : "png")")!
+    }
+}
+
+extension Song {
+    public enum FileType: String, Hashable, Codable, Sendable, SekaiCachable {
+        case mp3
+        case flav
+        case wav
+    }
+    
+    public func musicURL(vocalAssetBundleName: String, preview: Bool = false, fileType: FileType = .mp3) -> URL {
+        let length = preview ? "short" : "long"
+        return URL(string: "https://storage.sekai.best/sekai-jp-assets/music/\(length)/\(vocalAssetBundleName)/\(vocalAssetBundleName)\(preview ? "_short" : "").\(fileType.rawValue)")!
     }
 }

@@ -34,9 +34,9 @@ extension ListGettable {
         }
         
         let allResults: [SekaiLocale: [Self]] = [.jp: groupResult.0, .en: groupResult.1, .tw: groupResult.2, .cn: groupResult.3, .kr: groupResult.4].compactMapValues({ $0 })
-        var mergedResult = mergeCollections(allResults, defaultLocale: .primaryLocale)
+        return mergeCollections(allResults, defaultLocale: .primaryLocale)
         
-        return mergedResult
+//        return mergedResult
     }
     
     public static func all() async -> [Self]? {

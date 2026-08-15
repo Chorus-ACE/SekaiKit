@@ -30,7 +30,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "永久"
+            "value" : "常驻"
           }
         }
       }
@@ -115,7 +115,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "组合活动"
+            "value" : "团活"
           }
         }
       }
@@ -324,6 +324,40 @@
         }
       }
     },
+    "Filter.key.song-has-append" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APPEND Difficulty"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "APPEND难度"
+          }
+        }
+      }
+    },
+    "Filter.key.song-media-type" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Media"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "媒体"
+          }
+        }
+      }
+    },
     "Filter.key.supportUnit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -354,6 +388,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "组合"
+          }
+        }
+      }
+    },
+    "Filter.option.available" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Available"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可用"
           }
         }
       }
@@ -405,6 +456,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "其他"
+          }
+        }
+      }
+    },
+    "Filter.option.unavailable" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unavailable"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不可用"
           }
         }
       }
@@ -468,6 +536,12 @@
             "state" : "translated",
             "value" : "Static Image"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "静态图像"
+          }
         }
       }
     },
@@ -475,6 +549,12 @@
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "3DMV"
+          }
+        },
+        "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "3DMV"
@@ -490,6 +570,12 @@
             "state" : "translated",
             "value" : "2DMV"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "2DMV"
+          }
         }
       }
     },
@@ -500,6 +586,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Original MV"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原版MV"
           }
         }
       }
@@ -652,7 +744,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最新到最老"
+            "value" : "最新到最旧"
           }
         }
       }
@@ -669,7 +761,7 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "最老到最新"
+            "value" : "最旧到最新"
           }
         }
       }
@@ -714,7 +806,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "VIRTURAL SINGER"
+            "value" : "VIRTUAL SINGER"
           }
         },
         "zh-Hans" : {

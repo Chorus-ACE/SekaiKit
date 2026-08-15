@@ -128,3 +128,9 @@ extension Song.MediaType: SekaiFilterElementProtocol {
                   selectorName: $0.localizedName) }))
     }()
 }
+
+extension Bool {
+    var filterValue: Int {
+        return self ? 1 : 0
+    }
+}

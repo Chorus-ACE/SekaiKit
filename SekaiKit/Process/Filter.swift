@@ -18,7 +18,7 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
     public init(forKeys keys: [Self.Key]) {
         var configuration: [String: Set<Int?>] = [:]
         for key in keys {
-            configuration[key.id] = Set(key.defaultValue.map(\.id))
+            configuration[key.id] = Set(key.defaultOptionsID)
         }
         
         self.configuration = configuration
@@ -32,7 +32,7 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
         for (key, value) in configuration {
 //            if value.isEmpty {
 //                continue
-            if let reference, let defaultOptions = (reference.first(where: { $0.id == key })?.defaultValue.map(\.id)), value == Set(defaultOptions) {
+            if let reference, let defaultOptions = (reference.first(where: { $0.id == key })?.defaultOptionsID), value == Set(defaultOptions) {
                 continue
             }
             return true
@@ -53,17 +53,21 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
         }
     }
     
+    public subscript (index: SekaiFilter.Key) -> Set<Int?>? {
+        self[index.id]
+    }
+    
     public struct Key: Hashable, Codable, Identifiable, Sendable {
         public let id: String
         public let title: String
         
         public private(set) var allowMultipleSelection: Bool
         public private(set) var options: [Option]
-        private var _defaultValue: [Option]?
+        private var _defaultOptions: [Option]?
         
-        public var defaultValue: [Option] {
-            if let _defaultValue {
-                return _defaultValue
+        public var defaultOptions: [Option] {
+            if let _defaultOptions {
+                return _defaultOptions
             } else if allowMultipleSelection {
                 return self.options
             } else if let first = self.options.first {
@@ -71,6 +75,10 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
             } else {
                 return []
             }
+        }
+        
+        public var defaultOptionsID: Set<Int?> {
+            Set(self.defaultOptions.map(\.id))
         }
         
         public var allOptionsID: [Int?] {
@@ -83,7 +91,7 @@ public struct SekaiFilter: Hashable, Codable, Equatable {
             self.title = title ?? NSLocalizedString("Filter.key.\(id)", bundle: #bundle, comment: "")
             self.allowMultipleSelection = allowMultipleSelection
             self.options = options
-            self._defaultValue = defaultOptions
+            self._defaultOptions = defaultOptions
         }
         
         public struct Option: Hashable, Codable, Identifiable, Sendable {
@@ -122,7 +130,6 @@ extension SekaiFilter {
         self.permits(item?.filterValue, inKey: T.filterKey.id)
     }
 }
-
 
 public protocol SekaiFilterable {
     static var filterKeys: [SekaiFilter.Key] { get }

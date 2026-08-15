@@ -8,7 +8,7 @@
 import Foundation
 
 public enum Unit: String, Hashable, CaseIterable, Codable, Sendable, SekaiCachable {
-    case virturalSinger = "piapro"
+    case virtualSinger = "piapro"
     case leoNeed = "light_sound"
     case moreMoreJump = "idol"
     case vividBadSquad = "street"
@@ -40,7 +40,7 @@ public enum Unit: String, Hashable, CaseIterable, Codable, Sendable, SekaiCachab
     
     public var intRawValue: Int {
         switch self {
-        case .virturalSinger:
+        case .virtualSinger:
             return 6
         case .leoNeed:
             return 1
@@ -57,7 +57,7 @@ public enum Unit: String, Hashable, CaseIterable, Codable, Sendable, SekaiCachab
     
     public var members: [Int] {
         switch self {
-        case .virturalSinger:
+        case .virtualSinger:
             return [21, 22, 23, 24, 25, 26]
         case .leoNeed:
             return [1, 2, 3, 4]
@@ -73,7 +73,7 @@ public enum Unit: String, Hashable, CaseIterable, Codable, Sendable, SekaiCachab
     }
     
     public static var allSupportableUnits: [Unit] {
-        return Unit.allCases.filter({ $0 != .virturalSinger })
+        return Unit.allCases.filter({ $0 != .virtualSinger })
     }
     
     public init?(member id: Int) {

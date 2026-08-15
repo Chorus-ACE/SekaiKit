@@ -178,7 +178,7 @@ extension Card: ListGettable {
                         _sequence: value["seq"].intValue,
                         name: value["prefix"].string.localizable(),
                         characterID: value["characterId"].intValue,
-                        unit: Unit(member: value["characterId"].intValue) ?? .virturalSinger,
+                        unit: Unit(member: value["characterId"].intValue) ?? .virtualSinger,
                         supportUnit: Unit(rawValue: value["supportUnit"].stringValue),
                         rarity: Rarity(rawValue: value["cardRarityType"].stringValue) ?? .one,
                         attribute: Card.Attribute(rawValue: value["attr"].stringValue) ?? .cute,
