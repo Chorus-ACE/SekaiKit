@@ -66,3 +66,13 @@ extension Event: SekaiFilterable {
         return true
     }
 }
+
+extension Song: SekaiFilterable {
+    public static var filterKeys: [SekaiFilter.Key] {
+        [Unit.filterKey.withOtherOption]
+    }
+    
+    public func _matches(_ filter: SekaiFilter) -> Bool {
+        return true
+    }
+}

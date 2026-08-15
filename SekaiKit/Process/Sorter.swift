@@ -112,9 +112,7 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
     /// Represents keyword of a sorter.
     public enum Keyword: CaseIterable, Sendable, Equatable, Hashable, Codable {
         case releaseDate(in: SekaiLocale)
-        case difficultyReleaseDate(in: SekaiLocale)
-        case mvReleaseDate(in: SekaiLocale)
-//        case level(for: Songs.DifficultyType)
+        case level(for: Song.Difficulty)
         case rarity
         case maximumStat
         case id
@@ -125,21 +123,12 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
             .releaseDate(in: .tw),
             .releaseDate(in: .cn),
             .releaseDate(in: .kr),
-            .difficultyReleaseDate(in: .jp),
-            .difficultyReleaseDate(in: .en),
-            .difficultyReleaseDate(in: .tw),
-            .difficultyReleaseDate(in: .cn),
-            .difficultyReleaseDate(in: .kr),
-            .mvReleaseDate(in: .jp),
-            .mvReleaseDate(in: .en),
-            .mvReleaseDate(in: .tw),
-            .mvReleaseDate(in: .cn),
-            .mvReleaseDate(in: .kr),
-//            .level(for: .easy),
-//            .level(for: .normal),
-//            .level(for: .hard),
-//            .level(for: .expert),
-//            .level(for: .special),
+            .level(for: .easy),
+            .level(for: .normal),
+            .level(for: .hard),
+            .level(for: .master),
+            .level(for: .expert),
+            .level(for: .append),
             .rarity,
             .maximumStat,
             .id
@@ -164,12 +153,8 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
             switch self {
             case .releaseDate(let locale):
                 hasEndingDate ? String(localized: "Sorter.keyword.starting-date.\(locale.rawValue.uppercased())", bundle: #bundle) : String(localized: "Sorter.keyword.release-date.\(locale.rawValue.uppercased())", bundle: #bundle)
-            case .difficultyReleaseDate(let locale):
-                String(localized: "Sorter.keyword.difficulty-release-date.\(locale.rawValue.uppercased())", bundle: #bundle)
-            case .mvReleaseDate(in: let locale):
-                String(localized: "Sorter.keyword.mv-release-date.\(locale.rawValue.uppercased())", bundle: #bundle)
-//            case .level(let difficultyLevel):
-//                String(localized: "Sorter.keyword.level.\(difficultyLevel.rawStringValue.uppercased())", bundle: #bundle)
+            case .level(let difficulty):
+                String(localized: "Sorter.keyword.level.\(difficulty.name)", bundle: #bundle)
             case .rarity: String(localized: "Sorter.keyword.rarity", bundle: #bundle)
             case .maximumStat: String(localized: "Sorter.keyword.max-power", bundle: #bundle)
             case .id: String(localized: "Sorter.keyword.id", bundle: #bundle)
@@ -187,12 +172,8 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
         switch keyword ?? self.keyword {
         case .releaseDate:
             return isAscending ? String(localized: "Sorter.order.oldest-to-newest", bundle: #bundle) : String(localized: "Sorter.order.newest-to-oldest", bundle: #bundle)
-        case .difficultyReleaseDate:
-            return isAscending ? String(localized: "Sorter.order.oldest-to-newest", bundle: #bundle) : String(localized: "Sorter.order.newest-to-oldest", bundle: #bundle)
-        case .mvReleaseDate:
-            return isAscending ? String(localized: "Sorter.order.oldest-to-newest", bundle: #bundle) : String(localized: "Sorter.order.newest-to-oldest", bundle: #bundle)
-//        case .level:
-//            return isAscending ? String(localized: "FILTER_SORT_ORDER_ASCENDING", bundle: #bundle) : String(localized: "FILTER_SORT_ORDER_DESCENDING", bundle: #bundle)
+        case .level:
+            return isAscending ? String(localized: "Sorter.order.ascending", bundle: #bundle) : String(localized: "Sorter.order.descending", bundle: #bundle)
         case .rarity:
             return isAscending ? String(localized: "Sorter.order.ascending", bundle: #bundle) : String(localized: "Sorter.order.descending", bundle: #bundle)
         case .maximumStat:
@@ -247,7 +228,6 @@ extension Card: SekaiSortable {
     public static var hasEndingDate: Bool { false }
     
     public static func _compare<ValueType>(usingSekaiSorter sorter: SekaiSorter, lhs: ValueType, rhs: ValueType) -> Bool? {
-        
         guard let castedLHS = lhs as? Card, let castedRHS = rhs as? Card else { return nil }
         switch sorter.keyword {
         case .releaseDate(let locale):
@@ -382,55 +362,32 @@ extension Event: SekaiSortable {
 //}
 //
 //// MARK: extension PreviewSong
-//extension DoriAPI.Songs.PreviewSong: DoriFrontend.Sortable {
-//    @inlinable
-//    public static var applicableSortingTypes: [DoriFrontend.Sorter.Keyword] {
-//        [.releaseDate(in: .jp), .releaseDate(in: .en), .releaseDate(in: .tw), .releaseDate(in: .cn), .releaseDate(in: .kr), .difficultyReleaseDate(in: .jp), .difficultyReleaseDate(in: .en), .difficultyReleaseDate(in: .tw), .difficultyReleaseDate(in: .cn), .difficultyReleaseDate(in: .kr), .mvReleaseDate(in: .jp), .mvReleaseDate(in: .en), .mvReleaseDate(in: .tw), .mvReleaseDate(in: .cn), .mvReleaseDate(in: .kr), .level(for: .easy), .level(for: .normal), .level(for: .hard), .level(for: .expert), .level(for: .special), .id]
-//    }
-//    
-//    @inlinable
-//    public static var hasEndingDate: Bool { false }
-//    
-//    public static func _compare<ValueType>(usingDoriSorter sorter: DoriFrontend.Sorter, lhs: ValueType, rhs: ValueType) -> Bool? {
-//        guard let castedLHS = lhs as? DoriAPI.Songs.PreviewSong, let castedRHS = rhs as? DoriAPI.Songs.PreviewSong else { return nil }
-//        switch sorter.keyword {
-//        case .releaseDate(let locale):
-//            return sorter.strictCompare(
-//                castedLHS.publishedAt.forLocale(locale)?.corrected(),
-//                castedRHS.publishedAt.forLocale(locale)?.corrected()
-//            ) ?? sorter.compare(castedLHS.id, castedRHS.id)
-//        case .difficultyReleaseDate(let locale):
-//            return sorter.compare(
-//                castedLHS.difficulty[.special]?.publishedAt?.forLocale(locale)?.corrected(),
-//                castedRHS.difficulty[.special]?.publishedAt?.forLocale(locale)?.corrected()
-//            )
-//        case .mvReleaseDate(let locale):
-//            var finalReleaseDateForLHS: Date?
-//            var finalReleaseDateForRHS: Date?
-//            if let allMVDictForLHS = castedLHS.musicVideos {
-//                let mvListForLHS = Array(allMVDictForLHS.values)
-//                let mvDatesForLHS = mvListForLHS.compactMap{ $0.startAt.forLocale(locale) }.sorted(by: <)
-//                finalReleaseDateForLHS = mvDatesForLHS.first
-//            } else {
-//                finalReleaseDateForLHS = nil
-//            }
-//            if let allMVDictForRHS = castedRHS.musicVideos {
-//                let mvListForRHS = Array(allMVDictForRHS.values)
-//                let mvDatesForRHS = mvListForRHS.compactMap{ $0.startAt.forLocale(locale) }.sorted(by: <)
-//                finalReleaseDateForRHS = mvDatesForRHS.first
-//            } else {
-//                finalReleaseDateForRHS = nil
-//            }
-//            return sorter.compare(finalReleaseDateForLHS?.corrected(), finalReleaseDateForRHS?.corrected())
-//        case .level(let difficulty):
-//            return sorter.compare(castedLHS.difficulty[difficulty]?.playLevel, castedRHS.difficulty[difficulty]?.playLevel)
-//        case .id:
-//            return sorter.compare(castedLHS.id, castedRHS.id)
-//        default:
-//            return nil
-//        }
-//    }
-//}
+extension Song: SekaiSortable {
+    @inlinable
+    public static var applicableSortingTypes: [SekaiSorter.Keyword] {
+        [.releaseDate(in: .jp), .releaseDate(in: .en), .releaseDate(in: .tw), .releaseDate(in: .cn), .releaseDate(in: .kr), .level(for: .easy), .level(for: .normal), .level(for: .hard), .level(for: .master), .level(for: .expert), .level(for: .append), .id]
+    }
+    
+    @inlinable
+    public static var hasEndingDate: Bool { false }
+    
+    public static func _compare<ValueType>(usingSekaiSorter sorter: SekaiSorter, lhs: ValueType, rhs: ValueType) -> Bool? {
+        guard let castedLHS = lhs as? Song, let castedRHS = rhs as? Song else { return nil }
+        switch sorter.keyword {
+        case .releaseDate(let locale):
+            return sorter.strictCompare(
+                castedLHS.publishDate.localizedData?.forLocale(locale)?.corrected(),
+                castedRHS.publishDate.localizedData?.forLocale(locale)?.corrected()
+            ) ?? sorter.compare(castedLHS.id, castedRHS.id)
+        case .level(let difficulty):
+            return sorter.compare(castedLHS.difficultyLevel[difficulty], castedRHS.difficultyLevel[difficulty])
+        case .id:
+            return sorter.compare(castedLHS.id, castedRHS.id)
+        default:
+            return nil
+        }
+    }
+}
 //
 //// MARK: extension PreviewCampaign
 //extension DoriAPI.LoginCampaigns.PreviewCampaign: DoriFrontend.Sortable {

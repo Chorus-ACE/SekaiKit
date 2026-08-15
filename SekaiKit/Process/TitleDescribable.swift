@@ -22,3 +22,9 @@ extension Event: TitleDescribable {}
 extension ExtendedEvent: TitleDescribable {
     public var title: LocalizableData<String> { self.event.title }
 }
+
+extension Song: TitleDescribable {}
+
+extension ExtendedSong: TitleDescribable {
+    public var title: LocalizableData<String> { self.song.title }
+}

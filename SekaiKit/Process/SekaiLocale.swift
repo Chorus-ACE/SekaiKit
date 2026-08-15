@@ -218,8 +218,14 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
     /// - Returns: first available locale of data, nil if none.
     @inlinable
     public func availableLocale(prefer locale: SekaiLocale? = nil) -> SekaiLocale? {
-        if availableInLocale(locale ?? .primaryLocale) {
-            return locale ?? .primaryLocale
+        if let locale, availableInLocale(locale) {
+            return locale
+        }
+        if availableInLocale(.primaryLocale) {
+            return .primaryLocale
+        }
+        if availableInLocale(.secondaryLocale) {
+            return .secondaryLocale
         }
         for locale in SekaiLocale.allCases where availableInLocale(locale) {
             return locale

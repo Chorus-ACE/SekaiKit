@@ -22,8 +22,17 @@ public enum LocalizableData<T> {
         switch self {
         case .localized(let localizedData):
             return localizedData
-        case .unlocalized(let t):
+        case .unlocalized(_):
             return nil
+        }
+    }
+    
+    public var majorLocale: SekaiLocale? {
+        switch self {
+        case .localized(let localizedData):
+            localizedData.availableLocale()
+        case .unlocalized(_):
+            SekaiLocale.primaryLocale
         }
     }
     

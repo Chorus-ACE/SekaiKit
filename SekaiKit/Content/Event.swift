@@ -175,16 +175,26 @@ extension Event {
         self.bannerImageURL()
     }
     
-    public func bannerImageURL(in locale: SekaiLocale = .primaryLocale) -> URL {
-        .init(string: "https://storage.sekai.best/\(locale._assetsPath)/home/banner/\(self.assetBundleName)/\(self.assetBundleName).webp")!
+    public func bannerImageURL(in locale: SekaiLocale? = nil) -> URL {
+        .init(string:
+                "https://storage.sekai.best/\((locale ?? self.title.majorLocale ?? .primaryLocale )._assetsPath)/event_story/\(self.assetBundleName)/screen_image/banner_event_story.webp")!
+    }
+    
+    public var bannerImageAltURL: URL {
+        self.bannerImageAltURL()
+    }
+    
+    public func bannerImageAltURL(in locale: SekaiLocale? = nil) -> URL {
+        .init(string:
+                "https://storage.sekai.best/\((locale ?? self.title.majorLocale ?? .primaryLocale )._assetsPath)/home/banner/\(self.assetBundleName)/\(self.assetBundleName).webp")!
     }
     
     public var logoImageURL: URL {
-        self.bannerImageURL(in: .primaryLocale)
+        self.bannerImageURL()
     }
     
-    public func logoImageURL(in locale: SekaiLocale = .primaryLocale) -> URL {
-        .init(string: "https://storage.sekai.best/\(locale._assetsPath)/event/\(self.assetBundleName)/logo/logo.webp")!
+    public func logoImageURL(in locale: SekaiLocale? = nil) -> URL {
+        .init(string: "https://storage.sekai.best/\((locale ?? self.title.majorLocale ?? .primaryLocale )._assetsPath)/event/\(self.assetBundleName)/logo/logo.webp")!
     }
 }
 

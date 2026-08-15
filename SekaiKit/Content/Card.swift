@@ -240,3 +240,9 @@ extension Card {
         return .init(string: "https://storage.sekai.best/sekai-jp-assets/thumbnail/chara/\(self.assetbundleName)_after_training.webp")!
     }
 }
+
+extension Card {
+    public var gachaPhraseVoiceURL: URL {
+        .init(string: "https://storage.sekai.best/sekai-jp-assets/sound/gacha/get_voice/\(self.assetbundleName)/\(self.assetbundleName).mp3")!
+    }
+}

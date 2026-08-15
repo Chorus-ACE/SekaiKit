@@ -59,3 +59,6 @@ extension Event: ExtendedTypeConvertible {
     public typealias ExtendedType = ExtendedEvent
 }
 
+extension Song: ExtendedTypeConvertible {
+    public typealias ExtendedType = ExtendedSong
+}

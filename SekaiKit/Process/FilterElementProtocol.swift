@@ -111,3 +111,20 @@ extension Event.EventType: SekaiFilterElementProtocol {
                   selectorName: $0.localizedName) }))
     }()
 }
+
+extension Song.MediaType: SekaiFilterElementProtocol {
+    var filterValue: Int? {
+        switch self {
+        case ._2DMV: 0
+        case ._3DMV: 1
+        case .image: 2
+        case .originalMV: 3
+        }
+    }
+    
+    static let filterKey: SekaiFilter.Key = {
+        SekaiFilter.Key(id: "song-media-type", options: Self.allCases.map({
+            .init(id: $0.filterValue,
+                  selectorName: $0.localizedName) }))
+    }()
+}

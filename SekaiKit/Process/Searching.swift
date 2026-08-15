@@ -90,6 +90,13 @@ extension Event: SekaiSearchable {
     }
 }
 
+extension Song: SekaiSearchable {
+    public var _searchLocalizedStrings: [LocalizableData<String>] {
+        [self.title, self.creatorArtist, self.lyricist, self.composer, self.arranger]
+    }
+}
+
+
 
 
 

@@ -12,7 +12,7 @@ public struct ExtendedEvent: SekaiCachable, GettableByID, Hashable, Codable, Sen
     public let id: Int
     public let event: Event
     public let cards: [Int]?
-//    public let bonus: Event.Bonus?
+    public let songs: [Int]?
     
     public init?(id: Int) async {
         let groupResult = await withTasksResult {
@@ -21,20 +21,20 @@ public struct ExtendedEvent: SekaiCachable, GettableByID, Hashable, Codable, Sen
             await SekaiCache.withDirectCache(id: "AllEventCards") {
                 await Self.allEventCards()
             }
-//        } _: {
-//            await SekaiCache.withDirectCache(id: "AllEventBonuses") {
-//                await Event.Bonus.all()
-//            }
+        } _: {
+            await SekaiCache.withDirectCache(id: "AllEventSongs") {
+                await Self.allEventSongs()
+            }
         }
         
         guard let event = groupResult.0 else { return nil }
-        guard let cards = groupResult.1 else { return nil }
-//        guard let bonus = groupResult.2 else { return nil }
+        let cards = groupResult.1
+        let songs = groupResult.2
         
         self.id = id
         self.event = event
-        self.cards = cards[id]
-//        self.bonus = bonus.first(where: { $0.id == id })
+        self.cards = cards?[id] ?? nil
+        self.songs = songs?[id] ?? nil
     }
     
     
@@ -52,6 +52,24 @@ public struct ExtendedEvent: SekaiCachable, GettableByID, Hashable, Codable, Sen
             }
             
             return cards
+        }
+        
+        return await task.value
+    }
+    
+    private static func allEventSongs() async -> [Int: [Int]]? {
+        guard let json = await requestJSON("https://sekai-world.github.io/sekai-master-db-diff/eventMusics.json") else { return nil }
+        
+        let task = Task {
+            var musics: [Int: [Int]] = [:]
+            
+            for (_, value) in json {
+                let eventID = value["eventId"].intValue
+                let musicID = value["musicId"].intValue
+                
+                musics[eventID] = (musics[eventID] ?? []) + [musicID]
+            }
+            return musics
         }
         
         return await task.value
