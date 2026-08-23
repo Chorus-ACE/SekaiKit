@@ -10,46 +10,73 @@ import SekaiKitMacro
 import SwiftUI
 import SwiftyJSON
 
-
+/// A song that can be played in Project Sekai.
 @LocalizationsCombinable
 public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, LocalizationsCombinable {
     public var id: Int
-    public var title: LocalizableData<String>
-    //    public var pronunciation: String
     
+    /// The title of the song.
+    public var title: LocalizableData<String>
+    // public var pronunciation: String
+    
+    /// If song is commissioned especially for Project Sekai, aka. 書き下ろし曲.
     public var isNewlyWrittenMusic: Bool
     
+    /// The creator's name of the song.
     public var creatorArtist: LocalizableData<String>
+    /// The composer of the song.
     public var composer: LocalizableData<String>
+    /// The arranger of the song.
     public var arranger: LocalizableData<String>
+    /// The lyricist of the song.
     public var lyricist: LocalizableData<String>
     
+    /// The time the song becomes available.
     public var publishDate: LocalizableData<Date>
+    /// *Unclear.*
     public var _releaseDate: LocalizableData<Date>
     
+    /// The category of the song, mainly categorized by units.
     public var categories: [Song.Category]
+    /// The available media for the song that is used for background.
+    /// Includes 2DMV, 3DMV, original MV and static image.
     public var availableMedia: [Song.MediaType]
     
+    /// The level of difficulties available.
     public var difficultyLevel: [Song.Difficulty: Int]
+    /// The note count for each available difficulty.
     public var noteCounts: [Song.Difficulty: Int]
     
+    /// The live stage ID related with this song.
     public var liveStageID: Int
+    /// The number of characters (dancers) that appears in 3DMV.
     public var dancerCount: Int
+    /// *Unclear.*
     public var selfDancerPosition: Int
     
+    /// ID of the release condition.
     public var releaseConditionID: Int
     
+    /// Bundle name used to get related assets.
     public var assetbundleName: String
+    /// Bundle name used to get live talk background.
     public var liveTalkBackgroundAssetBundleName: String
     
+    /// If song is full length.
     public var isFullLength: Bool
+    
+    /// The length of space before the actuall song begins, in seconds.
     public var fillerSec: Double
+    /// The song length available for score maker.
     public var secForMusicScoreMaker: Int?
+    /// If the song is available for score maker.
     public var isAvailableForMusicScoreMaker: Bool?
     
+    /// The type of media that is used for background.
     public enum MediaType: String, Hashable, Sendable, Codable, CaseIterable, SekaiCachable {
         case _2DMV = "mv"
         case _3DMV = "mv_2d"
+        /// Static image (cover image)
         case image = "image"
         case originalMV = "original"
         
@@ -58,6 +85,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         }
     }
     
+    /// The category the music is in.
     public enum Category: String, Hashable, Sendable, Codable, CaseIterable, SekaiCachable {
         case all = "all"
         case virtualSinger = "vocaloid"
@@ -68,6 +96,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         case nightcordAt25 = "school_refusal"
         case other = "other"
         
+        /// The unit the category is representing. `nil` if unapplicable.
         public var correspondingUnit: Unit? {
             switch self {
             case .virtualSinger: .virtualSinger
@@ -83,7 +112,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         public var localizedName: String {
             self.localizedName()
         }
-        
+
         public func localizedName(caseAllConveysMixed mixed: Bool = false) -> String {
             if let unit = self.correspondingUnit {
                 return unit.localizedName
@@ -96,6 +125,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         }
     }
     
+    /// The difficulty for song.
     public enum Difficulty: String, Hashable, Sendable, Codable, CaseIterable, SekaiCachable, Comparable {
         case easy
         case normal
@@ -124,6 +154,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         }
     }
     
+    /// The most representative category for a song. Returns `.all` if multiple units sang the same song.
     public var majorCategory: Category {
         let filteredCategories = self.categories.filter({ $0.correspondingUnit != nil })
         let majorUnits = filteredCategories.filter({ $0 != .virtualSinger })
@@ -139,7 +170,7 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
     }
 }
 
-extension Song: ListGettable {
+extension Song: ListGettable, GettableByID {
     public static func allInLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Song]? {
         let groupResult = await withTasksResult {
             await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/musics.json")
@@ -255,15 +286,6 @@ extension Song: ListGettable {
     }
 }
 
-extension Song: GettableByID {
-    public init?(id: Int) async {
-        let allItems = await SekaiCache.withDirectCache(id: "AllSongs") { await Song.all() }
-        guard let item = allItems?.first(where: { $0.id == id }) else {
-            return nil
-        }
-        self = item
-    }
-}
 extension Song {
     public var coverImageURL: URL {
         self.coverImageURL()

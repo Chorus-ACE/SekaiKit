@@ -52,7 +52,7 @@ public final class SekaiCache {
     ///     to one promise instance results in undefined behaviors.
     public final class Promise<Result> {
         @safe nonisolated(unsafe)
-        private var _onUpdate: ((Result) -> Void)?
+        private var _onUpdate: ((Result, DataSource) -> Void)?
         @safe nonisolated(unsafe)
         private var initialValue: Result?
         @safe nonisolated(unsafe)
@@ -66,10 +66,16 @@ public final class SekaiCache {
             self.initialValue = initialValue
         }
         
+        public enum DataSource {
+            case cache
+            case origin
+            case initial
+        }
+        
         @MainActor
-        internal func updateValue(_ value: Result) {
+        internal func updateValue(_ value: Result, from source: DataSource) {
             if _fastPath(!isCancelled) {
-                _onUpdate?(value)
+                _onUpdate?(value, source)
             }
             isValueFirstUpdated = true
         }
@@ -90,13 +96,13 @@ public final class SekaiCache {
         ///
         /// - IMPORTANT:
         ///     You should register a closure for update to a promise
-        ///     only **once**. Attempting register multiple closures
+        ///     only **once**. Attempt to register multiple closures
         ///     to one promise instance results in undefined behaviors.
         @discardableResult
-        public func onUpdate(_ action: @escaping (Result) -> Void) -> Self {
+        public func onUpdate(_ action: @escaping (Result, DataSource) -> Void) -> Self {
             self._onUpdate = action
             if !isValueFirstUpdated, let initialValue {
-                action(initialValue)
+                action(initialValue, .initial)
             }
             return self
         }
@@ -119,9 +125,9 @@ public final class SekaiCache {
     ///     Using ``invocationElidable`` allows SekaiKit elide the `invocation`
     ///     if cached data is new enough, like its name.
     public enum CacheTrait: Sendable {
-        /// Data that changes frequently.
+        /// Data that updates frequently.
         case realTime
-        /// Data that hardly changes and allows out-of-date one.
+        /// Data that changes less frequently and allows outdated versions.
         ///
         /// - IMPORTANT:
         ///     Using this trait allows SekaiKit elide the `invocation`
@@ -185,18 +191,10 @@ public final class SekaiCache {
             var cachedResult: Result?
             if let cachedData = try? Data(contentsOf: cacheURL) {
                 cachedResult = Result(fromCache: cachedData)
-            } else {
-                #if DORIKIT_ENABLE_PRECACHE
-                if let preCache = preCachedData(byID: id) {
-                    if let typed = preCache as? Result {
-                        cachedResult = typed
-                    }
-                }
-                #endif
             }
             
             if let cachedResult {
-                await promise.updateValue(cachedResult)
+                await promise.updateValue(cachedResult, from: .cache)
                 if trait == .invocationElidable {
                     let cacheInfoURL = URL(filePath: NSHomeDirectory() + "/Library/Caches/SekaiCacheInfo.plist")
                     let nowDate = Date.now
@@ -233,7 +231,7 @@ public final class SekaiCache {
                 return
             }
             
-            await promise.updateValue(result)
+            await promise.updateValue(result, from: .origin)
             
             // Don't save cache if result is nil
             if result == nil {
@@ -279,10 +277,11 @@ public final class SekaiCache {
     ) async -> Result? {
         var hadReturned = false
         
+        
         let result = await withCheckedContinuation { continuation in
             withCache(id: id, trait: trait, invocation: invocation)
-                .onUpdate { result in
-                    if !hadReturned {
+                .onUpdate { result, source in
+                    if !hadReturned && (source == .origin || trait == .invocationElidable) {
                         continuation.resume(returning: result)
                         hadReturned = true
                     }

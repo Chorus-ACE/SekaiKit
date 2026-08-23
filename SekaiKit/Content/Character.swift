@@ -10,44 +10,71 @@ import SekaiKitMacro
 import SwiftUI
 import SwiftyJSON
 
+/// A character presented in Project Sekai.
 @LocalizationsCombinable
 public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachable, LocalizationsCombinable {
     public var id: Int
-    /// Sequence value always equals to `id`.
-    public var _sequence: Int
     public var resourceID: Int
     
+    /// Family name of the character.
     public var familyName: LocalizableData<String>
+    /// Given name of the character.
     public var givenName: LocalizableData<String>
+    /// The pronunciation of the character's family name.
     public var familyNameRuby: LocalizableData<String>
+    /// The pronunciation of the character's given name.
     public var givenNameRuby: LocalizableData<String>
+    /// The English family name for the character.
     public var familyNameEnglish: String?
+    /// The English given name for the character.
     public var givenNameEnglish: String
     
+    /// Gender of the character. This value can be `.secret`.
     public var gender: Gender
+    /// The height of the character.
     public var height: Measurement<UnitLength>
+    /// The voice acter (CV) of the character. Not applicable for virtural singers.
     public var characterVoice: LocalizableData<String>
+    /// The birthday of the character, parsed from `literalBirthday`.
     public var birthday: DateComponents?
+    /// The birthday in natural language. Use this as a fallback if `birthday` is not available.
     public var literalBirthday: LocalizableData<String>
+    /// The school the character is in.
     public var school: LocalizableData<String>
+    /// The class the character is in at school.
     public var schoolClass: LocalizableData<String>
     
+    /// The character's hobby.
     public var hobby: LocalizableData<String>
+    /// The special skill of the character.
     public var specialSkill: LocalizableData<String>
+    /// The character's favorite food.
     public var favoriteFood: LocalizableData<String>
+    /// The character's disliked food.
     public var dislikedFood: LocalizableData<String>
+    /// Something that the character is bad at.
     public var weakness: LocalizableData<String>
+    /// An overview of the character
     public var introduction: LocalizableData<String>
+    /// The ID of the introduction story for the character.
     public var introductionStoryID: String
     
+    /// The height adjustment value for the character's Live2D models.
     public var live2DHeightAdjustment: Float
+    /// The figure type of the character, likely for Live2D model rendering.
     public var figure: Figure
+    /// The breast size of the character, likely for Live2D model rendering.
     public var breastSize: BreastSize
+    
+    /// The unit the character belongs.
     public var unit: Unit
+    /// The support unit type of the character.
     public var supportUnitType: SupportUnitType
     
+    /// The colors related with the character.
     public var colorInfo: [CharacterColors]
     
+    /// Color information related to a character.
     public struct CharacterColors: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
         public var id: Int
         public var unit: Unit
@@ -57,10 +84,12 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
         public var skinShadowColor2: Color
     }
     
+    /// Gender of a character.
     public enum Gender: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
         case male
         case female
-        case secret // Mizuki only
+        /// `.secret` is expected only for Mizuki.
+        case secret
         
         public var localizedName: String {
             NSLocalizedString("Character.gender.\(self.rawValue)", bundle: #bundle, comment: "")
@@ -87,6 +116,7 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
         case unit
     }
     
+    /// The full name of a character.
     public var fullName: LocalizableData<String> {
         var components = PersonNameComponents()
         let formatter = PersonNameComponentsFormatter()
@@ -112,6 +142,7 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
         }
     }
     
+    /// The pronunciation of the character's full name.
     public var fullNameRuby: LocalizableData<String> {
         switch givenNameRuby {
         case .localized(let localizedData):
@@ -136,12 +167,13 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
         }
     }
     
+    /// The representative color of the character.
     public var color: Color? {
         return self.colorInfo.first(where: { $0.unit == self.unit })?.mainColor
     }
 }
 
-extension Character: ListGettable {
+extension Character: ListGettable, GettableByID {
     public static func allInLocale(_ locale: SekaiLocale) async -> [Character]? {
         let groupResult = await withTasksResult {
             await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/characterProfiles.json")
@@ -178,7 +210,6 @@ extension Character: ListGettable {
                 
                 result.append(Character(
                     id: av["characterId"].intValue,
-                    _sequence: bv["seq"].intValue,
                     resourceID: bv["resourceId"].intValue,
                     familyName: bv["firstName"].string.localizable(),
                     givenName: bv["givenName"].string.localizable(),
@@ -212,16 +243,6 @@ extension Character: ListGettable {
             return result
         }
         return await task.value
-    }
-}
-
-extension Character: GettableByID {
-    public init?(id: Int) async {
-        let allCharacters = await SekaiCache.withDirectCache(id: "AllCharacters") { await Character.all() }
-        guard let item = allCharacters?.first(where: { $0.id == id }) else {
-            return nil
-        }
-        self = item
     }
 }
 

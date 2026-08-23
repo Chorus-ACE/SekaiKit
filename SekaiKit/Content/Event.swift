@@ -73,7 +73,7 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
     }
 }
 
-extension Event: ListGettable {
+extension Event: ListGettable, GettableByID {
     public static func allInLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Event]? {
         let groupResult = await withTasksResult {
             await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/events.json")
@@ -155,16 +155,6 @@ extension Event: ListGettable {
             return result
         }
         return await task.value
-    }
-}
-
-extension Event: GettableByID {
-    public init?(id: Int) async {
-        let allItems = await SekaiCache.withDirectCache(id: "AllEvents") { await Event.all() }
-        guard let item = allItems?.first(where: { $0.id == id }) else {
-            return nil
-        }
-        self = item
     }
 }
 

@@ -17,18 +17,16 @@ public struct ExtendedSong: Hashable, Sendable, Identifiable, SekaiCachable, Get
         let groupResult = await withTasksResult {
             await Song(id: id)
         } _: {
-            await SekaiCache.withDirectCache(id: "AllSongVocals") {
-                await Song.VocalVersion.all()
-            }
+            await Song.VocalVersion.allWithCache()
         }
         
         guard let song = groupResult.0 else { return nil }
         var vocals = groupResult.1
         
-        var matchingVocals = vocals?.filter({ $0.musicID == id })
+        var matchingVocals = vocals?.filter({ $0.songID == id })
         if matchingVocals == nil {
             vocals = await Song.VocalVersion.all()
-            matchingVocals = vocals?.filter({ $0.musicID == id })
+            matchingVocals = vocals?.filter({ $0.songID == id })
         }
         
         self.id = id
@@ -39,26 +37,42 @@ public struct ExtendedSong: Hashable, Sendable, Identifiable, SekaiCachable, Get
 
 extension Song {
     @LocalizationsCombinable
+    /// A version of a song in Project Sekai.
     public struct VocalVersion: Hashable, Sendable, SekaiCachable, LocalizationsCombinable, ListGettable {
         public var id: Int
-        public var musicID: Int
+        /// The ID of song the version belongs to.
+        public var songID: Int
         
+        /// The caption of the version.
         public var caption: LocalizableData<String>
+        /// The type of the version.
         public var type: VocalType
+        /// The date the version is published.
         public var publishDate: Date
         
-        public var releaseCondition: Int
+        /// The released condition ID for the version.
+        public var releaseConditionID: Int
+        /// The asset bundle name for the version.
         public var assetBundleName: String
         
+        /// The vocalists who sang the version.
         public var characters: [VocalCharacter]
         
+        /// Type of a song's version.
         public enum VocalType: String, Hashable, Sendable, SekaiCachable {
+            /// The version is sung by virtural singers (Vocaloid).
             case virtualSinger = "virtual_singer"
+            /// The version is sung by characters in Project Sekai (Sekai ver.).
             case sekai
+            /// The version is sung is a parallel covered by characters in Project Sekai.
             case anotherVocal = "another_vocal"
+            /// The version is the original one for the covered song.
             case original = "original_song"
+            /// The version is from a live concert.
             case live = "streaming_live"
+            /// The version is instrumental (no vocal).
             case instrumental
+            /// The version is an April Fools version.
             case aprilFools = "april_fool_2022" // Not necessary 2022
         }
         
@@ -95,11 +109,11 @@ extension Song {
                     
                     result.append(.init(
                         id: vocal["id"].intValue,
-                        musicID: vocal["musicId"].intValue,
+                        songID: vocal["musicId"].intValue,
                         caption: vocal["caption"].string.localizable(),
                         type: VocalType(rawValue: vocal["musicVocalType"].stringValue) ?? .virtualSinger,
                         publishDate: vocal["archivePublishedAt"].dateValue,
-                        releaseCondition: vocal["releaseCondition"].intValue,
+                        releaseConditionID: vocal["releaseConditionId"].intValue,
                         assetBundleName: vocal["assetbundleName"].stringValue,
                         characters: characters
                     ))
@@ -112,10 +126,14 @@ extension Song {
 }
 
 extension Song.VocalVersion {
+    /// A character who sings in a song.
     @LocalizationsCombinable
     public struct VocalCharacter: Hashable, Sendable, SekaiCachable, LocalizationsCombinable, ListGettable {
+        /// The name of the vocalist.
         public var name: LocalizableData<String>
+        /// The id of the character.
         public var characterID: Int
+        /// If the character is from Project Sekai.
         public var isInternalCharacter: Bool
         public var id: Int {
             characterID * (isInternalCharacter ? -1 : 1)

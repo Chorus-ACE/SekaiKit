@@ -11,8 +11,6 @@ import SekaiKitMacro
 @LocalizationsCombinable
 public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, LocalizationsCombinable {
     public var id: Int
-    /// This value always equals to ten times `id`.
-    public var _sequence: Int
     
     public var name: LocalizableData<String>
     public var characterID: Int
@@ -159,23 +157,22 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
     }
 }
 
-extension Card: ListGettable {
+extension Card: ListGettable, GettableByID {
     public static func allInLocale(_ locale: SekaiLocale = .primaryLocale) async -> [Card]? {
         let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/cards.json")
         
         if let json {
             let task = Task.detached(priority: .userInitiated) {
                 var result: [Card] = []
-                for (key, value) in json {
+                for (_, value) in json {
                     var cardParams: [ParameterType: [Int: Int]] = [:]
-                    for (k, v) in value["cardParameters"] {
+                    for (_, v) in value["cardParameters"] {
                         if let paramType = ParameterType(rawValue: v["cardParameterType"].stringValue) {
                             cardParams[modifying: paramType][accessing: v["cardLevel"].intValue] = v["power"].intValue
                         }
                     }
                     result.append(.init(
                         id: value["id"].intValue,
-                        _sequence: value["seq"].intValue,
                         name: value["prefix"].string.localizable(),
                         characterID: value["characterId"].intValue,
                         unit: Unit(member: value["characterId"].intValue) ?? .virtualSinger,
@@ -206,16 +203,6 @@ extension Card: ListGettable {
         } else {
             return nil
         }
-    }
-}
-
-extension Card: GettableByID {
-    public init?(id: Int) async {
-        let allItems = await SekaiCache.withDirectCache(id: "AllCards") { await Card.all() }
-        guard let item = allItems?.first(where: { $0.id == id }) else {
-            return nil
-        }
-        self = item
     }
 }
 

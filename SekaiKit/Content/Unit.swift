@@ -7,6 +7,7 @@
 
 import Foundation
 
+/// A unit presented in Project Sekai.
 public enum Unit: String, Hashable, CaseIterable, Codable, Sendable, SekaiCachable {
     case virtualSinger = "piapro"
     case leoNeed = "light_sound"
