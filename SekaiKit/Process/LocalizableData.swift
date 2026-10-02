@@ -5,10 +5,14 @@
 //  Created by ThreeManager785 on 2026/3/22.
 //
 
+/// A value stored either separately for each locale or without a locale association.
 public enum LocalizableData<T> {
+    /// Values associated with individual game locales.
     case localized(LocalizedData<T>)
+    /// A single optional value without a locale association.
     case unlocalized(T?)
     
+    /// The preferred localized value with fallback, or the unlocalized value.
     public var majorValue: T? {
         switch self {
         case .localized(let localizedData):
@@ -18,6 +22,7 @@ public enum LocalizableData<T> {
         }
     }
     
+    /// The locale-specific storage, or `nil` when the value is unlocalized.
     public var localizedData: LocalizedData<T>? {
         switch self {
         case .localized(let localizedData):
@@ -27,6 +32,9 @@ public enum LocalizableData<T> {
         }
     }
     
+    /// The preferred available locale, or the primary locale for an unlocalized value.
+    ///
+    /// Returns `nil` when localized storage has no available values.
     public var majorLocale: SekaiLocale? {
         switch self {
         case .localized(let localizedData):
@@ -36,6 +44,13 @@ public enum LocalizableData<T> {
         }
     }
     
+    /// Sets the value for a locale, converting unlocalized storage if needed.
+    ///
+    /// An existing unlocalized value is discarded during conversion.
+    ///
+    /// - Parameters:
+    ///   - value: The new value, or `nil` to remove the locale’s value.
+    ///   - forLocale: The locale to update.
     public mutating func updateLocalizedValue(_ value: T?, forLocale: SekaiLocale) {
         var localizedData: LocalizedData<T> = .init()
         if case .localized(let givenData) = self {
@@ -45,6 +60,13 @@ public enum LocalizableData<T> {
         self = .localized(localizedData)
     }
     
+    /// Builds localized storage from records keyed by locale.
+    ///
+    /// Each input contributes only its value for the dictionary key’s locale, or
+    /// its unlocalized value when it has no locale-specific storage.
+    ///
+    /// - Parameter dict: The source values keyed by locale.
+    /// - Returns: A value containing the merged localized storage.
     public static func merge(_ dict: [SekaiLocale: LocalizableData]) -> LocalizableData {
         var combinedResult: LocalizedData<T> = .init()
         
@@ -60,6 +82,7 @@ public enum LocalizableData<T> {
         return LocalizableData.localized(combinedResult)
     }
     
+    /// A Boolean value indicating whether no value is stored in any locale or unlocalized storage.
     public var isEmpty: Bool {
         switch self {
         case .localized(let localizedData):
@@ -69,6 +92,11 @@ public enum LocalizableData<T> {
         }
     }
 
+    /// Transforms stored values while preserving the localization structure.
+    ///
+    /// - Parameter transform: A closure applied to the unlocalized value or to each locale’s optional value.
+    /// - Returns: A value with the same localization structure and the transformed values.
+    /// - Throws: Any error thrown by `transform`.
     @inlinable
     public func map<R, E>(_ transform: (T?) throws(E) -> R?) throws(E) -> LocalizableData<R> {
         switch self {
@@ -91,42 +119,63 @@ extension LocalizableData: Hashable where T: Hashable {}
 extension LocalizableData: SekaiCache.Cacheable, Codable where T: SekaiCache.Cacheable {}
 
 extension LocalizableData: ExpressibleByStringLiteral where T: ExpressibleByStringLiteral {
+    /// Creates an unlocalized value from a string literal.
+    ///
+    /// - Parameter value: The literal used to create the wrapped value.
     public init(stringLiteral value: T.StringLiteralType) {
         self = .unlocalized(T(stringLiteral: value))
     }
 }
 
 extension LocalizableData: ExpressibleByUnicodeScalarLiteral where T: ExpressibleByUnicodeScalarLiteral {
+    /// Creates an unlocalized value from a Unicode scalar literal.
+    ///
+    /// - Parameter value: The literal used to create the wrapped value.
     public init(unicodeScalarLiteral value: T.UnicodeScalarLiteralType) {
         self = .unlocalized(T(unicodeScalarLiteral: value))
     }
 }
 
 extension LocalizableData: ExpressibleByExtendedGraphemeClusterLiteral where T: ExpressibleByExtendedGraphemeClusterLiteral {
+    /// Creates an unlocalized value from a extended grapheme cluster literal.
+    ///
+    /// - Parameter value: The literal used to create the wrapped value.
     public init(extendedGraphemeClusterLiteral value: T.ExtendedGraphemeClusterLiteralType) {
         self = .unlocalized(T(extendedGraphemeClusterLiteral: value))
     }
 }
 
 extension LocalizableData: ExpressibleByIntegerLiteral where T: ExpressibleByIntegerLiteral {
+    /// Creates an unlocalized value from a integer literal.
+    ///
+    /// - Parameter value: The literal used to create the wrapped value.
     public init(integerLiteral value: T.IntegerLiteralType) {
         self = .unlocalized(T(integerLiteral: value))
     }
 }
 
 extension LocalizableData: ExpressibleByFloatLiteral where T: ExpressibleByFloatLiteral {
+    /// Creates an unlocalized value from a floating-point literal.
+    ///
+    /// - Parameter value: The literal used to create the wrapped value.
     public init(floatLiteral value: T.FloatLiteralType) {
         self = .unlocalized(T(floatLiteral: value))
     }
 }
 
 extension LocalizableData: ExpressibleByBooleanLiteral where T: ExpressibleByBooleanLiteral {
+    /// Creates an unlocalized value from a Boolean literal.
+    ///
+    /// - Parameter value: The literal used to create the wrapped value.
     public init(booleanLiteral value: T.BooleanLiteralType) {
         self = .unlocalized(T(booleanLiteral: value))
     }
 }
 
 extension LocalizableData: ExpressibleByNilLiteral {
+    /// Creates an absent unlocalized value from a `nil` literal.
+    ///
+    /// - Parameter nilLiteral: The `nil` literal.
     public init(nilLiteral: ()) {
         self = .unlocalized(nil)
     }
@@ -134,6 +183,7 @@ extension LocalizableData: ExpressibleByNilLiteral {
 
 
 extension LocalizableData where T: Collection {
+    /// A Boolean value indicating whether every stored collection is empty or absent.
     public var isCollectionEmpty: Bool {
         switch self {
         case .localized(let localizedData):

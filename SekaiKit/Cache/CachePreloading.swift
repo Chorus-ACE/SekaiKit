@@ -20,6 +20,10 @@ extension SekaiCache {
     @TaskLocal
     internal static var _dataFromPreloaded: @Sendable (URL) async -> Data? = { _ in nil }
     
+    /// A handle that retains an asynchronous preload operation and its captured network source.
+    ///
+    /// Keep the descriptor alive until the result or captured data is no longer needed.
+    /// Releasing the descriptor cancels its task.
     @safe
     public final class PreloadDescriptor<T: Sendable>: Sendable {
         nonisolated(unsafe) private let sourceURLRef: UnsafeMutablePointer<URL?>
@@ -43,6 +47,7 @@ extension SekaiCache {
             unsafe sourceURLRef.deallocate()
         }
         
+        /// The preloaded result, waiting for the operation to finish if needed.
         public var value: T? {
             get async {
                 await loadTask.value
@@ -77,55 +82,22 @@ extension SekaiCache {
         }
     }
     
-    /// Preloads a resource for later usage.
+    /// Starts loading a value for later use.
     ///
-    /// - Parameter closure: A closure that returns the resource needed.
-    /// - Returns: A descriptor for this preloading.
-    ///
-    /// You can get resource in any method in this closure, and return a result.
-    /// The closure provided will be performed quickly
-    /// after calling this function.
-    ///
-    /// You need to keep the reference of the returned descriptor.
-    /// If it loses reference, the preloading task will be cancelled.
-    ///
-    /// When you need the resource, use the ``PreloadDescriptor/value``
-    /// variable of descriptor to get the resource.
-    /// This variable gives you the resource immediately
-    /// if it has already finished preloading, or it will wait
-    /// until the resource becomes available.
+    /// Retain the returned descriptor while preloading. Await its `value` property to
+    /// retrieve the result, or pass it to ``withPreloaded(_:isolation:operation:)``
+    /// to make captured source data available to SekaiKit requests. Each descriptor
+    /// captures a single request source; use separate descriptors for separate resources.
     ///
     /// ```swift
-    /// let preload = SekaiCache.preload {
-    ///     return await getMyResource()
+    /// let characters = SekaiCache.preload {
+    ///     await Character.allInLocale(.jp)
     /// }
-    ///
-    /// // Do something another...
-    ///
-    /// doSomething(withResource: await preload.value)
+    /// let records = await characters.value
     /// ```
     ///
-    /// When working with SekaiKit networking, you can use
-    /// ``withPreloaded(_:isolation:operation:)``
-    /// to provide descriptors for all requests in a closure.
-    ///
-    /// ```swift
-    /// let preloadCharacters = SekaiCache.preload {
-    ///     await SekaiAPI.Characters.all()
-    /// }
-    /// let preloadBands = SekaiCache.preload {
-    ///     await SekaiAPI.Bands.main()
-    /// }
-    ///
-    /// // Do something another...
-    ///
-    /// SekaiCache.withPreloaded(preloadCharacters, preloadBands) {
-    ///     // The two requests below are actually started
-    ///     // when you call `SekaiCache.preload` before.
-    ///     let characters = await SekaiAPI.Characters.all()
-    ///     let bands = await SekaiAPI.Bands.main()
-    /// }
-    /// ```
+    /// - Parameter closure: The asynchronous operation that loads the value.
+    /// - Returns: A descriptor retaining the preload operation.
     public static func preload<T: Sendable>(_ closure: sending @escaping () async -> T?) -> PreloadDescriptor<T> {
         let ptrSourceURL = UnsafeMutablePointer<URL?>.allocate(capacity: 1)
         unsafe ptrSourceURL.initialize(to: nil)
@@ -145,6 +117,17 @@ extension SekaiCache {
         }
     }
     
+    /// Runs an operation with access to previously captured network sources.
+    ///
+    /// Requests made by the operation can reuse source data from the supplied
+    /// descriptors when their URLs match.
+    ///
+    /// - Parameters:
+    ///   - descriptors: The optional descriptors to consult in the supplied order.
+    ///   - isolation: The actor isolation inherited by the operation.
+    ///   - operation: The operation that can reuse the preloaded data.
+    /// - Returns: The value returned by `operation`.
+    /// - Throws: Any error thrown by `operation`.
     public static func withPreloaded<each T, Result>(
         _ descriptors: repeat PreloadDescriptor<each T>?,
         isolation: isolated (any Actor)? = #isolation,

@@ -8,17 +8,18 @@
 import Foundation
 import SekaiKitMacro
 import SwiftUI
-import SwiftyJSON
 
-/// A character presented in Project Sekai.
+/// A character appearing in Project Sekai.
 @LocalizationsCombinable
 public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachable, LocalizationsCombinable {
+    /// The unique identifier of this record.
     public var id: Int
+    /// The identifier used to locate the character’s resources.
     public var resourceID: Int
     
-    /// Family name of the character.
+    /// The localized family name of the character.
     public var familyName: LocalizableData<String>
-    /// Given name of the character.
+    /// The localized given name of the character.
     public var givenName: LocalizableData<String>
     /// The pronunciation of the character's family name.
     public var familyNameRuby: LocalizableData<String>
@@ -29,15 +30,15 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     /// The English given name for the character.
     public var givenNameEnglish: String
     
-    /// Gender of the character. This value can be `.secret`.
+    /// The gender recorded for the character, including an undisclosed value.
     public var gender: Gender
     /// The height of the character.
     public var height: Measurement<UnitLength>
-    /// The voice acter (CV) of the character. Not applicable for virtural singers.
+    /// The localized voice actor credit, when provided for the character.
     public var characterVoice: LocalizableData<String>
-    /// The birthday of the character, parsed from `literalBirthday`.
+    /// The Gregorian birth month and day parsed from ``literalBirthday``, or `nil` if parsing fails.
     public var birthday: DateComponents?
-    /// The birthday in natural language. Use this as a fallback if `birthday` is not available.
+    /// The localized birthday text to display when ``birthday`` is unavailable.
     public var literalBirthday: LocalizableData<String>
     /// The school the character is in.
     public var school: LocalizableData<String>
@@ -54,7 +55,7 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     public var dislikedFood: LocalizableData<String>
     /// Something that the character is bad at.
     public var weakness: LocalizableData<String>
-    /// An overview of the character
+    /// A localized introduction to the character.
     public var introduction: LocalizableData<String>
     /// The ID of the introduction story for the character.
     public var introductionStoryID: String
@@ -66,53 +67,76 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     /// The breast size of the character, likely for Live2D model rendering.
     public var breastSize: BreastSize
     
-    /// The unit the character belongs.
+    /// The unit associated with this character or color record.
     public var unit: Unit
     /// The support unit type of the character.
     public var supportUnitType: SupportUnitType
     
-    /// The colors related with the character.
+    /// The character’s color palettes for the available units.
     public var colorInfo: [CharacterColors]
     
     /// Color information related to a character.
     public struct CharacterColors: Codable, Hashable, Identifiable, Sendable, SekaiCachable {
+        /// The unique identifier of this record.
         public var id: Int
+        /// The unit associated with this character or color record.
         public var unit: Unit
+        /// The character’s representative color for this unit.
         public var mainColor: Color
+        /// The base skin color in this palette.
         public var skinColor: Color
+        /// The first skin shadow color in this palette.
         public var skinShadowColor1: Color
+        /// The second skin shadow color in this palette.
         public var skinShadowColor2: Color
     }
     
     /// Gender of a character.
     public enum Gender: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
+        /// A male character.
         case male
+        /// A female character.
         case female
-        /// `.secret` is expected only for Mizuki.
+        /// A character whose gender is undisclosed.
         case secret
         
+        /// The gender label localized for the app’s current language.
         public var localizedName: String {
             NSLocalizedString("Character.gender.\(self.rawValue)", bundle: #bundle, comment: "")
         }
     }
     
+    /// The figure classification stored in the character’s model metadata.
     public enum Figure: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
+        /// The ladies figure classification.
         case lady = "ladies"
+        /// The mens figure classification.
         case men = "mens"
+        /// The boys figure classification.
         case boy = "boys"
     }
     
+    /// The size classification stored in the character’s model metadata.
     public enum BreastSize: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
+        /// No size or support classification is specified.
         case none
+        /// The extra-small size classification.
         case extraSmall = "ss" // Mizuki only
+        /// The small size classification.
         case small = "s"
+        /// The medium size classification.
         case medium = "m"
+        /// The large size classification.
         case large = "l"
     }
     
+    /// The scope of unit support recorded for the character.
     public enum SupportUnitType: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
+        /// No size or support classification is specified.
         case none
+        /// Support across all units.
         case full
+        /// Support for a specific unit.
         case unit
     }
     
@@ -174,75 +198,78 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
 }
 
 extension Character: ListGettable, GettableByID {
+    /// Loads the records available in a locale.
+    ///
+    /// - Parameter locale: The locale whose records are requested.
+    /// - Returns: The records for the locale, or `nil` if the required data cannot be loaded.
     public static func allInLocale(_ locale: SekaiLocale) async -> [Character]? {
-        let groupResult = await withTasksResult {
-            await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/characterProfiles.json")
-        } _: {
-            await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/gameCharacters.json")
-        } _: {
-            await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/gameCharacterUnits.json")
+        guard let list = await requestProtobuf("character.aar", as: _CharacterList.self) else { return nil }
+        return list.items(in: locale).map { Character(protobuf: $0) }
+    }
+}
+
+extension Character {
+    /// Returns characters whose birthdays fall on or immediately around a date.
+    ///
+    /// If any characters have a birthday on the given day, only those characters
+    /// are returned. Otherwise, characters with the next birthday come first,
+    /// followed by characters with the previous birthday. The search wraps across
+    /// the end of the year and includes everyone sharing either birthday.
+    /// Characters within each birthday group are ordered by ID.
+    ///
+    /// Only Gregorian month and day components are compared. Missing or invalid
+    /// birthdays are ignored; February 29 remains a valid birthday in every year.
+    /// A character is returned only once when there is a single birthday group.
+    /// The character list is loaded using ``ListGettable/allWithCache(trait:)``.
+    ///
+    /// - Parameters:
+    ///   - date: The date to compare with birthdays. The default is the current date.
+    ///   - timeZone: The time zone used to determine the date's month and day.
+    ///     The default is Japan Standard Time.
+    /// - Returns: The matching characters, an empty array if no valid birthdays
+    ///   are available, or `nil` if the character list cannot be loaded.
+    public static func recentBirthdayCharacters(
+        aroundDate date: Date = .now,
+        timeZone: TimeZone = TimeZone(identifier: "Asia/Tokyo")!
+    ) async -> [Character]? {
+        guard let characters = await allWithCache() else { return nil }
+        return recentBirthdayCharacters(in: characters, aroundDate: date, timeZone: timeZone)
+    }
+
+    /// Selects birthday groups from an already loaded character list.
+    internal static func recentBirthdayCharacters(
+        in characters: [Character],
+        aroundDate date: Date,
+        timeZone: TimeZone
+    ) -> [Character] {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let today = calendar.component(.month, from: date) * 100
+            + calendar.component(.day, from: date)
+
+        // A leap-year month table validates recurring birthdays without shifting
+        // February 29 or normalizing invalid dates into a different month.
+        let daysPerMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        var groups: [Int: [Character]] = [:]
+        for character in characters {
+            guard let month = character.birthday?.month,
+                  let day = character.birthday?.day,
+                  (1...12).contains(month),
+                  (1...daysPerMonth[month - 1]).contains(day) else { continue }
+            groups[month * 100 + day, default: []].append(character)
         }
-        
-        guard let alfa = groupResult.0 else { return nil }
-        guard let bravo = groupResult.1 else { return nil }
-        let charlie = groupResult.2
-        
-        let task = Task.detached(priority: .userInitiated) {
-            var result: [Character] = []
-            
-            for (key, av) in alfa {
-                guard let bv = bravo.arrayValue[access: Int(key)!] else { continue }
-                
-                let colors = charlie?.arrayValue.filter({ $0["gameCharacterId"].intValue == Int(key)!+1 }) ?? []
-                var colorInfo: [CharacterColors] = []
-                if !colors.isEmpty {
-                    for cv in colors {
-                        colorInfo.append(CharacterColors(
-                            id: cv["id"].intValue,
-                            unit: Unit(rawValue: cv["unit"].stringValue) ?? .virtualSinger,
-                            mainColor: Color(hex: cv["colorCode"].stringValue) ?? .white,
-                            skinColor: Color(hex: cv["skinColorCode"].stringValue) ?? .white,
-                            skinShadowColor1: Color(hex: cv["skinShadowColorCode1"].stringValue) ?? .white,
-                            skinShadowColor2: Color(hex: cv["skinShadowColorCode2"].stringValue) ?? .white
-                        ))
-                    }
-                }
-                
-                result.append(Character(
-                    id: av["characterId"].intValue,
-                    resourceID: bv["resourceId"].intValue,
-                    familyName: bv["firstName"].string.localizable(),
-                    givenName: bv["givenName"].string.localizable(),
-                    familyNameRuby: bv["firstNameRuby"].string.localizable(),
-                    givenNameRuby: bv["givenNameRuby"].string.localizable(),
-                    familyNameEnglish: bv["firstNameEnglish"].string,
-                    givenNameEnglish: bv["givenNameEnglish"].stringValue,
-                    gender: Gender(rawValue: bv["gender"].stringValue) ?? .female,
-                    height: Measurement(value: bv["height"].doubleValue, unit: .centimeters),
-                    characterVoice: av["characterVoice"].string.localizable(),
-                    birthday: parseToDateComponents(av["birthday"].stringValue),
-                    literalBirthday: av["birthday"].string.localizable(),
-                    school: av["school"].string.localizable(),
-                    schoolClass: av["schoolYear"].string.localizable(),
-                    hobby: av["hobby"].string.localizable(),
-                    specialSkill: av["specialSkill"].string.localizable(),
-                    favoriteFood: av["favoriteFood"].string.localizable(),
-                    dislikedFood: av["hatedFood"].string.localizable(),
-                    weakness: av["weak"].string.localizable(),
-                    introduction: av["introduction"].string.localizable(),
-                    introductionStoryID: av["scenarioId"].stringValue,
-                    live2DHeightAdjustment: bv["live2dHeightAdjustment"].floatValue,
-                    figure: Figure(rawValue: bv["figure"].stringValue) ?? .lady,
-                    breastSize: BreastSize(rawValue: bv["breastSize"].stringValue) ?? .none,
-                    unit: Unit(rawValue: bv["unit"].stringValue) ?? .virtualSinger,
-                    supportUnitType: SupportUnitType(rawValue: bv["supportUnitType"].stringValue) ?? .none,
-                    colorInfo: colorInfo
-                ))
-                
-            }
-            return result
+
+        if let birthdaysToday = groups[today] {
+            return birthdaysToday.sorted { $0.id < $1.id }
         }
-        return await task.value
+        let birthdays = groups.keys.sorted()
+        guard let first = birthdays.first, let last = birthdays.last else { return [] }
+        let next = birthdays.first { $0 > today } ?? first
+        let previous = birthdays.last { $0 < today } ?? last
+        let selectedDays = next == previous ? [next] : [next, previous]
+        return selectedDays.flatMap { day in
+            groups[day, default: []].sorted { $0.id < $1.id }
+        }
     }
 }
 
@@ -275,14 +302,25 @@ internal func parseToDateComponents(_ input: String) -> DateComponents? {
 }
 
 extension Character {
+    /// The URL of the character selection image for the primary locale.
     public var selectionImageURL: URL {
         Self.selectionImageURL(forID: self.id)
     }
     
+    /// Returns the character selection image URL for a locale.
+    ///
+    /// - Parameter locale: The asset locale. The default is the primary locale.
+    /// - Returns: The URL of the character selection image.
     public func selectionImageURL(in locale: SekaiLocale = .primaryLocale) -> URL {
         Self.selectionImageURL(forID: self.id, in: locale)
     }
     
+    /// Returns a character selection image URL for an identifier and locale.
+    ///
+    /// - Parameters:
+    ///   - id: The character identifier.
+    ///   - locale: The asset locale. The default is the primary locale.
+    /// - Returns: The URL of the character selection image.
     public static func selectionImageURL(forID id: Int, in locale: SekaiLocale = .primaryLocale) -> URL {
         //        Bundle.module.url(forResource: "chr_ts_\(id)", withExtension: "png") ??
         .init(string: "https://storage.sekai.best/\(locale._assetsPath)/character/character_select/chr_tl_\(id).webp")!
@@ -290,10 +328,18 @@ extension Character {
 }
 
 extension Character {
+    /// The URL of the bundled character icon, or `nil` if the icon is unavailable.
     public var iconImageURL: URL? {
         Self.iconImageURL(forID: self.id)
     }
     
+    /// Returns the bundled icon URL for a character.
+    ///
+    /// Unit-specific Virtual Singer identifiers are mapped to their base characters,
+    /// except for Miku, whose unit-specific icons are preserved.
+    ///
+    /// - Parameter id: The character identifier.
+    /// - Returns: The bundled icon URL, or `nil` if the resource is unavailable.
     public static func iconImageURL(forID id: Int) -> URL? {
         let mappedID = Self.mapVirtualSingerID(id)
         return Bundle.module.url(forResource: "chr_ts_\(mappedID)", withExtension: "png")
@@ -301,6 +347,12 @@ extension Character {
 }
 
 extension Character {
+    /// Maps a unit-specific Virtual Singer identifier to its base character identifier.
+    ///
+    /// - Parameters:
+    ///   - id: The character identifier to map.
+    ///   - includeMiku: Whether to map Miku’s unit-specific identifiers as well.
+    /// - Returns: The base identifier, or the original identifier if no mapping applies.
     public static func mapVirtualSingerID(_ id: Int, includeMiku: Bool = false) -> Int {
         var vsMappingID: [ClosedRange: Int] = [32...36: 22, 37...41: 23, 42...46: 24, 47...51: 25, 52...56: 26]
         if includeMiku {

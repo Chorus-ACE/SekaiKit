@@ -56,11 +56,21 @@ internal enum OfflineAssetNetworkingResult {
 }
 
 extension URL {
+    /// Returns this URL unchanged.
+    ///
+    /// Offline assets are not supported by SekaiKit.
+    ///
+    /// - Returns: This URL.
     @available(*, deprecated, message: "SekaiKit does not support offline asset.")
     public func withOfflineAsset() -> URL {
         return self
     }
     
+    /// Returns this URL unchanged.
+    ///
+    /// Offline assets are not supported by SekaiKit.
+    ///
+    /// - Returns: This URL.
     @available(*, deprecated, message: "SekaiKit does not support offline asset.")
     public func respectOfflineAssetContext() -> URL {
         return self

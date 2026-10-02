@@ -10,7 +10,16 @@ import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 
 // Macro Definition
+/// Expands the localization-combining member macro.
 public struct LocalizationsCombinableMacro: MemberMacro {
+    /// Generates the localization-combining overloads for a declaration.
+    ///
+    /// - Parameters:
+    ///   - node: The macro attribute being expanded.
+    ///   - declaration: The declaration receiving the generated members.
+    ///   - context: The macro expansion context supplied by the compiler.
+    /// - Returns: The declarations implementing both dictionary overloads.
+    /// - Throws: An error if macro expansion cannot be completed.
     public static func expansion(
         of node: AttributeSyntax,
         providingMembersOf declaration: some DeclGroupSyntax,
@@ -69,6 +78,14 @@ public struct LocalizationsCombinableMacro: MemberMacro {
         let operations = variableNames.map({ "result.\($0).updateLocalizedValue(dict[locale]?.\($0).majorValue, forLocale: locale)" }).joined(separator: "\n")
         
         let code: DeclSyntax = """
+        /// Combines the localized fields of records keyed by locale.
+        ///
+        /// Other fields are copied from the preferred record or an available fallback.
+        ///
+        /// - Parameters:
+        ///   - dict: The source records keyed by locale.
+        ///   - defaultLocale: The preferred source for fields that are not localized.
+        /// - Returns: The combined record, or `nil` if no source record is available.
         public static func combineLocalizations(_ dict: [SekaiLocale: Self], defaultLocale: SekaiLocale = .primaryLocale) -> Self? {
             var result = dict[defaultLocale] ?? dict.first?.value
             guard var result else { return nil }
@@ -80,6 +97,14 @@ public struct LocalizationsCombinableMacro: MemberMacro {
             return result
         }
         
+        /// Combines the localized fields of non-`nil` records keyed by locale.
+        ///
+        /// Other fields are copied from the preferred record or an available fallback.
+        ///
+        /// - Parameters:
+        ///   - dict: The source records keyed by locale.
+        ///   - defaultLocale: The preferred source for fields that are not localized.
+        /// - Returns: The combined record, or `nil` if no source record is available.
         public static func combineLocalizations(_ dict: [SekaiLocale: Self?], defaultLocale: SekaiLocale = .primaryLocale) -> Self? {
             return Self.combineLocalizations(dict.compactMapValues({ $0 }), defaultLocale: defaultLocale)
         }

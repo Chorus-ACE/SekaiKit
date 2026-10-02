@@ -7,12 +7,18 @@
 
 import Foundation
 
+/// A supported regional edition of Project Sekai.
 @frozen
 public enum SekaiLocale: String, CaseIterable, Codable, SekaiCache.Cacheable {
+    /// The Japanese edition.
     case jp
+    /// The English edition.
     case en
+    /// The Traditional Chinese edition.
     case tw
+    /// The Simplified Chinese edition.
     case cn
+    /// The Korean edition.
     case kr
 }
 
@@ -22,7 +28,9 @@ extension SekaiLocale {
     nonisolated(unsafe)
     internal static var _primaryLocale = SekaiLocale(rawValue: UserDefaults.standard.string(forKey: "_SekaiKit_SekaiAPIPreferredLocale") ?? "jp") ?? .jp
     
-    /// The preferred locale.
+    /// The preferred game locale, persisted in user defaults.
+    ///
+    /// The default is the Japanese locale.
     @inlinable
     public static var primaryLocale: SekaiLocale {
         get {
@@ -37,7 +45,9 @@ extension SekaiLocale {
     @safe
     nonisolated(unsafe)
     internal static var _secondaryLocale = SekaiLocale(rawValue: UserDefaults.standard.string(forKey: "_SekaiKit_SekaiAPISecondaryLocale") ?? "en") ?? .en
-    /// The secondary preferred locale.
+    /// The secondary game locale, persisted in user defaults.
+    ///
+    /// The default is the English locale.
     @inlinable
     public static var secondaryLocale: SekaiLocale {
         get {
@@ -73,6 +83,7 @@ extension SekaiLocale {
         }
     }
     
+    /// The Foundation locale corresponding to this game edition’s language.
     public var nsLocale: Locale {
         switch self {
         case .jp: return Locale(identifier: "ja")
@@ -83,6 +94,7 @@ extension SekaiLocale {
         }
     }
     
+    /// The repository path component used to request this locale’s master data.
     public var _databasePath: String {
         switch self {
         case .jp: return "sekai-master-db-diff"
@@ -93,6 +105,7 @@ extension SekaiLocale {
         }
     }
     
+    /// The storage path component used to request this locale’s assets.
     public var _assetsPath: String {
         switch self {
         case .jp: return "sekai-jp-assets"
@@ -105,17 +118,29 @@ extension SekaiLocale {
 }
 
 extension SekaiLocale: Comparable {
+    /// Returns whether a locale precedes another in Japanese, English, Traditional Chinese, Simplified Chinese, and Korean order.
+    ///
+    /// - Parameters:
+    ///   - lhs: The first locale.
+    ///   - rhs: The second locale.
+    /// - Returns: `true` if `lhs` precedes `rhs`.
     public static func < (lhs: borrowing SekaiLocale, rhs: borrowing SekaiLocale) -> Bool {
         lhs.rawIntValue < rhs.rawIntValue
     }
 }
 
+/// Optional values stored separately for each supported game locale.
 @_eagerMove
 public struct LocalizedData<T>: _DestructorSafeContainer {
+    /// The value for the Japanese locale, if available.
     public var jp: T?
+    /// The value for the English locale, if available.
     public var en: T?
+    /// The value for the Traditional Chinese locale, if available.
     public var tw: T?
+    /// The value for the Simplified Chinese locale, if available.
     public var cn: T?
+    /// The value for the Korean locale, if available.
     public var kr: T?
     
     @usableFromInline
@@ -127,6 +152,9 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         self.kr = kr
     }
     
+    /// Creates localized storage by invoking a builder once for each locale.
+    ///
+    /// - Parameter builder: A closure returning the value for a locale, or `nil` if unavailable.
     @inlinable
     public init(builder: (SekaiLocale) -> T?) {
         self.init(
@@ -138,6 +166,11 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         )
     }
     
+    /// Creates localized storage by repeating a value for selected locales.
+    ///
+    /// - Parameters:
+    ///   - item: The value to store.
+    ///   - locales: The locales to populate; other locales remain absent.
     @inlinable
     public init(
         repeating item: T?,
@@ -152,6 +185,14 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         }
     }
     
+    /// Creates localized storage from separate optional values.
+    ///
+    /// - Parameters:
+    ///   - _jp: The Japanese value.
+    ///   - en: The English value.
+    ///   - tw: The Traditional Chinese value.
+    ///   - cn: The Simplified Chinese value.
+    ///   - kr: The Korean value.
     @inlinable
     public init(
         _jp: T? = nil,
@@ -163,9 +204,10 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         self.init(jp: _jp, en: en, tw: tw, cn: cn, kr: kr)
     }
     
-    /// Get localized data for locale.
-    /// - Parameter locale: required locale for data.
-    /// - Returns: localized data, nil if not available.
+    /// Returns the value stored for a locale.
+    ///
+    /// - Parameter locale: The locale to look up.
+    /// - Returns: The stored value, or `nil` if unavailable.
     @inlinable
     public func forLocale(_ locale: SekaiLocale) -> T? {
         switch locale {
@@ -176,46 +218,49 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         case .kr: self.kr
         }
     }
-    /// Check if the data available in specific locale.
-    /// - Parameter locale: the locale to check.
-    /// - Returns: if the data available.
+    /// Returns whether a value is stored for a locale.
+    ///
+    /// - Parameter locale: The locale to check.
+    /// - Returns: `true` if the locale has a non-`nil` value.
     @inlinable
     public func availableInLocale(_ locale: SekaiLocale) -> Bool {
         forLocale(locale) != nil
     }
-    /// Get localized data for preferred locale.
-    /// - Parameter allowsFallback: Whether to allow fallback to other locales
-    /// if data isn't available in preferred locale.
-    /// - Returns: localized data for preferred locale, nil if not available.
+    /// Returns the value for the primary locale, optionally falling back to another locale.
+    ///
+    /// - Parameter allowsFallback: Whether to use the first available locale when the primary value is absent.
+    /// - Returns: The selected value, or `nil` if no permitted value is available.
     public func forPreferredLocale(allowsFallback: Bool = true) -> T? {
         forLocale(SekaiLocale.primaryLocale) ?? (allowsFallback ? (forLocale(.jp) ?? forLocale(.en) ?? forLocale(.tw) ?? forLocale(.cn) ?? forLocale(.kr) ?? logger.warning("Failed to lookup any candidate of \(T.self) for preferred locale", evaluate: nil)) : nil)
     }
-    /// Get localized data for secondary locale.
-    /// - Parameter allowsFallback: Whether to allow fallback to other locales
-    /// if data isn't available in secondary locale.
-    /// - Returns: localized data for secondary locale, nil if not available.
+    /// Returns the value for the secondary locale, optionally falling back to another locale.
+    ///
+    /// - Parameter allowsFallback: Whether to use the first available locale when the secondary value is absent.
+    /// - Returns: The selected value, or `nil` if no permitted value is available.
     public func forSecondaryLocale(allowsFallback: Bool = true) -> T? {
         forLocale(SekaiLocale.secondaryLocale) ?? (allowsFallback ? (forLocale(.jp) ?? forLocale(.en) ?? forLocale(.tw) ?? forLocale(.cn) ?? forLocale(.kr) ?? logger.warning("Failed to lookup any candidate of \(T.self) for secondary locale", evaluate: nil)) : nil)
     }
-    /// Check if the data available in preferred locale.
-    /// - Returns: if the data available.
+    /// Returns whether a value is stored for the primary locale.
+    ///
+    /// - Returns: `true` if the primary locale has a non-`nil` value, without fallback.
     @inlinable
     public func availableInPreferredLocale() -> Bool {
         forPreferredLocale(allowsFallback: false) != nil
     }
-    /// Check if the data available in secondary locale.
-    /// - Returns: if the data available.
+    /// Returns whether a value is stored for the secondary locale.
+    ///
+    /// - Returns: `true` if the secondary locale has a non-`nil` value, without fallback.
     @inlinable
     public func availableInSecondaryLocale() -> Bool {
         forSecondaryLocale(allowsFallback: false) != nil
     }
-    /// Check if the available locale of data.
+    /// Returns the first available locale in preference order.
     ///
-    /// This function checks if data available in preferred locale first,
-    /// if not provided or not available, it checks from jp to kr respectively.
+    /// The supplied locale is checked first, followed by the primary and secondary
+    /// locales, and then all locales in their declaration order.
     ///
-    /// - Parameter locale: preferred first locale.
-    /// - Returns: first available locale of data, nil if none.
+    /// - Parameter locale: An optional locale to check before the configured preferences.
+    /// - Returns: The first locale with a non-`nil` value, or `nil` if all values are absent.
     @inlinable
     public func availableLocale(prefer locale: SekaiLocale? = nil) -> SekaiLocale? {
         if let locale, availableInLocale(locale) {
@@ -233,6 +278,11 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         return nil
     }
     
+    /// Replaces the value stored for a locale.
+    ///
+    /// - Parameters:
+    ///   - newValue: The replacement value, or `nil` to remove the stored value.
+    ///   - locale: The locale to update.
     @inlinable
     public mutating func updateValue(_ newValue: T?, forLocale locale: SekaiLocale) {
         switch locale {
@@ -244,6 +294,10 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         }
     }
     
+    /// Accesses or modifies the optional value stored for a locale.
+    ///
+    /// - Parameter locale: The locale to access.
+    /// - Returns: The stored value, or `nil` if unavailable.
     @inlinable
     public subscript(_ locale: SekaiLocale) -> T? {
         @inline(__always)
@@ -260,6 +314,9 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         }
     }
     
+    /// The locales with values, beginning with the available primary and secondary locales.
+    ///
+    /// The current ordering can include a preferred locale more than once.
     public var allAvailableLocales: [SekaiLocale] {
         let expectedLocales = [SekaiLocale.primaryLocale, SekaiLocale.secondaryLocale] + SekaiLocale.allCases.drop(while: { $0 == .primaryLocale || $0 == .secondaryLocale })
         
@@ -271,11 +328,15 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
         return expectedLocales.filter({ availableLocales.contains($0) })
     }
     
+    /// The locales without values, in declaration order.
     public var allUnavailableLocales: [SekaiLocale] {
         let availableLocales = self.allAvailableLocales
         return SekaiLocale.allCases.filter({ !availableLocales.contains($0) })
     }
     
+    /// The stored values expressed as a locale-keyed dictionary.
+    ///
+    /// The current implementation omits the Korean entry.
     public var dictionarized: [SekaiLocale: T] {
         return [.jp: self.jp, .en: self.en, .tw: self.tw, .cn: self.cn, .tw: self.tw].compactMapValues({ $0 })
     }
@@ -288,14 +349,11 @@ extension LocalizedData: Hashable where T: Hashable {}
 extension LocalizedData: SekaiCache.Cacheable, Codable where T: SekaiCache.Cacheable {}
 
 extension LocalizedData {
-    /// Returns localized data containing the results of mapping the given closure
-    /// over each locales.
+    /// Transforms the optional value for every supported locale.
     ///
-    /// - Parameter transform: A mapping closure. `transform` accepts an
-    ///   element of this localized data as its parameter and returns a transformed
-    ///   value of the same or of a different type.
-    /// - Returns: Localized data containing the transformed elements of this
-    ///   sequence.
+    /// - Parameter transform: A closure applied to each locale’s value, including `nil`.
+    /// - Returns: Localized storage containing the transformed values.
+    /// - Throws: Any error thrown by `transform`.
     @inlinable
     public func map<R, E>(_ transform: (T?) throws(E) -> R?) throws(E) -> LocalizedData<R> {
         var result = LocalizedData<R>(jp: nil, en: nil, tw: nil, cn: nil, kr: nil)
@@ -305,18 +363,11 @@ extension LocalizedData {
         return result
     }
     
-    /// Returns an array containing the non-`nil` results of calling the given
-    /// transformation with each element of this localized data.
+    /// Transforms every locale’s optional value and collects non-`nil` results.
     ///
-    /// Use this method to receive an array of non-optional values when your
-    /// transformation produces an optional value.
-    ///
-    /// - Parameter transform: A closure that accepts an element of this
-    ///   localized data as its argument and returns an optional value.
-    /// - Returns: An array of the non-`nil` results of calling `transform`
-    ///   with each element of the sequence.
-    ///
-    /// - Complexity: O(*n*), where *n* is the length of this sequence.
+    /// - Parameter transform: A closure applied to each value, including `nil`, in locale declaration order.
+    /// - Returns: The non-`nil` transformed values in locale declaration order.
+    /// - Throws: Any error thrown by `transform`.
     @inlinable
     public func compactMap<ElementOfResult>(
         _ transform: (T?) throws -> ElementOfResult?
@@ -327,6 +378,11 @@ extension LocalizedData {
     // The implementation of compactMap accepting a closure with an optional result.
     // Factored out into a separate function in order to be used in multiple
     // overloads.
+    /// Implements transformation and removal of `nil` results for localized storage.
+    ///
+    /// - Parameter transform: A closure applied to each locale’s optional value.
+    /// - Returns: The non-`nil` transformed values in locale declaration order.
+    /// - Throws: Any error thrown by `transform`.
     @inlinable
     @inline(__always)
     public func _compactMap<ElementOfResult>(
@@ -341,16 +397,27 @@ extension LocalizedData {
         return result
     }
     
+    /// Pairs the non-`nil` values with locale labels derived from their compacted positions.
+    ///
+    /// Missing values are removed before labels are assigned. These labels can differ
+    /// from the values’ original locales when earlier locales have no value.
+    ///
+    /// - Returns: The compacted values paired with positional locale labels.
     @inlinable
     public func enumerated() -> [(locale: SekaiLocale, element: T?)] {
         compactMap { $0 }.enumerated().map { (.init(rawIntValue: $0.offset)!, $0.element) }
     }
 
+    /// A Boolean value indicating whether every locale’s value is `nil`.
     @inlinable
     public var isEmpty: Bool {
         self.jp == nil && self.en == nil && self.tw == nil && self.cn == nil && self.kr == nil
     }
     
+    /// Returns whether any locale’s optional value satisfies a predicate.
+    ///
+    /// - Parameter method: The predicate to evaluate, including for missing values.
+    /// - Returns: `true` if the predicate succeeds for at least one locale.
     @inlinable
     public func contains(where method: (T?) -> Bool) -> Bool {
         for locale in SekaiLocale.allCases {
@@ -361,6 +428,10 @@ extension LocalizedData {
         return false
     }
     
+    /// Returns whether every locale’s optional value satisfies a predicate.
+    ///
+    /// - Parameter method: The predicate to evaluate, including for missing values.
+    /// - Returns: `true` if the predicate succeeds for all locales.
     @inlinable
     public func allSatisfy(_ method: (T?) -> Bool) -> Bool {
         for locale in SekaiLocale.allCases {
@@ -373,6 +444,7 @@ extension LocalizedData {
 }
 
 extension LocalizedData where T: Collection {
+    /// A Boolean value indicating whether each locale’s collection is empty or absent.
     @inlinable
     public var isValueEmpty: Bool {
         self.jp?.isEmpty != false
@@ -384,6 +456,10 @@ extension LocalizedData where T: Collection {
 }
 
 extension LocalizedData where T: Equatable {
+    /// Returns whether any locale stores a value equal to the given optional value.
+    ///
+    /// - Parameter element: The value to find; `nil` matches an absent locale value.
+    /// - Returns: `true` if at least one locale’s value equals `element`.
     @inlinable
     public func contains(_ element: T?) -> Bool {
         for locale in SekaiLocale.allCases {

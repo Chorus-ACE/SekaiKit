@@ -17,25 +17,40 @@ import SwiftUI
 import SwiftyJSON
 
 extension SekaiCache {
+    /// Character information bundled with SekaiKit for use without a network request.
     public struct PreCache: Sendable, Hashable, Decodable {
+        /// The shared bundled cache, equivalent to ``SekaiCache/preCache``.
         public static let current: Self = preCache
         
+        /// The bundled character records, or an empty array if the resource cannot be decoded.
         public var characters: [CachedCharacter]
         
+        /// Returns a bundled character record by identifier.
+        ///
+        /// - Parameter id: The character identifier to look up.
+        /// - Returns: The matching record, or `nil` if it is not bundled.
         public func character(id: Int) -> CachedCharacter? {
             return self.characters.first(where: { $0.id == id })
         }
         
+        /// A compact character record stored in the bundled cache.
         public struct CachedCharacter: Codable, Hashable, Identifiable, SekaiCachable, Sendable {
+            /// The unique identifier of the character.
             public var id: Int
             
+            /// The character’s family name in each available locale.
             public var familyName: LocalizedData<String>
+            /// The character’s given name in each available locale.
             public var givenName: LocalizedData<String>
             
+            /// The unit identifier stored in the bundled character record.
             public var unit: String
+            /// The character’s birth month and day.
             public var birthday: DateComponents
+            /// The character’s representative color.
             public var color: Color
             
+            /// The formatted full name in each locale with an available given name.
             public var fullName: LocalizedData<String> {
                 var components = PersonNameComponents()
                 let formatter = PersonNameComponentsFormatter()
@@ -55,6 +70,9 @@ extension SekaiCache {
         }
     }
     
+    /// The character cache loaded from the bundled `cachedCharacters.plist` resource.
+    ///
+    /// The cache contains an empty character array if the resource is missing or invalid.
     @inline(never)
     public static let preCache: PreCache = {
         let decoder = PropertyListDecoder()

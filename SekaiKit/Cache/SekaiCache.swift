@@ -15,7 +15,7 @@
 import SwiftUI
 import Foundation
 
-/// Manage caches for SekaiKit.
+/// Manages disk caches and asynchronous loading for SekaiKit.
 public final class SekaiCache {
     private init() {}
     
@@ -24,32 +24,26 @@ public final class SekaiCache {
     
     /// A type that can be cached by SekaiKit.
     public protocol Cacheable: Codable {
-        /// Creates a new instance by decoding from the given cache data.
+        /// Decodes a value from cached property-list data.
         ///
-        /// This initializer returns `nil`if the data read is invalid.
+        /// The initializer accepts direct values and wrapped scalar values, and returns
+        /// `nil` if the data cannot be decoded.
         ///
-        /// - Parameter cache: The cache data for decoding.
+        /// - Parameter cache: The cached bytes to decode.
         init?(fromCache cache: Data)
         
-        /// The data for cache of this value.
+        /// The binary property-list representation of the value, wrapping scalar values when needed.
         var dataForCache: Data { get }
     }
     
-    /// A promise for result.
+    /// A handle for receiving cached and newly loaded values.
     ///
-    /// You'll get a promise after calling ``withCache(id:trait:invocation:)``
-    /// which provides you data.
+    /// Register an update closure immediately after obtaining the promise. Updates
+    /// that occur before registration are not replayed. An initial value, when one
+    /// was supplied, is delivered only if no update has occurred yet.
     ///
-    /// Generally, you should register a closure to receive updates
-    /// by ``onUpdate(_:)`` immediately after getting a promise
-    /// to prevent missing updates. If you registers a closure for updates
-    /// after the value updates, it will still be called with the last value,
-    /// but miss values before it.
-    ///
-    /// - IMPORTANT:
-    ///     You should register a closure for update to a promise
-    ///     only **once**. Attempting register multiple closures
-    ///     to one promise instance results in undefined behaviors.
+    /// - Important: Register one update closure per promise. A later registration
+    ///   replaces the existing closure.
     public final class Promise<Result> {
         @safe nonisolated(unsafe)
         private var _onUpdate: ((Result, DataSource) -> Void)?
@@ -66,9 +60,13 @@ public final class SekaiCache {
             self.initialValue = initialValue
         }
         
+        /// The source of a value delivered by a cache promise.
         public enum DataSource {
+            /// A value read from the disk cache.
             case cache
+            /// A result returned by the loading operation.
             case origin
+            /// An initial value supplied when the promise was created.
             case initial
         }
         
@@ -85,19 +83,14 @@ public final class SekaiCache {
             return self
         }
         
-        /// Registers a closure for receiving value updates.
+        /// Registers the closure that receives subsequent value updates.
         ///
-        /// - Parameter action: A closure called when value updates.
-        /// - Returns: The promise itself.
+        /// An initial value is delivered synchronously only if no update has occurred.
+        /// Previously delivered updates are not replayed. Registering another closure
+        /// replaces the existing closure.
         ///
-        /// If you registers a closure for updates
-        /// after the value updates, it will still be called with the last value,
-        /// but miss values before it.
-        ///
-        /// - IMPORTANT:
-        ///     You should register a closure for update to a promise
-        ///     only **once**. Attempt to register multiple closures
-        ///     to one promise instance results in undefined behaviors.
+        /// - Parameter action: The closure receiving a value and its source.
+        /// - Returns: This promise, allowing chained calls.
         @discardableResult
         public func onUpdate(_ action: @escaping (Result, DataSource) -> Void) -> Self {
             self._onUpdate = action
@@ -107,73 +100,48 @@ public final class SekaiCache {
             return self
         }
         
-        /// Cancels the promise.
+        /// Cancels future update delivery and requests cancellation of the loading task.
         ///
-        /// Canceling a promise also notifies the creator of promise
-        /// to cancel its ongoing tasks for updating data if possible.
-        ///
-        /// A promise can't be "re-enabled" after canceling.
+        /// Cancellation is cooperative, and a cancelled promise cannot be reactivated.
         public func cancel() {
             self._onCancel?()
             self.isCancelled = true
         }
     }
     
-    /// Trait of data for cacheing.
-    ///
-    /// - IMPORTANT:
-    ///     Using ``invocationElidable`` allows SekaiKit elide the `invocation`
-    ///     if cached data is new enough, like its name.
+    /// A policy controlling whether a loading operation can be skipped in favor of cached data.
     public enum CacheTrait: Sendable {
-        /// Data that updates frequently.
+        /// Requests a new value even when a disk cache is available.
         case realTime
-        /// Data that changes less frequently and allows outdated versions.
+        /// Allows a sufficiently recent cached value to skip the loading operation.
         ///
-        /// - IMPORTANT:
-        ///     Using this trait allows SekaiKit elide the `invocation`
-        ///     if cached data is new enough, like its name.
+        /// The current freshness interval is 24 hours.
         case invocationElidable
     }
     
     private static let cacheDateEncoder = PropertyListEncoder()
     private static let cacheDateDecoder = PropertyListDecoder()
     
-    /// Get result with automatic cache.
+    /// Loads a value while delivering available disk cache data through a promise.
     ///
-    /// - Parameters:
-    ///   - id: A unique identifier for cache.
-    ///   - trait: Trait of data being cached, see ``CacheTrait`` for more details.
-    ///   - invocation: A closure that returns a result that can be cached.
-    /// - Returns: A ``Promise`` for result.
+    /// A cached value is delivered first when available. Unless the cache policy
+    /// skips loading, a non-`nil` result is then delivered and written to disk. A
+    /// failed load delivers `nil` only when no cached value was available.
+    /// Register the update closure immediately; earlier updates are not replayed.
     ///
-    /// Call this function with an identifier to get a promise for result,
-    /// then register an `onUpdate` closure for receiving new data:
     /// ```swift
-    /// SekaiCache.withCache(id: "CacheID") {
-    ///     await SekaiAPI.Character.Character(id: 39)
-    /// }.onUpdate {
-    ///     let myFavoriteCharacter = $0
+    /// SekaiCache.withCache(id: "JapaneseCharacters") {
+    ///     await Character.allInLocale(.jp)
+    /// }.onUpdate { characters, source in
+    ///     print(characters?.count ?? 0, source)
     /// }
     /// ```
     ///
-    /// The `onUpdate` closure registered to a promise may be called more than once
-    /// (we call this *return twice*).
-    ///
-    /// If a cache is available on disk, the promise will be update immediately,
-    /// which allows you to get data faster. Then if `invocation` returns a result
-    /// other than `nil`, the promise will be update again with the latest data from `invocation`.
-    ///
-    /// If a cache is available on disk but `invocation` returns `nil`, the promise
-    /// will be update only once with data from cache, and cache on disk won't be update.
-    /// If cache is unavailable and `invocation` returns `nil`, the promise will be updated
-    /// with `nil`.
-    ///
-    /// The mechanism above implies the promise will be update **at least once**
-    /// and may **more than once**.
-    ///
-    /// - Note:
-    ///     You can use the same ID in different places if the result types aren't same.
-    ///     Caches with the same ID but different types will be stored separately.
+    /// - Parameters:
+    ///   - id: The cache identifier. Identical identifiers with different result types use separate files.
+    ///   - trait: The policy governing reuse of cached values.
+    ///   - invocation: The asynchronous operation used to obtain a value.
+    /// - Returns: A promise delivering cached and loaded results.
     public static func withCache<Result: Sendable & Cacheable>(
         id: String,
         trait: CacheTrait = .invocationElidable,
@@ -249,19 +217,20 @@ public final class SekaiCache {
         return promise
     }
     
-    /// Invalidates a cache with type and ID.
+    /// Removes the disk cache for a result type and identifier.
+    ///
+    /// Missing files and removal errors are ignored.
     ///
     /// - Parameters:
-    ///   - type: Type of cache.
-    ///   - id: A unique identifier of cache.
-    ///
-    /// This function has no effects if provided `type` and `id`
-    /// don't match any cache on disk.
+    ///   - type: The cached result type.
+    ///   - id: The cache identifier.
     public static func invalidate<T>(_ type: T.Type, withID id: String) {
         let cacheURL = URL(filePath: NSHomeDirectory() + "/Library/Caches/SekaiKit_\(type)_\(id).cache")
         try? FileManager.default.removeItem(at: cacheURL)
     }
-    /// Invalidates all cache on disk.
+    /// Removes SekaiKit cache files from the app’s cache directory.
+    ///
+    /// Missing files and removal errors are ignored. This does not clear the bundled cache.
     public static func invalidateAll() {
         let cacheRootPath = NSHomeDirectory() + "/Library/Caches"
         guard let files = try? FileManager.default.contentsOfDirectory(atPath: cacheRootPath) else { return }
@@ -270,6 +239,18 @@ public final class SekaiCache {
         }
     }
     
+    /// Awaits a result using the specified disk cache policy.
+    ///
+    /// The elidable policy returns the first delivered value. The real-time policy
+    /// waits for an origin update. If an origin request fails after cached data was
+    /// delivered, the current promise implementation suppresses that update and
+    /// this method can remain suspended.
+    ///
+    /// - Parameters:
+    ///   - id: The cache identifier.
+    ///   - trait: The policy governing reuse of cached values.
+    ///   - invocation: The asynchronous operation used to obtain a value.
+    /// - Returns: The first result allowed by the policy, or `nil` when an allowed update has no value.
     public static func withDirectCache<Result: Sendable & Cacheable>(
         id: String,
         trait: CacheTrait = .invocationElidable,
@@ -295,6 +276,12 @@ public final class SekaiCache {
 extension SekaiCache.Promise: Sendable where Result: Sendable {}
 
 extension SekaiCache.Cacheable {
+    /// Decodes a value from cached property-list data.
+    ///
+    /// The initializer accepts direct values and wrapped scalar values, and returns
+    /// `nil` if the data cannot be decoded.
+    ///
+    /// - Parameter cache: The cached bytes to decode.
     public init?(fromCache cache: Data) {
         let decoder = PropertyListDecoder()
         if let data = try? decoder.decode(Self.self, from: cache) {
@@ -305,6 +292,7 @@ extension SekaiCache.Cacheable {
             return nil
         }
     }
+    /// The binary property-list representation of the value, wrapping scalar values when needed.
     public var dataForCache: Data {
         let encoder = PropertyListEncoder()
         encoder.outputFormat = .binary
@@ -330,6 +318,12 @@ extension Color: @retroactive Encodable {
         case blue
     }
     
+    /// Encodes the resolved red, green, and blue components of a color.
+    ///
+    /// The color is resolved in a default environment; alpha is not stored.
+    ///
+    /// - Parameter encoder: The encoder receiving the RGB components.
+    /// - Throws: Any error encountered while encoding the components.
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         let resolved = self.resolve(in: .init())
@@ -339,6 +333,10 @@ extension Color: @retroactive Encodable {
     }
 }
 extension Color: @retroactive Decodable {
+    /// Decodes an opaque color from stored red, green, and blue components.
+    ///
+    /// - Parameter decoder: The decoder providing the RGB components.
+    /// - Throws: Any error encountered while decoding the components.
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let red = try container.decode(Double.self, forKey: .red)
@@ -369,10 +367,20 @@ extension Dictionary: SekaiCache.Cacheable where Key: SekaiCache.Cacheable, Valu
 extension Set: SekaiCache.Cacheable where Element: SekaiCache.Cacheable {}
 extension Optional: SekaiCache.Cacheable where Wrapped: SekaiCache.Cacheable {}
 
+/// A SekaiKit model that supports property-list cache encoding and decoding.
 public protocol SekaiCachable: SekaiCache.Cacheable {}
 extension Array: SekaiCachable where Element: SekaiCachable {}
 
 
+/// Loads a SekaiKit model while delivering cached and newly loaded values.
+///
+/// This convenience function forwards to ``SekaiCache/withCache(id:trait:invocation:)``.
+///
+/// - Parameters:
+///   - id: The cache identifier.
+///   - trait: The policy governing reuse of cached values.
+///   - invocation: The asynchronous operation used to obtain a value.
+/// - Returns: A promise delivering cached and loaded results.
 @inline(__always)
 public func withSekaiCache<Result: Sendable & SekaiCachable>(
     id: String,

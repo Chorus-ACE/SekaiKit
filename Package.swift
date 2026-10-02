@@ -15,6 +15,7 @@ let package = Package(
         .library(name: "SekaiKitMacro", targets: ["SekaiKitMacro"])
     ],
     dependencies: [
+        .package(url: "https://github.com/apple/swift-protobuf", from: "1.38.1"),
         .package(url: "https://github.com/Alamofire/Alamofire", from: "5.10.2"),
         .package(url: "https://github.com/SwiftyJSON/SwiftyJSON", from: "5.0.2"),
         .package(url: "https://github.com/swift-library/swift-gyb", from: "0.0.1"),
@@ -26,7 +27,8 @@ let package = Package(
             dependencies: [
                 "Alamofire",
                 "SwiftyJSON",
-                "SekaiKitMacro"
+                "SekaiKitMacro",
+                .product(name: "SwiftProtobuf", package: "swift-protobuf")
             ],
             path: "SekaiKit/",
             resources: [
@@ -34,7 +36,8 @@ let package = Package(
                 .process("Resources")
             ],
             plugins: [
-                .plugin(name: "Gyb", package: "swift-gyb")
+                .plugin(name: "Gyb", package: "swift-gyb"),
+                .plugin(name: "SwiftProtobufPlugin", package: "swift-protobuf")
             ]
         ),
 
@@ -51,6 +54,11 @@ let package = Package(
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ],
             path: "SekaiKitMacroMacros/",
+        ),
+
+        .testTarget(
+            name: "SekaiKitTests",
+            dependencies: ["SekaiKit", .product(name: "SwiftProtobuf", package: "swift-protobuf")]
         ),
 
 //        .testTarget(

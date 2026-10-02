@@ -17,80 +17,75 @@ import Foundation
 
 /// A type that can be searched when in a collection.
 public protocol SekaiSearchable: Identifiable {
+    /// The unlocalized strings searched for this record.
     var _searchStrings: [String] { get }
+    /// The localized strings searched across all available locales for this record.
     var _searchLocalizedStrings: [LocalizableData<String>] { get }
 }
 
 extension SekaiSearchable {
+    /// The unlocalized strings searched for this record.
     public var _searchStrings: [String] { [] }
+    /// The localized strings searched across all available locales for this record.
     public var _searchLocalizedStrings: [LocalizableData<String>] { [] }
 }
 
 extension Array where Element: SekaiSearchable {
-    /// Returns a new array which is filtered by given keyword.
+    /// Returns elements matching every whitespace-separated search token.
     ///
-    /// - Parameters:
-    ///   - keyword: Keyword for searching.
-    /// - Returns: A new array which is filtered by given keyword.
+    /// Matching is case-insensitive and uses substring comparisons across localized
+    /// and unlocalized search fields. A token such as `#42` also matches an integer
+    /// record identifier. Empty or whitespace-only input returns the original array.
     ///
-    /// This function performs a "smart search" like the one on Bestdori! website.
+    /// - Parameter keyword: The text containing the search tokens.
+    /// - Returns: The matching elements in their original order.
     public func search(for keyword: String) -> Self {
-        let tokens = keyword.split(separator: " ").map { $0.lowercased() }
+        let tokens = keyword.split(whereSeparator: { $0.isWhitespace }).map { $0.lowercased() }
         guard !tokens.isEmpty else { return self }
-        
-        
-        var result = self
-        var removes = IndexSet()
-        let keyPattern = keyword.replacing(" ", with: "")
-        itemLoop: for (index, item) in result.enumerated() {
-            tokenLoop: for token in tokens {
-                // We always do early exit for performance
-                for string in item._searchStrings {
-                    if string.lowercased().contains(token) {
-                        continue tokenLoop
+
+        return filter { item in
+            var searchableStrings = item._searchStrings.map { $0.lowercased() }
+            for localizableString in item._searchLocalizedStrings {
+                switch localizableString {
+                case .localized(let localizedString):
+                    searchableStrings.append(contentsOf: localizedString.allAvailableLocales.compactMap {
+                        localizedString.forLocale($0)?.lowercased()
+                    })
+                case .unlocalized(let string):
+                    if let string {
+                        searchableStrings.append(string.lowercased())
                     }
                 }
-                for localizableString in item._searchLocalizedStrings {
-                    switch localizableString {
-                    case .localized(let localizedString):
-                        for locale in SekaiLocale.allCases {
-                            if localizedString.forLocale(locale)?.lowercased().contains(token) == true {
-                                continue tokenLoop
-                            }
-                        }
-                    case .unlocalized(let string):
-                        if string?.lowercased().contains(token) == true {
-                            continue tokenLoop
-                        }
-                    }
+            }
+
+            return tokens.allSatisfy { token in
+                if token.hasPrefix("#"),
+                   let intToken = Int(token.dropFirst()),
+                   (item.id as? Int) == intToken {
+                    return true
                 }
-                if token.hasPrefix("#"), let intToken = Int(String(token.dropFirst())) {
-                    if (item.id as? Int) == intToken {
-                        continue tokenLoop
-                    }
-                }
-                removes.insert(index)
+                return searchableStrings.contains { $0.contains(token) }
             }
         }
-        result.remove(atOffsets: removes)
-        
-        return result
     }
 }
 
 extension Card: SekaiSearchable {
+    /// The localized strings searched across all available locales for this record.
     public var _searchLocalizedStrings: [LocalizableData<String>] {
         [self.title]
     }
 }
 
 extension Event: SekaiSearchable {
+    /// The localized strings searched across all available locales for this record.
     public var _searchLocalizedStrings: [LocalizableData<String>] {
         [self.title]
     }
 }
 
 extension Song: SekaiSearchable {
+    /// The localized strings searched across all available locales for this record.
     public var _searchLocalizedStrings: [LocalizableData<String>] {
         [self.title, self.creatorArtist, self.lyricist, self.composer, self.arranger]
     }

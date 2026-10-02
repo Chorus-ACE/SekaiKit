@@ -8,10 +8,15 @@
 import Foundation
 
 extension Card: SekaiFilterable {
+    /// The filter keys supported by this content type.
     public static var filterKeys: [SekaiFilter.Key] {
         [Unit.filterKey, Card.Attribute.filterKey, Card.Rarity.filterKey, Character.filterKey, Card.SourceType.filterKey]
     }
     
+    /// Evaluates the selected options against this record.
+    ///
+    /// - Parameter filter: The filter selections to apply.
+    /// - Returns: `true` if the record satisfies the selections.
     public func _matches(_ filter: SekaiFilter) -> Bool {
         let automaticValues: [any SekaiFilterElementProtocol] = [self.unit, self.attribute, self.rarity, self.sourceType]
         for item in automaticValues {
@@ -28,10 +33,15 @@ extension Card: SekaiFilterable {
 }
 
 extension Event: SekaiFilterable {
+    /// The filter keys supported by this content type.
     public static var filterKeys: [SekaiFilter.Key] {
         [Unit.filterKey.withOtherOption, Card.Attribute.filterKey.withOtherOption, Event.EventType.filterKey, Character.filterKey, Character.matchingStrategyKey]
     }
     
+    /// Evaluates the selected options against this record.
+    ///
+    /// - Parameter filter: The filter selections to apply.
+    /// - Returns: `true` if the record satisfies the selections.
     public func _matches(_ filter: SekaiFilter) -> Bool {
         let automaticValues: [any SekaiFilterElementProtocol] = [self.unit, self.attribute, self.eventType]
         for item in automaticValues {
@@ -62,10 +72,15 @@ private let hasAppendFilterKey = SekaiFilter.Key(
 )
 
 extension Song: SekaiFilterable {
+    /// The filter keys supported by this content type.
     public static var filterKeys: [SekaiFilter.Key] {
         [Unit.filterKey.withOtherOption, Song.MediaType.filterKey, hasAppendFilterKey]
     }
     
+    /// Evaluates the selected options against this record.
+    ///
+    /// - Parameter filter: The filter selections to apply.
+    /// - Returns: `true` if the record satisfies the selections.
     public func _matches(_ filter: SekaiFilter) -> Bool {
         guard filter["song-has-append"]?.contains(self.difficultyLevel.keys.contains(.append).filterValue) ?? true else { return false }
         guard filter[Song.MediaType.filterKey]?.contains(where: self.availableMedia.map(\.filterValue).contains) ?? true else { return false }

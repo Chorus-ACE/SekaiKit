@@ -15,14 +15,25 @@
 import Foundation
 internal import CryptoKit
 
+/// A type that supports SekaiKit’s sorting keywords and comparisons.
 public protocol SekaiSortable {
+    /// The sorting keywords supported by this content type.
     static var applicableSortingTypes: [SekaiSorter.Keyword] { get }
     
+    /// A Boolean value indicating whether date sorting should be labeled as an event start date.
     static var hasEndingDate: Bool { get }
     
+    /// Compares two values using a SekaiKit sorter.
+    ///
+    /// - Parameters:
+    ///   - usingSekaiSorter: The sorter defining the comparison.
+    ///   - lhs: The first value.
+    ///   - rhs: The second value.
+    /// - Returns: Whether `lhs` precedes `rhs`, or `nil` if the comparison is unsupported.
     static func _compare<ValueType>(usingSekaiSorter: SekaiSorter, lhs: ValueType, rhs: ValueType) -> Bool?
 }
 
+/// A sorting keyword and direction, with optional persistence of the selection.
 public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
     /// The direction of this sorter.
     public var direction: Direction { didSet { store() } }
@@ -40,9 +51,13 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
     
     private var recoveryID: String?
     
-    /// Create a sorter which can restore to its latest selections across sessions.
-    /// - Parameter id: An identifier for restoration.
-    /// - Returns: A sorter which stores its selections automaticlly and can be restore by provided ID.
+    /// Creates a sorter using saved selections for an identifier, if available.
+    ///
+    /// - Parameter id: The identifier used to look up and persist selections.
+    /// - Returns: A sorter with the recovered selections or the default keyword and direction.
+    ///
+    /// - Note: The current implementation reads the legacy DoriKit preferences file
+    ///   and writes subsequent changes to the SekaiKit preferences file.
     public static func recoverable(id: String) -> Self {
         let storageURL = URL(filePath: NSHomeDirectory() + "/Documents/DoriKit_Sorter_Status.plist")
         let decoder = PropertyListDecoder()
@@ -56,10 +71,10 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
         return result
     }
     
-    /// A string identity of the sorter.
+    /// An eight-character digest derived from the sorting keyword and direction.
     ///
-    /// This allows you to identify whether two sorters have the same effect,
-    /// which is useful when working with ``SekaiCache``.
+    /// Use this value to group equivalent sorting configurations. As a truncated
+    /// digest, it is not guaranteed to be unique.
     public var identity: String {
         let desc = """
             \(direction)\
@@ -88,13 +103,15 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
         }
     }
     
-    /// Represents direction of a sorter.
+    /// The direction in which values are ordered.
     @frozen
     public enum Direction: String, Equatable, Hashable, Codable {
+        /// Orders smaller values before larger values.
         case ascending = "ascending"
+        /// Orders larger values before smaller values.
         case descending = "descending"
         
-        /// The reversed direction of current.
+        /// The opposite sorting direction.
         @inlinable
         public var reversed: Self {
             switch self {
@@ -103,20 +120,26 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
             }
         }
         
-        /// Reverse the direction.
+        /// Reverses the sorting direction.
         @inlinable
         public mutating func reverse() {
             self = self.reversed
         }
     }
-    /// Represents keyword of a sorter.
+    /// The field used to order records.
     public enum Keyword: CaseIterable, Sendable, Equatable, Hashable, Codable {
+        /// Orders records by their release or start date in the associated locale.
         case releaseDate(in: SekaiLocale)
+        /// Orders songs by chart level for the associated difficulty.
         case level(for: Song.Difficulty)
+        /// Orders cards by rarity.
         case rarity
+        /// Orders cards by maximum power.
         case maximumStat
+        /// Orders records by identifier.
         case id
         
+        /// Every supported sorting keyword, including all locale and difficulty variants.
         public static let allCases: [Self] = [
             .releaseDate(in: .jp),
             .releaseDate(in: .en),
@@ -134,21 +157,21 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
             .id
         ]
         
+        /// The keyword’s zero-based index in ``allCases``.
         public var rawValue: Int {
             return Self.allCases.firstIndex(where: { $0 == self })!
         }
         
-        /// Localized description text for keyword.
+        /// The keyword’s localized label using release-date terminology.
         @inline(never)
         public var localizedString: String {
             self.localizedString()
         }
         
-        /// Localized description text for keyword.
-        /// - Parameter hasEndingDate: A boolean value that indicates
-        ///     whether the type has an ending date
-        ///     (i.e. can be *removed*, *stopped*, or etc.)
-        /// - Returns: A localized description text for keyword.
+        /// Returns the localized label for a sorting keyword.
+        ///
+        /// - Parameter hasEndingDate: Whether date keywords should use start-date terminology.
+        /// - Returns: The localized keyword label.
         public func localizedString(hasEndingDate: Bool = false) -> String {
             switch self {
             case .releaseDate(let locale):
@@ -162,11 +185,12 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
         }
     }
     
-    /// Returns a localized name of given direction with keyword.
+    /// Returns a localized direction label appropriate for a keyword.
+    ///
     /// - Parameters:
-    ///   - keyword: The keyword for direction, nil to use the current one.
-    ///   - direction: The direction, nil to use the current one.
-    /// - Returns: A localized name of given direction with keyword.
+    ///   - keyword: The keyword to describe, or `nil` to use the current keyword.
+    ///   - direction: The direction to describe, or `nil` to use the current direction.
+    /// - Returns: The localized direction label.
     public func localizedDirectionName(keyword: Keyword? = nil, direction: Direction? = nil) -> String {
         let isAscending: Bool = (direction ?? self.direction) == .ascending
         switch keyword ?? self.keyword {
@@ -214,6 +238,9 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
 
 
 extension Set<SekaiSorter.Keyword> {
+    /// Returns the sorting keywords in their declaration order.
+    ///
+    /// - Returns: The keywords sorted by their numeric indices.
     @inlinable
     public func sorted() -> [SekaiSorter.Keyword] {
         self.sorted { $0.rawValue < $1.rawValue }
@@ -221,12 +248,21 @@ extension Set<SekaiSorter.Keyword> {
 }
 
 extension Card: SekaiSortable {
+    /// The sorting keywords supported by this content type.
     public static var applicableSortingTypes: [SekaiSorter.Keyword] {
         [.releaseDate(in: .jp), .releaseDate(in: .en), .releaseDate(in: .tw), .releaseDate(in: .cn), .releaseDate(in: .kr), .rarity, .maximumStat, .id]
     }
     
+    /// A Boolean value indicating whether date sorting should be labeled as an event start date.
     public static var hasEndingDate: Bool { false }
     
+    /// Compares two values using a SekaiKit sorter.
+    ///
+    /// - Parameters:
+    ///   - sorter: The sorter defining the comparison.
+    ///   - lhs: The first value.
+    ///   - rhs: The second value.
+    /// - Returns: Whether `lhs` precedes `rhs`, or `nil` if the comparison is unsupported.
     public static func _compare<ValueType>(usingSekaiSorter sorter: SekaiSorter, lhs: ValueType, rhs: ValueType) -> Bool? {
         guard let castedLHS = lhs as? Card, let castedRHS = rhs as? Card else { return nil }
         switch sorter.keyword {
@@ -251,14 +287,23 @@ extension Card: SekaiSortable {
 
 // MARK: extension PreviewEvent
 extension Event: SekaiSortable {
+    /// The sorting keywords supported by this content type.
     @inlinable
     public static var applicableSortingTypes: [SekaiSorter.Keyword] {
         [.releaseDate(in: .jp), .releaseDate(in: .en), .releaseDate(in: .tw), .releaseDate(in: .cn), .releaseDate(in: .kr), .id]
     }
     
+    /// A Boolean value indicating whether date sorting should be labeled as an event start date.
     @inlinable
     public static var hasEndingDate: Bool { true }
     
+    /// Compares two values using a SekaiKit sorter.
+    ///
+    /// - Parameters:
+    ///   - sorter: The sorter defining the comparison.
+    ///   - lhs: The first value.
+    ///   - rhs: The second value.
+    /// - Returns: Whether `lhs` precedes `rhs`, or `nil` if the comparison is unsupported.
     public static func _compare<ValueType>(usingSekaiSorter sorter: SekaiSorter, lhs: ValueType, rhs: ValueType) -> Bool? {
         guard let castedLHS = lhs as? Event, let castedRHS = rhs as? Event else { return nil }
         switch sorter.keyword {
@@ -363,14 +408,23 @@ extension Event: SekaiSortable {
 //
 //// MARK: extension PreviewSong
 extension Song: SekaiSortable {
+    /// The sorting keywords supported by this content type.
     @inlinable
     public static var applicableSortingTypes: [SekaiSorter.Keyword] {
         [.releaseDate(in: .jp), .releaseDate(in: .en), .releaseDate(in: .tw), .releaseDate(in: .cn), .releaseDate(in: .kr), .level(for: .easy), .level(for: .normal), .level(for: .hard), .level(for: .master), .level(for: .expert), .level(for: .append), .id]
     }
     
+    /// A Boolean value indicating whether date sorting should be labeled as an event start date.
     @inlinable
     public static var hasEndingDate: Bool { false }
     
+    /// Compares two values using a SekaiKit sorter.
+    ///
+    /// - Parameters:
+    ///   - sorter: The sorter defining the comparison.
+    ///   - lhs: The first value.
+    ///   - rhs: The second value.
+    /// - Returns: Whether `lhs` precedes `rhs`, or `nil` if the comparison is unsupported.
     public static func _compare<ValueType>(usingSekaiSorter sorter: SekaiSorter, lhs: ValueType, rhs: ValueType) -> Bool? {
         guard let castedLHS = lhs as? Song, let castedRHS = rhs as? Song else { return nil }
         switch sorter.keyword {
@@ -491,6 +545,10 @@ extension Song: SekaiSortable {
 
 // MARK: extension Array
 extension Array where Element: SekaiSortable {
+    /// Returns the elements ordered by a SekaiKit sorter.
+    ///
+    /// - Parameter sorter: The sorting keyword and direction to apply.
+    /// - Returns: A sorted copy of the array.
     public func sorted(withSekaiSorter sorter: SekaiSorter) -> [Element] {
         var result: [Element] = self
         result = result.sorted {
@@ -499,6 +557,9 @@ extension Array where Element: SekaiSortable {
         return result
     }
     
+    /// Orders the array in place using a SekaiKit sorter.
+    ///
+    /// - Parameter sorter: The sorting keyword and direction to apply.
     @inline(__always)
     public mutating func sort(withSekaiSorter sorter: SekaiSorter) {
         self = self.sorted(withSekaiSorter: sorter)

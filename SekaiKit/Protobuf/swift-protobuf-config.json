@@ -1,0 +1,13 @@
+{
+    "invocations": [
+        {
+            "protoFiles": [
+                "Character.proto",
+                "Event.proto",
+                "Card.proto"
+            ],
+            "visibility": "internal",
+            "useAccessLevelOnImports": true
+        }
+    ]
+}
