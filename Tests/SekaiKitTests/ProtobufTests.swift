@@ -4,6 +4,42 @@ import SwiftProtobuf
 @testable import SekaiKit
 
 final class ProtobufTests: XCTestCase {
+    func testUnknownEventTypeFiltersAndAssetURLs() throws {
+        let event = Event(protobuf: .with {
+            $0.id = 999
+            $0.title = "Future"
+            $0.eventType = "future_type"
+            $0.assetbundleName = "event_example"
+        })
+        XCTAssertEqual(event.eventType, .unknown)
+        XCTAssertEqual(Event.EventType.filterKey.id, "eventType")
+        XCTAssertTrue(event._matches(.init(["eventType": [nil]])))
+        XCTAssertFalse(event._matches(.init(["eventType": [0]])))
+        XCTAssertFalse(event.eventType.localizedName.hasPrefix("Event.type."))
+        XCTAssertFalse(Event.EventType.filterKey.title.hasPrefix("Filter.key."))
+        XCTAssertEqual(event.logoImageURL, event.logoImageURL(in: nil))
+        XCTAssertTrue(event.logoImageURL.path.hasSuffix("/logo/logo.webp"))
+        XCTAssertEqual(event.backgroundMusicURL.scheme, "https")
+        XCTAssertEqual(event.backgroundMusicURL.host, "storage.sekai.best")
+    }
+
+    func testEventFocusMetadataAndOldArchiveCompatibility() throws {
+        let wire = _Event.with {
+            $0.id = 150
+            $0.focusCharacterID = 19
+            $0.focusCharacterIndex = 5
+        }
+        let event = Event(protobuf: try _Event(serializedBytes: wire.serializedData()))
+        XCTAssertEqual(event.focusCharacterID, 19)
+        XCTAssertEqual(event.focusCharacterIndex, 5)
+        let legacy = Event(protobuf: .with { $0.id = 150 })
+        XCTAssertNil(legacy.focusCharacterID)
+        XCTAssertNil(legacy.focusCharacterIndex)
+        let restored = try JSONDecoder().decode(Event.self, from: JSONEncoder().encode(event))
+        XCTAssertEqual(restored.focusCharacterID, 19)
+        XCTAssertEqual(restored.focusCharacterIndex, 5)
+    }
+
     func testCardMappingPreservesPresenceAndMilliseconds() throws {
         var wire = _Card()
         wire.id = 1

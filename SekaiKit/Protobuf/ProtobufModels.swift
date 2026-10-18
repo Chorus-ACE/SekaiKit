@@ -87,7 +87,7 @@ extension Event {
         self.init(
             id: Int(value.id),
             title: .unlocalized(value.hasTitle ? value.title : nil),
-            eventType: EventType(rawValue: value.eventType) ?? .marathon,
+            eventType: EventType(rawValue: value.eventType) ?? .unknown,
             displayingStartDate: protobufDate(value.displayingStartAt, present: value.hasDisplayingStartAt),
             startDate: protobufDate(value.startAt, present: value.hasStartAt),
             aggregateDate: protobufDate(value.aggregateAt, present: value.hasAggregateAt),
@@ -97,6 +97,8 @@ extension Event {
             endDate: protobufDate(value.closedAt, present: value.hasClosedAt),
             distributionEndDate: protobufDate(value.distributionEndAt, present: value.hasDistributionEndAt),
             unit: Unit(rawValue: value.unit),
+            focusCharacterID: value.hasFocusCharacterID ? Int(value.focusCharacterID) : nil,
+            focusCharacterIndex: value.hasFocusCharacterIndex ? Int(value.focusCharacterIndex) : nil,
             attribute: value.hasAttribute ? Card.Attribute(rawValue: value.attribute) : nil,
             characters: value.characters.map(Int.init),
             attributeBonus: value.hasAttributeBonus ? Int(value.attributeBonus) : nil,

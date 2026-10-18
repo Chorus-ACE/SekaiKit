@@ -58,7 +58,7 @@ let package = Package(
 
         .testTarget(
             name: "SekaiKitTests",
-            dependencies: ["SekaiKit", .product(name: "SwiftProtobuf", package: "swift-protobuf")]
+            dependencies: ["SekaiKit", "SwiftyJSON", .product(name: "SwiftProtobuf", package: "swift-protobuf")]
         ),
 
 //        .testTarget(

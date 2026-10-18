@@ -14,7 +14,7 @@
 
 import Foundation
 import SwiftUI
-import SwiftyJSON
+internal import SwiftyJSON
 
 extension SekaiCache {
     /// Character information bundled with SekaiKit for use without a network request.

@@ -8,7 +8,7 @@
 import Foundation
 
 /// A collection of selected option identifiers used to filter game records.
-public struct SekaiFilter: Hashable, Codable, Equatable {
+public struct SekaiFilter: Hashable, Codable, Equatable, Sendable {
     /// The selected option identifiers keyed by filter identifier.
     ///
     /// A `nil` option identifier represents the “other” option.

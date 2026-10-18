@@ -102,11 +102,12 @@ extension Event.EventType: SekaiFilterElementProtocol {
         case .marathon: 0
         case .cheerfulCarnival: 1
         case .worldLink: 2
+        case .unknown: nil
         }
     }
     
     static let filterKey = {
-        SekaiFilter.Key(id: "rarity", options: Self.allCases.map({
+        SekaiFilter.Key(id: "eventType", options: Self.allCases.map({
             .init(id: $0.filterValue,
                   selectorName: $0.localizedName) }))
     }()
@@ -133,4 +134,61 @@ extension Bool {
     var filterValue: Int {
         return self ? 1 : 0
     }
+}
+
+extension Gacha.GachaType: SekaiFilterElementProtocol {
+    var filterValue: Int? {
+        switch self {
+        case .normal: 0
+        case .ceil: 1
+        case .gift: 2
+        case .beginner: 3
+        case .specialBeginner: 4
+        case .specialReturn: 5
+        case .specialNormal: 6
+        case .returning: 7
+        case .unknown: nil
+        }
+    }
+
+    static let filterKey = SekaiFilter.Key(id: "gachaType", options: Self.allCases.map {
+        .init(id: $0.filterValue, selectorName: $0.localizedName)
+    })
+}
+
+extension Sticker.StickerType: SekaiFilterElementProtocol {
+    var filterValue: Int? {
+        switch self {
+        case .illustration: 0
+        case .text: 1
+        case .cheerfulCarnivalMessage: 2
+        case .nonCharacterIllustration: 3
+        case .unknown: nil
+        }
+    }
+
+    static let filterKey = SekaiFilter.Key(id: "stickerType", options: Self.allCases.map {
+        .init(id: $0.filterValue, selectorName: $0.localizedName)
+    })
+}
+
+extension MySekaiFixture.FixtureType: SekaiFilterElementProtocol {
+    var filterValue: Int? { self == .unknown ? nil : Self.allCases.firstIndex(of: self) }
+    static let filterKey = SekaiFilter.Key(id: "fixtureType", options: Self.allCases.map {
+        .init(id: $0.filterValue, selectorName: $0.localizedName)
+    })
+}
+
+extension MySekaiFixture.Site: SekaiFilterElementProtocol {
+    var filterValue: Int? { self == .unknown ? nil : Self.allCases.firstIndex(of: self) }
+    static let filterKey = SekaiFilter.Key(id: "fixtureSite", options: Self.allCases.map {
+        .init(id: $0.filterValue, selectorName: $0.localizedName)
+    })
+}
+
+extension MySekaiFixture.Layout: SekaiFilterElementProtocol {
+    var filterValue: Int? { self == .unknown ? nil : Self.allCases.firstIndex(of: self) }
+    static let filterKey = SekaiFilter.Key(id: "fixtureLayout", options: Self.allCases.map {
+        .init(id: $0.filterValue, selectorName: $0.localizedName)
+    })
 }

@@ -138,7 +138,7 @@ internal extension JSON {
     var date: Date? {
         get {
             if let int = self.int {
-                return Date(timeIntervalSince1970: TimeInterval(int/1000))
+                return Date(timeIntervalSince1970: TimeInterval(int) / 1000)
             } else {
                 return nil
             }
@@ -154,7 +154,7 @@ internal extension JSON {
     
     var dateValue: Date {
         get {
-            return Date(timeIntervalSince1970: TimeInterval(self.intValue/1000))
+            return Date(timeIntervalSince1970: TimeInterval(self.intValue) / 1000)
         }
         set {
             object = newValue

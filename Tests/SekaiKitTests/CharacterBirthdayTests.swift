@@ -73,7 +73,7 @@ final class CharacterBirthdayTests: XCTestCase {
         XCTAssertEqual(ids(characters, on: date(1, 1)), [1, 2])
     }
 
-    func testPublicFunctionLoadsCharactersAndDistinguishesEmptyFromFailure() async throws {
+    func testPublicFunctionLoadsCharactersAndDistinguishesNoBirthdaysFromFailure() async throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -87,7 +87,8 @@ final class CharacterBirthdayTests: XCTestCase {
         }
         let empty = directory.appending(path: "empty")
         try FileManager.default.createDirectory(at: empty, withIntermediateDirectories: true)
-        try writeProtobufArchive(try _CharacterList().serializedData(), to: empty.appending(path: "character.aar"))
+        let noBirthdays = _CharacterList.with { $0.jp = [.with { $0.id = 3 }] }
+        try writeProtobufArchive(try noBirthdays.serializedData(), to: empty.appending(path: "character.aar"))
         await SekaiProtobuf.$baseURL.withValue(empty) {
             let result = await SekaiKit.Character.recentBirthdayCharacters()
             XCTAssertEqual(result, [])

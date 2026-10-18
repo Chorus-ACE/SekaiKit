@@ -38,6 +38,10 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
     
     /// The featured unit, if the event has one.
     public var unit: Unit?
+    /// The banner character's base ID for a unit-focus event; nil for mixed events and World Link.
+    public var focusCharacterID: Int?
+    /// The character's one-based unit-focus event count in Japanese release order.
+    public var focusCharacterIndex: Int?
     /// The attribute that receives an event bonus, if specified.
     public var attribute: Card.Attribute?
     /// The identifiers of characters that receive an event bonus.
@@ -69,6 +73,8 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
         case cheerfulCarnival = "cheerful_carnival"
         /// A World Link event.
         case worldLink = "world_bloom"
+        /// An event format introduced by a newer upstream data version.
+        case unknown
         
         /// The event format name localized for the app’s current language.
         public var localizedName: String {
@@ -97,6 +103,26 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
             /// The reward condition type, if a condition is specified.
             public var rewardConditionType: String?
         }
+    }
+    
+    
+    /// The focus character’s localized given name and unit-focus event count, formatted for the primary locale.
+    public var focusCharacterLabel: String? {
+        self.focusCharacterLabel()
+    }
+    
+    
+    /// Returns the focus character’s localized given name and unit-focus event count.
+    ///
+    /// - Parameter locale: The locale whose spacing convention is used. The default is the primary locale.
+    /// - Returns: The formatted label, or `nil` if the focus character, event count, or character name is unavailable.
+    public func focusCharacterLabel(in locale: SekaiLocale = .primaryLocale) -> String? {
+        if let id = self.focusCharacterID,
+           let index = self.focusCharacterIndex,
+           let name = SekaiCache.preCache.character(id: id)?.givenName.forLocale(locale) {
+            return "\(name)\(locale == .en ? " " : "")\(index)"
+        }
+        return nil
     }
 }
 
@@ -142,11 +168,12 @@ extension Event {
                 "https://storage.sekai.best/\((locale ?? self.title.majorLocale ?? .primaryLocale )._assetsPath)/home/banner/\(self.assetBundleName)/\(self.assetBundleName).webp")!
     }
     
-    /// The event story banner URL returned by this convenience property.
-    ///
-    /// Use ``logoImageURL(in:)`` to obtain the event logo asset.
+    // event_runaway_2023
+    // https://storage.sekai.best/sekai-tc-asset/home/banner/event_runaway_2023/event_runaway_2023.webp"
+    
+    /// The event logo URL in the preferred available locale.
     public var logoImageURL: URL {
-        self.bannerImageURL()
+        self.logoImageURL(in: nil)
     }
     
     /// Returns the event logo URL for a locale.
@@ -162,6 +189,6 @@ extension Event {
 extension Event {
     /// The background music URL constructed from the event’s asset bundle name.
     public var backgroundMusicURL: URL {
-        .init(string: "https:storage.sekai.best/sekai-jp-assets/event/\(self.assetBundleName)/bgm/\(self.assetBundleName)_top.mp3")!
+        .init(string: "https://storage.sekai.best/sekai-jp-assets/event/\(self.assetBundleName)/bgm/\(self.assetBundleName)_top.mp3")!
     }
 }

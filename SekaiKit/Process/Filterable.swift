@@ -8,9 +8,12 @@
 import Foundation
 
 extension Card: SekaiFilterable {
+    /// Support units use the same options as the main unit filter.
+    public static let supportUnitFilterKey = SekaiFilter.Key(id: "supportUnit", options: Unit.filterKey.options)
+
     /// The filter keys supported by this content type.
     public static var filterKeys: [SekaiFilter.Key] {
-        [Unit.filterKey, Card.Attribute.filterKey, Card.Rarity.filterKey, Character.filterKey, Card.SourceType.filterKey]
+        [Unit.filterKey, Card.supportUnitFilterKey, Card.Attribute.filterKey, Card.Rarity.filterKey, Character.filterKey, Card.SourceType.filterKey]
     }
     
     /// Evaluates the selected options against this record.
@@ -23,6 +26,12 @@ extension Card: SekaiFilterable {
             guard filter.permits(item) else { return false }
         }
         
+        // Cards without a support unit belong to the Virtual Singer option.
+        // Only cards with a Virtual Singer main unit have a support unit to filter.
+        if unit == .virtualSinger {
+            guard filter.permits((supportUnit ?? .virtualSinger).intRawValue, inKey: Self.supportUnitFilterKey.id) else { return false }
+        }
+
         let maunalValues: [(key: String, value: Int)] = [(Character.filterKey.id, self.characterID)]
         for item in maunalValues {
             guard filter.permits(item.value, inKey: item.key) else { return false }
@@ -51,7 +60,9 @@ extension Event: SekaiFilterable {
         let characters = self.characters.map({ Character.mapVirtualSingerID($0, includeMiku: true) })
         
         let requiresMatchAll = filter[Character.matchingStrategyKey]?.first == 1
-        let selectedCharacters = filter[Character.filterKey]?.compactMap({$0}) ?? []
+        guard let selection = filter[Character.filterKey] else { return true }
+        let selectedCharacters = selection.compactMap { $0 }
+        guard !selectedCharacters.isEmpty else { return false }
         
         if requiresMatchAll {
             guard selectedCharacters.allSatisfy(characters.contains) else { return false }

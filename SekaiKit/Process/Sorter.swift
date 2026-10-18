@@ -56,10 +56,8 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
     /// - Parameter id: The identifier used to look up and persist selections.
     /// - Returns: A sorter with the recovered selections or the default keyword and direction.
     ///
-    /// - Note: The current implementation reads the legacy DoriKit preferences file
-    ///   and writes subsequent changes to the SekaiKit preferences file.
     public static func recoverable(id: String) -> Self {
-        let storageURL = URL(filePath: NSHomeDirectory() + "/Documents/DoriKit_Sorter_Status.plist")
+        let storageURL = URL(filePath: NSHomeDirectory() + "/Documents/SekaiKit_Sorter_Status.plist")
         let decoder = PropertyListDecoder()
         var result: Self = if let _data = try? Data(contentsOf: storageURL),
                               let storage = try? decoder.decode([String: SekaiSorter].self, from: _data) {

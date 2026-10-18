@@ -8,7 +8,7 @@
 import Foundation
 import SekaiKitMacro
 import SwiftUI
-import SwiftyJSON
+internal import SwiftyJSON
 
 /// A song that can be played in Project Sekai.
 @LocalizationsCombinable
@@ -349,19 +349,20 @@ extension Song {
     ///   - preferSVG: Whether to request SVG instead of PNG.
     /// - Returns: The chart image URL; this method does not check asset availability.
     public func chartImageURL(for difficulty: Song.Difficulty, preferSVG: Bool = true) -> URL {
-        Self.chartImageURL(id: self.id, difficulty: difficulty, preferSVG: preferSVG)
+        Self.chartImageURL(id: self.id, in: self.title.majorLocale ?? .jp, difficulty: difficulty, preferSVG: preferSVG)
     }
     
     /// Returns a Japanese chart image URL for a song identifier.
     ///
     /// - Parameters:
     ///   - id: The song identifier.
+    ///   - in: The server region.
     ///   - difficulty: The chart difficulty.
     ///   - preferSVG: Whether to request SVG instead of PNG.
     /// - Returns: The chart image URL; this method does not check asset availability.
-    public static func chartImageURL(id: Int, difficulty: Song.Difficulty, preferSVG: Bool = true) -> URL {
+    public static func chartImageURL(id: Int, in locale: SekaiLocale = .jp, difficulty: Song.Difficulty, preferSVG: Bool = true) -> URL {
         let stringID = "\(id < 1000 ? "0" : "")\(id < 100 ? "0" : "")\(id < 10 ? "0" : "")\(id)"
-        return URL(string: "https://storage.sekai.best/sekai-music-charts/jp/\(stringID)/\(difficulty.rawValue).\(preferSVG ? "svg" : "png")")!
+        return URL(string: "https://storage.sekai.best/sekai-music-charts/\(locale.rawValue)/\(stringID)/\(difficulty.rawValue).\(preferSVG ? "svg" : "png")")!
     }
 }
 

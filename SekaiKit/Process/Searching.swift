@@ -78,6 +78,10 @@ extension Card: SekaiSearchable {
 }
 
 extension Event: SekaiSearchable {
+    public var _searchStrings: [String] {
+        SekaiLocale.allCases.compactMap({ self.focusCharacterLabel(in: $0) })
+    }
+    
     /// The localized strings searched across all available locales for this record.
     public var _searchLocalizedStrings: [LocalizableData<String>] {
         [self.title]
@@ -90,8 +94,6 @@ extension Song: SekaiSearchable {
         [self.title, self.creatorArtist, self.lyricist, self.composer, self.arranger]
     }
 }
-
-
 
 
 

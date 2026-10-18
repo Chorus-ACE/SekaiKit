@@ -49,10 +49,7 @@ extension Song {
     /// A vocal or instrumental version of a song in Project Sekai.
     @LocalizationsCombinable
     public struct VocalVersion: Hashable, Sendable, SekaiCachable, LocalizationsCombinable, ListGettable {
-        /// The identifier of this vocal record.
-        ///
-        /// For a vocalist, internal character identifiers are negated to distinguish
-        /// them from external vocalist identifiers.
+        /// The unique identifier of the vocal version.
         public var id: Int
         /// The identifier of the song to which this version belongs.
         public var songID: Int

@@ -118,7 +118,7 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     
     /// The size classification stored in the character’s model metadata.
     public enum BreastSize: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
-        /// No size or support classification is specified.
+        /// No size classification is specified.
         case none
         /// The extra-small size classification.
         case extraSmall = "ss" // Mizuki only
@@ -132,7 +132,7 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     
     /// The scope of unit support recorded for the character.
     public enum SupportUnitType: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
-        /// No size or support classification is specified.
+        /// The character does not support a unit.
         case none
         /// Support across all units.
         case full
