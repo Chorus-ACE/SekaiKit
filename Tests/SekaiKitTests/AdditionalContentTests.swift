@@ -41,7 +41,7 @@ final class AdditionalContentTests: XCTestCase {
     }
 
     func testSongLevelMatchesAnyChartAndClearsToDefaults() {
-        let song = Song(
+        var song = Song(
             id: 1, title: .unlocalized("Song"), isNewlyWrittenMusic: false,
             creatorArtist: .unlocalized(nil), composer: .unlocalized(nil),
             arranger: .unlocalized(nil), lyricist: .unlocalized(nil),
@@ -68,6 +68,29 @@ final class AdditionalContentTests: XCTestCase {
         XCTAssertTrue(song._matches(filter))
         filter[Song.levelFilterKey.id] = [32]
         filter["song-has-append"] = [0]
+        XCTAssertFalse(song._matches(filter))
+
+        // A partial level filter must not silently require a unit selection.
+        XCTAssertTrue(song._matches(SekaiFilter(["song-level": [25]])))
+        filter = SekaiFilter(forKeys: Song.filterKeys)
+        filter["song-level"] = [25]
+        song.categories = [.all]
+        XCTAssertTrue(song._matches(filter))
+        filter[Unit.filterKey.id] = [nil]
+        XCTAssertTrue(song._matches(filter))
+        filter[Unit.filterKey.id] = []
+        XCTAssertFalse(song._matches(filter))
+        filter[Unit.filterKey.id] = [Unit.virtualSinger.filterValue]
+        XCTAssertFalse(song._matches(filter))
+        song.categories = [.all, .virtualSinger]
+        XCTAssertTrue(song._matches(filter))
+        filter[Unit.filterKey.id] = [nil]
+        XCTAssertFalse(song._matches(filter))
+        song.categories = [.other]
+        XCTAssertTrue(song._matches(filter))
+        song.availableMedia = []
+        XCTAssertTrue(song._matches(filter))
+        filter[Song.MediaType.filterKey.id] = [Song.MediaType.image.filterValue]
         XCTAssertFalse(song._matches(filter))
     }
 

@@ -100,26 +100,16 @@ extension Song: SekaiFilterable {
             guard difficultyLevel.values.contains(where: { levels.contains($0) }) else { return false }
         }
         guard filter["song-has-append"]?.contains(self.difficultyLevel.keys.contains(.append).filterValue) ?? true else { return false }
-        guard filter[Song.MediaType.filterKey]?.contains(where: self.availableMedia.map(\.filterValue).contains) ?? true else { return false }
-        
-
-        let selectedUnits = filter[Unit.filterKey] ?? []
-        if !selectedUnits.isEmpty {
-            let units = categories
-                .filter { $0 != .all }
-                .compactMap { $0.correspondingUnit?.filterValue }
-            guard selectedUnits.contains(where: { selected in
-                guard let selected else { return false }
-                return units.contains(selected)
-            }) else { return false }
+        if let media = filter[Song.MediaType.filterKey], media != Song.MediaType.filterKey.defaultOptionsID {
+            guard availableMedia.contains(where: { media.contains($0.filterValue) }) else { return false }
         }
 
+        if let selectedUnits = filter[Unit.filterKey] {
+            // `all` accompanies named categories, but on its own represents mixed-unit music.
+            let categories = categories.filter { $0 != .all }
+            let units: [Int?] = categories.isEmpty ? [nil] : categories.map { $0.correspondingUnit?.filterValue }
+            guard selectedUnits.contains(where: units.contains) else { return false }
+        }
         return true
-        
-//        let categories = self.categories.compactMap({ $0 == .all ? nil : $0 }).map(\.correspondingUnit?.filterValue)
-        
-//        guard selectedUnits.contains(where: categories.contains) else { return false }
-        
-//        return true
     }
 }
