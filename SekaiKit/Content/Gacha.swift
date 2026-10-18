@@ -45,8 +45,6 @@ public struct Gacha: Hashable, Identifiable, Sendable, SekaiCachable, Localizati
         case specialNormal = "sunormal"
         /// A returning-player gacha.
         case returning = "return"
-        /// A category not recognized by this version of SekaiKit.
-        case unknown
 
         /// The category name localized for the app’s current language.
         public var localizedName: String {
@@ -185,7 +183,7 @@ extension Gacha: ListGettable, GettableByID {
         guard let id = json["id"].int, let name = json["name"].string else { return nil }
         self.id = id
         title = .unlocalized(name)
-        type = GachaType(rawValue: json["gachaType"].stringValue) ?? .unknown
+        type = GachaType(rawValue: json["gachaType"].stringValue) ?? .normal
         summary = json["gachaInformation"]["summary"].string.localizable()
         description = json["gachaInformation"]["description"].string.localizable()
         startDate = json["startAt"].date.localizable()

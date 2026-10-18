@@ -87,7 +87,8 @@ extension Event {
         self.init(
             id: Int(value.id),
             title: .unlocalized(value.hasTitle ? value.title : nil),
-            eventType: EventType(rawValue: value.eventType) ?? .unknown,
+            outline: .unlocalized(value.hasOutline ? value.outline : nil),
+            eventType: EventType(rawValue: value.eventType) ?? .marathon,
             displayingStartDate: protobufDate(value.displayingStartAt, present: value.hasDisplayingStartAt),
             startDate: protobufDate(value.startAt, present: value.hasStartAt),
             aggregateDate: protobufDate(value.aggregateAt, present: value.hasAggregateAt),

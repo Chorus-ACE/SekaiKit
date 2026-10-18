@@ -43,7 +43,6 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
         case housePlant = "house_plant"
         case plant = "plant"
         case surfaceAppearance = "surface_appearance"
-        case unknown = "unknown"
         public var localizedName: String {
             NSLocalizedString("Fixture.type.\(rawValue)", bundle: #bundle, comment: "")
         }
@@ -52,7 +51,6 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
         case any = "any"
         case home = "home"
         case room = "room"
-        case unknown = "unknown"
         public var localizedName: String {
             NSLocalizedString("Fixture.site.\(rawValue)", bundle: #bundle, comment: "")
         }
@@ -64,7 +62,6 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
         case rug = "rug"
         case wall = "wall"
         case wallAppearance = "wall_appearance"
-        case unknown = "unknown"
         public var localizedName: String {
             NSLocalizedString("Fixture.layout.\(rawValue)", bundle: #bundle, comment: "")
         }
@@ -122,9 +119,9 @@ extension MySekaiFixture: ListGettable, GettableByID {
         self.id = id
         self.title = .unlocalized(title)
         description = json["flavorText"].string.localizable()
-        type = .unlocalized(FixtureType(rawValue: json["mysekaiFixtureType"].stringValue) ?? .unknown)
-        site = .unlocalized(Site(rawValue: json["mysekaiSettableSiteType"].stringValue) ?? .unknown)
-        layout = .unlocalized(Layout(rawValue: json["mysekaiSettableLayoutType"].stringValue) ?? .unknown)
+        type = .unlocalized(FixtureType(rawValue: json["mysekaiFixtureType"].stringValue))
+        site = .unlocalized(Site(rawValue: json["mysekaiSettableSiteType"].stringValue))
+        layout = .unlocalized(Layout(rawValue: json["mysekaiSettableLayoutType"].stringValue))
         assetBundleName = json["assetbundleName"].string.localizable()
         let grid = json["gridSize"]
         if let w = grid["width"].int, let d = grid["depth"].int, let h = grid["height"].int {

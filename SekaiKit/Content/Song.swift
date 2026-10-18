@@ -185,6 +185,12 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         public static func < (lhs: borrowing Song.Difficulty, rhs: borrowing Song.Difficulty) -> Bool {
             Difficulty.allCases.firstIndex(of: lhs)! < Difficulty.allCases.firstIndex(of: rhs)!
         }
+        
+        /// The gradient color of Append difficulty.
+        public static let appendGradient = Gradient(colors: [
+            Color(red: 180/255, green: 146/255, blue: 254/255),
+            Color(red: 254/255, green: 123/255, blue: 227/255)
+        ])
     }
     
     /// The representative unit category, or a mixed or other category when appropriate.

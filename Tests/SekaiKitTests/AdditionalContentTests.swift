@@ -27,6 +27,50 @@ final class AdditionalContentTests: XCTestCase {
         XCTAssertEqual(MySekaiFixture.applicableSortingTypes.last, .id)
         XCTAssertEqual(MySekaiFixture(fromCache: fixture.dataForCache), fixture)
     }
+    func testFixtureUnknownCategoriesRemainAbsentWithoutOtherOptions() throws {
+        let fixture = try XCTUnwrap(MySekaiFixture(json: JSON([
+            "id": 2, "name": "Future fixture", "mysekaiFixtureType": "future_type",
+            "mysekaiSettableSiteType": "future_site", "mysekaiSettableLayoutType": "future_layout"
+        ])))
+        XCTAssertNil(fixture.type.majorValue)
+        XCTAssertNil(fixture.site.majorValue)
+        XCTAssertNil(fixture.layout.majorValue)
+        for key in [MySekaiFixture.FixtureType.filterKey, MySekaiFixture.Site.filterKey, MySekaiFixture.Layout.filterKey] {
+            XCTAssertFalse(key.allOptionsID.contains(nil))
+        }
+    }
+
+    func testSongLevelMatchesAnyChartAndClearsToDefaults() {
+        let song = Song(
+            id: 1, title: .unlocalized("Song"), isNewlyWrittenMusic: false,
+            creatorArtist: .unlocalized(nil), composer: .unlocalized(nil),
+            arranger: .unlocalized(nil), lyricist: .unlocalized(nil),
+            publishDate: .unlocalized(nil), _releaseDate: .unlocalized(nil),
+            categories: [.virtualSinger], availableMedia: [.image],
+            difficultyLevel: [.easy: 7, .expert: 25, .append: 32], noteCounts: [:],
+            liveStageID: 0, dancerCount: 0, selfDancerPosition: 0, releaseConditionID: 0,
+            assetbundleName: "", liveTalkBackgroundAssetBundleName: "",
+            isFullLength: false, fillerSec: 0, secForMusicScoreMaker: nil,
+            isAvailableForMusicScoreMaker: nil
+        )
+        var filter = SekaiFilter(forKeys: Song.filterKeys)
+        XCTAssertFalse(filter.isFiltering(referencing: Song.filterKeys))
+        XCTAssertTrue(song._matches(filter))
+        for level in [7, 25, 32] {
+            filter[Song.levelFilterKey.id] = [level]
+            XCTAssertTrue(filter.isFiltering(referencing: Song.filterKeys))
+            XCTAssertEqual([song].filter(withSekaiFilter: filter).count, 1)
+        }
+        filter[Song.levelFilterKey.id] = [31]
+        XCTAssertTrue([song].filter(withSekaiFilter: filter).isEmpty)
+        filter[Song.levelFilterKey.id] = []
+        XCTAssertFalse(filter.isFiltering(referencing: Song.filterKeys))
+        XCTAssertTrue(song._matches(filter))
+        filter[Song.levelFilterKey.id] = [32]
+        filter["song-has-append"] = [0]
+        XCTAssertFalse(song._matches(filter))
+    }
+
     func testTranscriptUsesSnippetOrderAndIgnoresBrokenReferences() throws {
         let json = JSON(["Snippets": [["Action": 1, "ReferenceIndex": 1], ["Action": 1, "ReferenceIndex": -1], ["Action": 1, "ReferenceIndex": 0], ["Action": 1, "ReferenceIndex": 5]], "TalkData": [["Body": "First", "WindowDisplayName": "A"], ["Body": "Second", "WindowDisplayName": "B"]]])
         let transcript = try XCTUnwrap(StoryTranscript(json: json))

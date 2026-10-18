@@ -83,9 +83,12 @@ private let hasAppendFilterKey = SekaiFilter.Key(
 )
 
 extension Song: SekaiFilterable {
+    /// An optional exact chart level; an empty selection disables this filter.
+    public static let levelFilterKey = SekaiFilter.Key(id: "song-level", allowMultipleSelection: false, options: [], defaultOptions: [])
+
     /// The filter keys supported by this content type.
     public static var filterKeys: [SekaiFilter.Key] {
-        [Unit.filterKey.withOtherOption, Song.MediaType.filterKey, hasAppendFilterKey]
+        [Unit.filterKey.withOtherOption, Song.MediaType.filterKey, hasAppendFilterKey, levelFilterKey]
     }
     
     /// Evaluates the selected options against this record.
@@ -93,14 +96,30 @@ extension Song: SekaiFilterable {
     /// - Parameter filter: The filter selections to apply.
     /// - Returns: `true` if the record satisfies the selections.
     public func _matches(_ filter: SekaiFilter) -> Bool {
+        if let levels = filter[Self.levelFilterKey], !levels.isEmpty {
+            guard difficultyLevel.values.contains(where: { levels.contains($0) }) else { return false }
+        }
         guard filter["song-has-append"]?.contains(self.difficultyLevel.keys.contains(.append).filterValue) ?? true else { return false }
         guard filter[Song.MediaType.filterKey]?.contains(where: self.availableMedia.map(\.filterValue).contains) ?? true else { return false }
         
+
         let selectedUnits = filter[Unit.filterKey] ?? []
-        let categories = self.categories.compactMap({ $0 == .all ? nil : $0 }).map(\.correspondingUnit?.filterValue)
-        
-        guard selectedUnits.contains(where: categories.contains) else { return false }
-        
+        if !selectedUnits.isEmpty {
+            let units = categories
+                .filter { $0 != .all }
+                .compactMap { $0.correspondingUnit?.filterValue }
+            guard selectedUnits.contains(where: { selected in
+                guard let selected else { return false }
+                return units.contains(selected)
+            }) else { return false }
+        }
+
         return true
+        
+//        let categories = self.categories.compactMap({ $0 == .all ? nil : $0 }).map(\.correspondingUnit?.filterValue)
+        
+//        guard selectedUnits.contains(where: categories.contains) else { return false }
+        
+//        return true
     }
 }

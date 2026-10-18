@@ -4,17 +4,17 @@ import SwiftProtobuf
 @testable import SekaiKit
 
 final class ProtobufTests: XCTestCase {
-    func testUnknownEventTypeFiltersAndAssetURLs() throws {
+    func testEventTypeFallbackFiltersAndAssetURLs() throws {
         let event = Event(protobuf: .with {
             $0.id = 999
             $0.title = "Future"
             $0.eventType = "future_type"
             $0.assetbundleName = "event_example"
         })
-        XCTAssertEqual(event.eventType, .unknown)
+        XCTAssertEqual(event.eventType, .marathon)
         XCTAssertEqual(Event.EventType.filterKey.id, "eventType")
-        XCTAssertTrue(event._matches(.init(["eventType": [nil]])))
-        XCTAssertFalse(event._matches(.init(["eventType": [0]])))
+        XCTAssertFalse(event._matches(.init(["eventType": [nil]])))
+        XCTAssertTrue(event._matches(.init(["eventType": [0]])))
         XCTAssertFalse(event.eventType.localizedName.hasPrefix("Event.type."))
         XCTAssertFalse(Event.EventType.filterKey.title.hasPrefix("Filter.key."))
         XCTAssertEqual(event.logoImageURL, event.logoImageURL(in: nil))
@@ -38,6 +38,23 @@ final class ProtobufTests: XCTestCase {
         let restored = try JSONDecoder().decode(Event.self, from: JSONEncoder().encode(event))
         XCTAssertEqual(restored.focusCharacterID, 19)
         XCTAssertEqual(restored.focusCharacterIndex, 5)
+    }
+
+    func testEventOutlinePreservesPresenceAndOldArchiveCompatibility() throws {
+        let wire = _Event.with {
+            $0.id = 150
+            $0.outline = "紹介\n二行目"
+        }
+        let event = Event(protobuf: try _Event(serializedBytes: wire.serializedData()))
+        XCTAssertEqual(event.outline.majorValue, "紹介\n二行目")
+        let restored = try JSONDecoder().decode(Event.self, from: JSONEncoder().encode(event))
+        XCTAssertEqual(restored.outline, event.outline)
+        let empty = Event(protobuf: .with { $0.id = 150; $0.outline = "" })
+        XCTAssertEqual(empty.outline.majorValue, "")
+        // Field 1 only: bytes produced before outline was added to the schema.
+        let legacy = Event(protobuf: try _Event(serializedBytes: [UInt8(0x08), 0x01]))
+        XCTAssertEqual(legacy.id, 1)
+        XCTAssertNil(legacy.outline.majorValue)
     }
 
     func testCardMappingPreservesPresenceAndMilliseconds() throws {
@@ -106,9 +123,14 @@ final class ProtobufTests: XCTestCase {
         cards.kr = [.with { $0.id = 1; $0.name = "한국어" }]
         try writeProtobufArchive(try cards.serializedData(), to: directory.appending(path: "card.aar"))
         let events = _EventList.with {
-            $0.jp = [.with { $0.id = 908765; $0.title = "Event"; $0.cardIds = [1]; $0.musicIds = [12] }]
+            $0.jp = [.with { $0.id = 908765; $0.title = "Event"; $0.outline = "日本語"; $0.cardIds = [1]; $0.musicIds = [12] }]
         }
-        try writeProtobufArchive(try events.serializedData(), to: directory.appending(path: "event.aar"))
+        var localizedEvents = events
+        localizedEvents.en = [.with { $0.id = 908765; $0.outline = "English" }]
+        localizedEvents.tc = [.with { $0.id = 908765; $0.outline = "繁體中文" }]
+        localizedEvents.cn = [.with { $0.id = 908765; $0.outline = "简体中文" }]
+        localizedEvents.kr = [.with { $0.id = 908765; $0.outline = "한국어" }]
+        try writeProtobufArchive(try localizedEvents.serializedData(), to: directory.appending(path: "event.aar"))
         await SekaiProtobuf.$baseURL.withValue(directory) {
             let merged = await Card.all()
             XCTAssertEqual(merged?.count, 1)
@@ -120,6 +142,11 @@ final class ProtobufTests: XCTestCase {
             let event = await ExtendedEvent(id: 908765)
             XCTAssertEqual(event?.cards, [1])
             XCTAssertEqual(event?.songs, [12])
+            XCTAssertEqual(event?.event.outline.localizedData?.jp, "日本語")
+            XCTAssertEqual(event?.event.outline.localizedData?.en, "English")
+            XCTAssertEqual(event?.event.outline.localizedData?.tw, "繁體中文")
+            XCTAssertEqual(event?.event.outline.localizedData?.cn, "简体中文")
+            XCTAssertEqual(event?.event.outline.localizedData?.kr, "한국어")
         }
     }
 

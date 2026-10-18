@@ -16,6 +16,8 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
     public var id: Int
     /// The localized title of the event.
     public var title: LocalizableData<String>
+    /// The localized story introduction (`eventStories.outline`), absent in older archives.
+    public var outline: LocalizableData<String>
     /// The gameplay format of the event.
     public var eventType: Event.EventType
     
@@ -73,8 +75,6 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
         case cheerfulCarnival = "cheerful_carnival"
         /// A World Link event.
         case worldLink = "world_bloom"
-        /// An event format introduced by a newer upstream data version.
-        case unknown
         
         /// The event format name localized for the app’s current language.
         public var localizedName: String {
