@@ -29,22 +29,7 @@ extension ReleaseCondition: ListGettable, GettableByID {
     /// - Parameter locale: The locale whose records are requested.
     /// - Returns: The records for the locale, or `nil` if the required data cannot be loaded.
     public static func allInLocale(_ locale: SekaiLocale) async -> [ReleaseCondition]? {
-        guard let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/releaseConditions.json") else { return nil }
-        
-        let task = Task.detached(priority: .userInitiated) {
-            var result: [ReleaseCondition] = []
-            
-            for (_, value) in json {
-                result.append(.init(
-                    id: value["id"].intValue,
-                    title: value["sentence"].string.localizable(),
-                    type: value["releaseConditionType"].stringValue,
-                    typeID: value["releaseConditionTypeId"].int,
-                    typeLevel: value["releaseConditionTypeLevel"].int
-                ))
-            }
-            return result
-        }
-        return await task.value
+        guard let list = await requestProtobuf("release_condition.aar", as: _ReleaseConditionList.self) else { return nil }
+        return list.items(in: locale).map { ReleaseCondition(protobuf: $0) }
     }
 }

@@ -210,14 +210,19 @@ internal func mergeCollections<T: LocalizationsCombinable & Identifiable>(
     defaultLocale: SekaiLocale
 ) -> [T] {
     var allElements: [T.ID: [SekaiLocale: T]] = [:]
-    
-    for (locale, list) in data {
-        for element in list {
+    var orderedIDs: [T.ID] = []
+    // Keep the preferred region's source order, then append other regions' new IDs.
+    let locales = [defaultLocale] + SekaiLocale.allCases.filter { $0 != defaultLocale }
+    for locale in locales {
+        for element in data[locale] ?? [] {
+            if allElements[element.id] == nil {
+                orderedIDs.append(element.id)
+            }
             allElements[modifying: element.id][accessing: locale] = element
         }
     }
-    
-    return allElements.compactMap({ id, items in
-        return T.combineLocalizations(items, defaultLocale: defaultLocale)
-    })
+
+    return orderedIDs.compactMap { id in
+        T.combineLocalizations(allElements[id] ?? [:], defaultLocale: defaultLocale)
+    }
 }

@@ -39,6 +39,16 @@ extension RegionalProtobufList {
 extension _CharacterList: RegionalProtobufList {}
 extension _EventList: RegionalProtobufList {}
 extension _CardList: RegionalProtobufList {}
+extension _GachaList: RegionalProtobufList {}
+extension _SongList: RegionalProtobufList {}
+extension _VocalistList: RegionalProtobufList {}
+extension _StickerList: RegionalProtobufList {}
+extension _ComicList: RegionalProtobufList {}
+extension _FixtureList: RegionalProtobufList {}
+extension _SkillList: RegionalProtobufList {}
+extension _ReleaseConditionList: RegionalProtobufList {}
+extension _EpisodeList: RegionalProtobufList {}
+extension _Character2DList: RegionalProtobufList {}
 
 internal func requestProtobuf<Message: SwiftProtobuf.Message>(
     _ file: String, as type: Message.Type

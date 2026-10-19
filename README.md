@@ -4,11 +4,28 @@ SekaiKit is a Swift package for Project Sekai data.
 
 The structure will be highly similar to `DoriKit`.
 
-Character, Event, Card and ExtendedEvent download only `character.aar`,
-`event.aar` and `card.aar` archives published by JSON2Proto to
-`Chorus-ACE/Sekai-Protobuf-Assets`. Each file includes JP, EN, TC, CN and KR data;
-TC maps to `SekaiLocale.tw`. Existing `allInLocale`, `all`, `allWithCache`, and ID
-lookup APIs continue to return SekaiKit models. Song data still uses its JSON sources.
+All master-data loaders use Protobuf archives published by JSON2Proto to
+`Chorus-ACE/Sekai-Protobuf-Assets`. Regional lists include JP, EN, TC, CN and KR;
+TC maps to `SekaiLocale.tw`. Existing lookup and caching APIs remain available.
+
+| Archive | Content |
+| --- | --- |
+| `character.aar` | Characters and profiles |
+| `event.aar` | Events, bonuses and card/song associations |
+| `card.aar` | Cards and parameters |
+| `gacha.aar` | Gachas, pools, rates and draw configuration |
+| `song.aar` | Songs, credits, tags, charts, vocals, vocalist names, unlock conditions and shared music statistics |
+| `fixture.aar` | Fixtures, genre names and all blueprint material recipes |
+| `sticker.aar` | Stickers |
+| `comic.aar` | Loading-screen comics |
+| `skill.aar` | Skills, effects and level values |
+| `release_condition.aar` | Unlock conditions |
+| `episode.aar` | Event/unit/card episode directories and character mappings |
+
+Only scenario bodies still use on-demand JSON `.asset` requests. Images and audio remain separate media.
+No master-data loader falls back to regional JSON. Publish all archives before shipping this client.
+New fixture fields decode as unknown in older property-list caches. Gacha wire additions preserve old
+field numbers and decode legacy enum values. Skill effect duration is now `Double` to preserve half-seconds.
 
 AppleArchive decompresses the expected `.proto` entry before Protobuf decoding.
 Requests, network caches and preload hooks all use compressed `.aar` bytes;
@@ -31,3 +48,8 @@ await SekaiProtobuf.$baseURL.withValue(URL(filePath: "/path/to/output")) {
 
 Run `swift test` for mapping and reader tests. To also check JSON2Proto output for
 all five regions, set `SEKAI_PROTOBUF_TEST_ASSETS` to the absolute archive directory.
+
+For all additional archives and JSON parity checks, also set
+`SEKAI_ADDITIONAL_PROTOBUF_ASSETS` and `SEKAI_PROTOBUF_MASTER_DATA` (the converter's offline input directory).
+The external statistics endpoint may deny downloads; verification archives containing synthetic statistics
+are test artifacts and must not be published.

@@ -27,6 +27,41 @@ final class AdditionalContentTests: XCTestCase {
         XCTAssertEqual(MySekaiFixture.applicableSortingTypes.last, .id)
         XCTAssertEqual(MySekaiFixture(fromCache: fixture.dataForCache), fixture)
     }
+    func testFixtureDisplayOrderUsesSelectedRegionAndPreservesMissingValues() throws {
+        func fixture(_ id: Int, _ seq: Int?) throws -> MySekaiFixture {
+            var json = JSON(["id": id, "name": "Fixture"])
+            if let seq { json["seq"] = JSON(seq) }
+            return try XCTUnwrap(MySekaiFixture(json: json))
+        }
+        let regional = try XCTUnwrap(MySekaiFixture.combineLocalizations([
+            .jp: try fixture(1, 30), .cn: try fixture(1, 0)
+        ], defaultLocale: .jp))
+        let other = try XCTUnwrap(MySekaiFixture.combineLocalizations([
+            .jp: try fixture(2, 20), .cn: try fixture(2, 20)
+        ], defaultLocale: .jp))
+        let missing = try fixture(3, nil)
+        let tied = try fixture(4, 20)
+        let items = [missing, regional, tied, other]
+        XCTAssertEqual(items.sorted(withSekaiSorter: .init(keyword: .displayOrder(in: .jp), direction: .ascending)).map(\.id), [2, 4, 1, 3])
+        XCTAssertEqual(items.sorted(withSekaiSorter: .init(keyword: .displayOrder(in: .jp), direction: .descending)).map(\.id), [1, 4, 2, 3])
+        XCTAssertEqual([other, regional].sorted(withSekaiSorter: .init(keyword: .displayOrder(in: .cn), direction: .ascending)).map(\.id), [1, 2])
+        XCTAssertNil(regional.displayOrder.value(in: .en))
+        XCTAssertEqual(MySekaiFixture(fromCache: regional.dataForCache), regional)
+        var legacy = try XCTUnwrap(PropertyListSerialization.propertyList(from: regional.dataForCache, format: nil) as? [String: Any])
+        legacy.removeValue(forKey: "displayOrder")
+        legacy.removeValue(forKey: "blueprints")
+        let legacyData = try PropertyListSerialization.data(fromPropertyList: legacy, format: .binary, options: 0)
+        let decoded = try XCTUnwrap(MySekaiFixture(fromCache: legacyData))
+        XCTAssertNil(decoded.displayOrder.majorValue)
+        XCTAssertNil(decoded.blueprints.majorValue)
+        XCTAssertEqual(decoded.title, regional.title)
+        for locale in SekaiLocale.allCases {
+            let sorter = SekaiSorter(keyword: .displayOrder(in: locale))
+            XCTAssertEqual(try PropertyListDecoder().decode(SekaiSorter.self, from: PropertyListEncoder().encode(sorter)), sorter)
+            XCTAssertTrue(MySekaiFixture.applicableSortingTypes.contains(sorter.keyword))
+        }
+    }
+
     func testFixtureUnknownCategoriesRemainAbsentWithoutOtherOptions() throws {
         let fixture = try XCTUnwrap(MySekaiFixture(json: JSON([
             "id": 2, "name": "Future fixture", "mysekaiFixtureType": "future_type",

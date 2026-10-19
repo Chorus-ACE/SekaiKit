@@ -12,8 +12,8 @@ public struct MusicMeta: Hashable, Codable, Identifiable, Sendable, SekaiCachabl
     public var eventRate: Double
 
     public static func all() async -> [MusicMeta]? {
-        guard let json = await requestJSON("https://storage.sekai.best/sekai-best-assets/music_metas.json"), let items = json.array else { return nil }
-        return items.compactMap(MusicMeta.init(json:))
+        guard let list = await requestProtobuf("song.aar", as: _SongList.self) else { return nil }
+        return list.musicMeta.compactMap { MusicMeta(protobuf: $0) }
     }
     internal init?(json: JSON) {
         guard let id = json["music_id"].int,

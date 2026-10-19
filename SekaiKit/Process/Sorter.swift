@@ -136,6 +136,8 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
         case maximumStat
         /// Orders records by identifier.
         case id
+        /// Orders records by their regional master-data display sequence.
+        case displayOrder(in: SekaiLocale)
         
         /// Every supported sorting keyword, including all locale and difficulty variants.
         public static let allCases: [Self] = [
@@ -152,12 +154,19 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
             .level(for: .append),
             .rarity,
             .maximumStat,
+            .displayOrder(in: .jp),
+            .displayOrder(in: .en),
+            .displayOrder(in: .tw),
+            .displayOrder(in: .cn),
+            .displayOrder(in: .kr),
             .id
         ]
         
-        /// The keyword’s zero-based index in ``allCases``.
+        /// A stable numeric identity; existing keywords keep their original values.
         public var rawValue: Int {
-            return Self.allCases.firstIndex(where: { $0 == self })!
+            if self == .id { return 13 }
+            let index = Self.allCases.firstIndex(where: { $0 == self })!
+            return index >= 13 ? index + 1 : index
         }
         
         /// The keyword’s localized label using release-date terminology.
@@ -178,6 +187,8 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
                 String(localized: "Sorter.keyword.level.\(difficulty.name)", bundle: #bundle)
             case .rarity: String(localized: "Sorter.keyword.rarity", bundle: #bundle)
             case .maximumStat: String(localized: "Sorter.keyword.max-power", bundle: #bundle)
+            case .displayOrder(let locale):
+                String(localized: "Sorter.keyword.display-order.\(locale.rawValue.uppercased())", bundle: #bundle)
             case .id: String(localized: "Sorter.keyword.id", bundle: #bundle)
             }
         }
@@ -200,7 +211,7 @@ public struct SekaiSorter: Sendable, Equatable, Hashable, Codable {
             return isAscending ? String(localized: "Sorter.order.ascending", bundle: #bundle) : String(localized: "Sorter.order.descending", bundle: #bundle)
         case .maximumStat:
             return isAscending ? String(localized: "Sorter.order.ascending", bundle: #bundle) : String(localized: "Sorter.order.descending", bundle: #bundle)
-        case .id:
+        case .id, .displayOrder:
             return isAscending ? String(localized: "Sorter.order.ascending", bundle: #bundle) : String(localized: "Sorter.order.descending", bundle: #bundle)
         }
     }
@@ -241,7 +252,7 @@ extension Set<SekaiSorter.Keyword> {
     /// - Returns: The keywords sorted by their numeric indices.
     @inlinable
     public func sorted() -> [SekaiSorter.Keyword] {
-        self.sorted { $0.rawValue < $1.rawValue }
+        self.sorted { SekaiSorter.Keyword.allCases.firstIndex(of: $0)! < SekaiSorter.Keyword.allCases.firstIndex(of: $1)! }
     }
 }
 

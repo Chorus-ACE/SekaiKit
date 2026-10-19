@@ -73,6 +73,7 @@ extension Song {
         public enum VocalType: String, Hashable, Sendable, SekaiCachable {
             /// A version sung by Virtual Singers.
             case virtualSinger = "virtual_singer"
+            case unknown
             /// The version is sung by characters in Project Sekai (Sekai ver.).
             case sekai
             /// An alternate cover sung by Project Sekai characters.
@@ -92,56 +93,39 @@ extension Song {
         /// - Parameter locale: The locale whose records are requested.
         /// - Returns: The records for the locale, or `nil` if the required data cannot be loaded.
         public static func allInLocale(_ locale: SekaiLocale = .primaryLocale) async -> [VocalVersion]? {
-            let groupResult = await withTasksResult {
-                await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/musicVocals.json")
-            } _: {
-                if locale == .primaryLocale {
-                    return await Song.VocalVersion.VocalCharacter.all()
-                } else {
-                    return nil
-                }
-            }
-            
-            guard let vocals = groupResult.0 else { return nil }
-            let externalCharactersByID = Dictionary(
-                uniqueKeysWithValues: (groupResult.1 ?? []).map { ($0.id, $0) }
-            )
-            let internalCharactersByID = Dictionary(
-                uniqueKeysWithValues: SekaiCache.preCache.characters.map { ($0.id, $0) }
-            )
-            
-            let task = Task.detached(priority: .userInitiated) {
-                var result: [VocalVersion] = []
-                result.reserveCapacity(vocals.count)
-                
-                for (_, vocal) in vocals {
-                    var characters: [VocalCharacter] = []
-                    
-                    for (_, c) in vocal["characters"] {
-                        let characterID = c["characterId"].intValue
-                        if c["characterType"] == "game_character" {
-                            if let gameChar = internalCharactersByID[characterID] {
-                                characters.append(.init(name: .localized(gameChar.fullName), characterID: characterID, isInternalCharacter: true))
-                            }
-                        } else if let externalChar = externalCharactersByID[characterID] {
-                            characters.append(externalChar)
-                        }
+            guard let list = await requestProtobuf("song.aar", as: _SongList.self) else { return nil }
+            return list.items(in: locale).flatMap(\.vocals).map { VocalVersion(protobuf: $0) }
+        }
+
+        /// Loads vocal versions in the primary region's source order, appending
+        /// versions unique to other regions in their source order.
+        public static func all() async -> [VocalVersion]? {
+            await loadAll(defaultLocale: .primaryLocale)
+        }
+
+        /// Caches vocal versions without changing their source order.
+        ///
+        /// The cache is specific to the archive source and preferred region.
+        public static func allWithCache(trait: SekaiCache.CacheTrait = .invocationElidable) async -> [VocalVersion]? {
+            let baseURL = SekaiProtobuf.baseURL
+            let locale = SekaiLocale.primaryLocale
+            // Use a new key so older, unordered cached lists are not reused.
+            let cacheID = "AllSongVocalVersions_sourceOrder_v1_\(SekaiProtobuf.cacheKey)_\(locale.rawValue)"
+            return await SekaiCache.withDirectCache(id: cacheID, trait: trait) {
+                await SekaiProtobuf.$baseURL.withValue(baseURL) {
+                    await SekaiCache.$preferCachedNetworkSource.withValue(trait != .realTime) {
+                        await loadAll(defaultLocale: locale)
                     }
-                    
-                    result.append(.init(
-                        id: vocal["id"].intValue,
-                        songID: vocal["musicId"].intValue,
-                        caption: vocal["caption"].string.localizable(),
-                        type: VocalType(rawValue: vocal["musicVocalType"].stringValue) ?? .virtualSinger,
-                        publishDate: vocal["archivePublishedAt"].dateValue,
-                        releaseConditionID: vocal["releaseConditionId"].intValue,
-                        assetBundleName: vocal["assetbundleName"].stringValue,
-                        characters: characters
-                    ))
                 }
-                return result
             }
-            return await task.value
+        }
+
+        private static func loadAll(defaultLocale: SekaiLocale) async -> [VocalVersion]? {
+            guard let list = await requestProtobuf("song.aar", as: _SongList.self) else { return nil }
+            let regionalVocals = Dictionary(uniqueKeysWithValues: SekaiLocale.allCases.map { locale in
+                (locale, list.items(in: locale).flatMap(\.vocals).map { VocalVersion(protobuf: $0) })
+            })
+            return mergeCollections(regionalVocals, defaultLocale: defaultLocale)
         }
     }
 }
@@ -169,17 +153,8 @@ extension Song.VocalVersion {
         /// - Parameter locale: The locale whose records are requested.
         /// - Returns: The records for the locale, or `nil` if the required data cannot be loaded.
         public static func allInLocale(_ locale: SekaiLocale) async -> [Song.VocalVersion.VocalCharacter]? {
-            guard let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/outsideCharacters.json") else { return nil }
-            
-            var results: [VocalCharacter] = []
-            for (_, char) in json {
-                let id = char["id"].intValue
-                let name = char["name"].stringValue
-                
-                results.append(.init(name: .unlocalized(name), characterID: id, isInternalCharacter: false))
-            }
-            
-            return results
-        }
+        guard let list = await requestProtobuf("song.aar", as: _SongList.self) else { return nil }
+        return list.outsideCharacters.items(in: locale).map { VocalCharacter(protobuf: $0) }
+    }
     }
 }

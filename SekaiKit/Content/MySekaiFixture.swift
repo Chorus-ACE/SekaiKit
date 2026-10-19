@@ -6,6 +6,8 @@ internal import SwiftyJSON
 @LocalizationsCombinable
 public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, LocalizationsCombinable {
     public var id: Int
+    /// Regional display sequence from the master data.
+    public var displayOrder: LocalizableData<Int>
     public var title: LocalizableData<String>
     public var description: LocalizableData<String>
     public var type: LocalizableData<FixtureType>
@@ -18,6 +20,37 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
     public var canDisassemble: LocalizableData<Bool>
     public var hasCharacterAction: LocalizableData<Bool>
     public var materials: LocalizableData<[MaterialCost]>
+    /// All regional recipes, including an explicitly empty material list for a free recipe.
+    public var blueprints: LocalizableData<[Blueprint]>
+
+    public struct Blueprint: Hashable, Codable, Sendable, SekaiCachable, Identifiable {
+        public var id: Int
+        public var canSketch: Bool
+        public var obtainedByConversion: Bool
+        public var craftCountLimit: Int?
+        public var availableWithoutPossession: Bool
+        public var materials: [MaterialCost]
+    }
+
+    /// Decodes fields absent from older caches as unknown.
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        displayOrder = try container.decodeIfPresent(LocalizableData<Int>.self, forKey: .displayOrder) ?? .unlocalized(nil)
+        title = try container.decode(LocalizableData<String>.self, forKey: .title)
+        description = try container.decode(LocalizableData<String>.self, forKey: .description)
+        type = try container.decode(LocalizableData<FixtureType>.self, forKey: .type)
+        site = try container.decode(LocalizableData<Site>.self, forKey: .site)
+        layout = try container.decode(LocalizableData<Layout>.self, forKey: .layout)
+        assetBundleName = try container.decode(LocalizableData<String>.self, forKey: .assetBundleName)
+        mainGenre = try container.decode(LocalizableData<String>.self, forKey: .mainGenre)
+        subGenre = try container.decode(LocalizableData<String>.self, forKey: .subGenre)
+        size = try container.decode(LocalizableData<Size>.self, forKey: .size)
+        canDisassemble = try container.decode(LocalizableData<Bool>.self, forKey: .canDisassemble)
+        hasCharacterAction = try container.decode(LocalizableData<Bool>.self, forKey: .hasCharacterAction)
+        blueprints = try container.decodeIfPresent(LocalizableData<[Blueprint]>.self, forKey: .blueprints) ?? .unlocalized(nil)
+        materials = try container.decode(LocalizableData<[MaterialCost]>.self, forKey: .materials)
+    }
 
     public struct Size: Hashable, Codable, Sendable, SekaiCachable {
         public var width: Int
@@ -26,7 +59,8 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
     }
     public struct MaterialCost: Hashable, Codable, Sendable, SekaiCachable, Identifiable {
         public var id: Int
-        public var name: String
+        /// Absent when a regional recipe references a missing material record.
+        public var name: String?
         public var quantity: Int
         public var assetBundleName: String?
         public func imageURL(in locale: SekaiLocale) -> URL? {
@@ -84,39 +118,13 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
 
 extension MySekaiFixture: ListGettable, GettableByID {
     public static func allInLocale(_ locale: SekaiLocale) async -> [MySekaiFixture]? {
-        let base = "https://sekai-world.github.io/\(locale._databasePath)/"
-        async let fixtures = requestJSON(base + "mysekaiFixtures.json")
-        async let genres = requestJSON(base + "mysekaiFixtureMainGenres.json")
-        async let subgenres = requestJSON(base + "mysekaiFixtureSubGenres.json")
-        async let blueprints = requestJSON(base + "mysekaiBlueprints.json")
-        async let costs = requestJSON(base + "mysekaiBlueprintMysekaiMaterialCosts.json")
-        async let materials = requestJSON(base + "mysekaiMaterials.json")
-        guard let items = await fixtures?.array else { return nil }
-        let dependencies = await (genres, subgenres, blueprints, costs, materials)
-        return await Task.detached(priority: .userInitiated) {
-            let genres = Dictionary((dependencies.0?.arrayValue ?? []).map { ($0["id"].intValue, $0["name"].stringValue) }, uniquingKeysWith: { a, _ in a })
-            let subgenres = Dictionary((dependencies.1?.arrayValue ?? []).map { ($0["id"].intValue, $0["name"].stringValue) }, uniquingKeysWith: { a, _ in a })
-            let blueprints = Dictionary((dependencies.2?.arrayValue ?? []).filter { $0["mysekaiCraftType"].string == "mysekai_fixture" }.map { ($0["craftTargetId"].intValue, $0["id"].intValue) }, uniquingKeysWith: { a, _ in a })
-            let costs = Dictionary(grouping: dependencies.3?.arrayValue ?? [], by: { $0["mysekaiBlueprintId"].intValue })
-            let materials = Dictionary((dependencies.4?.arrayValue ?? []).map { ($0["id"].intValue, $0) }, uniquingKeysWith: { a, _ in a })
-            return items.compactMap { json in
-                guard var fixture = MySekaiFixture(json: json) else { return nil }
-                fixture.mainGenre = genres[json["mysekaiFixtureMainGenreId"].intValue].localizable()
-                fixture.subGenre = subgenres[json["mysekaiFixtureSubGenreId"].intValue].localizable()
-                if dependencies.2 != nil && dependencies.3 != nil && dependencies.4 != nil {
-                    fixture.materials = .unlocalized((costs[blueprints[fixture.id] ?? -1] ?? []).compactMap { cost in
-                        let id = cost["mysekaiMaterialId"].intValue
-                        guard let material = materials[id], let quantity = cost["quantity"].int else { return nil }
-                        return MaterialCost(id: id, name: material["name"].stringValue, quantity: quantity, assetBundleName: material["iconAssetbundleName"].string)
-                    })
-                }
-                return fixture
-            }
-        }.value
+        guard let list = await requestProtobuf("fixture.aar", as: _FixtureList.self) else { return nil }
+        return list.items(in: locale).map { MySekaiFixture(protobuf: $0) }
     }
     internal init?(json: JSON) {
         guard let id = json["id"].int, let title = json["name"].string else { return nil }
         self.id = id
+        displayOrder = json["seq"].int.localizable()
         self.title = .unlocalized(title)
         description = json["flavorText"].string.localizable()
         type = .unlocalized(FixtureType(rawValue: json["mysekaiFixtureType"].stringValue))
@@ -132,5 +140,6 @@ extension MySekaiFixture: ListGettable, GettableByID {
         mainGenre = .unlocalized(nil)
         subGenre = .unlocalized(nil)
         materials = .unlocalized(nil)
+        blueprints = .unlocalized(nil)
     }
 }

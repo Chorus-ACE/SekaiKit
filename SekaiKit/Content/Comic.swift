@@ -23,8 +23,8 @@ public struct Comic: Hashable, Identifiable, Sendable, SekaiCachable, Localizati
 
 extension Comic: ListGettable, GettableByID {
     public static func allInLocale(_ locale: SekaiLocale) async -> [Comic]? {
-        guard let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/tips.json"), let items = json.array else { return nil }
-        return items.compactMap(Comic.init(json:))
+        guard let list = await requestProtobuf("comic.aar", as: _ComicList.self) else { return nil }
+        return list.items(in: locale).map { Comic(protobuf: $0) }
     }
     internal init?(json: JSON) {
         guard let id = json["id"].int, let title = json["title"].string,

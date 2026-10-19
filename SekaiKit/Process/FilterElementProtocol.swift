@@ -146,6 +146,7 @@ extension Gacha.GachaType: SekaiFilterElementProtocol {
         case .specialReturn: 5
         case .specialNormal: 6
         case .returning: 7
+        case .unknown: nil
         }
     }
 

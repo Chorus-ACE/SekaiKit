@@ -4,7 +4,9 @@
             "protoFiles": [
                 "Character.proto",
                 "Event.proto",
-                "Card.proto"
+                "Card.proto",
+                "Gacha.proto",
+                "Content.proto"
             ],
             "visibility": "internal",
             "useAccessLevelOnImports": true

@@ -28,9 +28,8 @@ public struct Episode: Hashable, Codable, Identifiable, Sendable, SekaiCachable 
         URL(string: "https://storage.sekai.best/\(locale._assetsPath)/\(scenarioPath)")
     }
     public static func all(in locale: SekaiLocale, kind: Kind) async -> [Episode]? {
-        let name = switch kind { case .event: "eventStories"; case .unit: "unitStories"; case .card: "cardEpisodes" }
-        guard let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/\(name).json"), let items = json.array else { return nil }
-        return parse(items, in: locale, kind: kind)
+        guard let list = await requestProtobuf("episode.aar", as: _EpisodeList.self) else { return nil }
+        return list.items(in: locale).filter { $0.kind == kind.rawValue }.map { Episode(protobuf: $0, locale: locale, kind: kind) }
     }
     internal static func parse(_ items: [JSON], in locale: SekaiLocale, kind: Kind) -> [Episode] {
         func episode(_ json: JSON, parentID: Int, chapter: String, bundle: String) -> Episode? {
@@ -86,11 +85,10 @@ public struct StoryTranscript: Hashable, Codable, Sendable, SekaiCachable {
     public static func load(_ episode: Episode) async -> StoryTranscript? {
         guard let url = episode.scenarioURL else { return nil }
         async let script = requestJSON(url.absoluteString)
-        async let characters = requestJSON("https://sekai-world.github.io/\(episode.locale._databasePath)/character2ds.json")
+        async let catalog = requestProtobuf("episode.aar", as: _EpisodeList.self)
         guard let json = await script else { return nil }
-        let mapping = Dictionary((await characters?.arrayValue ?? []).compactMap { item -> (Int, Int)? in
-            guard let id = item["id"].int, let character = item["characterId"].int else { return nil }
-            return (id, character)
+        let mapping = Dictionary((await catalog?.characterModels.items(in: episode.locale) ?? []).map {
+            (Int($0.id), Int($0.characterID))
         }, uniquingKeysWith: { first, _ in first })
         return StoryTranscript(json: json, episode: episode, characterMapping: mapping)
     }

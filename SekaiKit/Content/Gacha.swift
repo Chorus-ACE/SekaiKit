@@ -31,6 +31,7 @@ public struct Gacha: Hashable, Identifiable, Sendable, SekaiCachable, Localizati
     public enum GachaType: String, CaseIterable, Codable, Hashable, SekaiCachable, Sendable {
         /// A standard gacha.
         case normal
+        case unknown
         /// A gacha with an exchange system.
         case ceil
         /// A gacha with an additional gift.
@@ -96,7 +97,7 @@ public struct Gacha: Hashable, Identifiable, Sendable, SekaiCachable, Localizati
 
     /// A percentage rate for one rarity within a particular lottery category.
     public struct RarityRate: Hashable, Identifiable, Sendable, SekaiCachable {
-        /// The unique rate entry identifier.
+        /// The source identifier, or a negative one-based row index when the regional source omits it.
         public var id: Int
         /// The source rarity value, preserving unknown rarity categories.
         public var rarityType: String
@@ -174,8 +175,8 @@ extension Gacha: ListGettable, GettableByID {
     /// - Parameter locale: The edition to request.
     /// - Returns: The gacha list, or `nil` if the response is unavailable or not an array.
     public static func allInLocale(_ locale: SekaiLocale) async -> [Gacha]? {
-        guard let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/gachas.json"), let items = json.array else { return nil }
-        return await Task.detached(priority: .userInitiated) { items.compactMap(Gacha.init(json:)) }.value
+        guard let list = await requestProtobuf("gacha.aar", as: _GachaList.self) else { return nil }
+        return list.items(in: locale).map { Gacha(protobuf: $0) }
     }
 
     /// Creates a gacha from one master-data record, retaining optional field presence.
@@ -183,7 +184,7 @@ extension Gacha: ListGettable, GettableByID {
         guard let id = json["id"].int, let name = json["name"].string else { return nil }
         self.id = id
         title = .unlocalized(name)
-        type = GachaType(rawValue: json["gachaType"].stringValue) ?? .normal
+        type = GachaType(rawValue: json["gachaType"].stringValue) ?? .unknown
         summary = json["gachaInformation"]["summary"].string.localizable()
         description = json["gachaInformation"]["description"].string.localizable()
         startDate = json["startAt"].date.localizable()
@@ -202,8 +203,9 @@ extension Gacha: ListGettable, GettableByID {
                 guard let id = entry["id"].int, let cardID = entry["cardId"].int else { return nil }
                 return PoolCard(id: id, cardID: cardID, weight: entry["weight"].intValue, isWish: entry["isWish"].boolValue, wishType: entry["gachaDetailWishType"].string, fixedBonusWeight: entry["fixedBonusWeight"].int)
             },
-            rarityRates: json["gachaCardRarityRates"].arrayValue.compactMap { entry in
-                guard let id = entry["id"].int, let rate = entry["rate"].double else { return nil }
+            rarityRates: json["gachaCardRarityRates"].arrayValue.enumerated().compactMap { index, entry in
+                guard let rate = entry["rate"].double else { return nil }
+                let id = entry["id"].int ?? -(index + 1)
                 return RarityRate(id: id, rarityType: entry["cardRarityType"].stringValue, lotteryType: entry["lotteryType"].stringValue, rate: rate)
             },
             behaviors: json["gachaBehaviors"].arrayValue.compactMap { entry in

@@ -68,8 +68,8 @@ extension Sticker: ListGettable, GettableByID {
     /// - Parameter locale: The edition to request.
     /// - Returns: The stickers, or `nil` if the response is unavailable or not an array.
     public static func allInLocale(_ locale: SekaiLocale) async -> [Sticker]? {
-        guard let json = await requestJSON("https://sekai-world.github.io/\(locale._databasePath)/stamps.json"), let items = json.array else { return nil }
-        return await Task.detached(priority: .userInitiated) { items.compactMap(Sticker.init(json:)) }.value
+        guard let list = await requestProtobuf("sticker.aar", as: _StickerList.self) else { return nil }
+        return list.items(in: locale).map { Sticker(protobuf: $0) }
     }
 
     /// Creates a sticker from a master-data record without inventing absent dates or characters.
