@@ -92,7 +92,10 @@ extension Song.VocalVersion {
     internal init(protobuf p: _SongVocal) {
         id = Int(p.id); songID = Int(p.musicID); caption = .unlocalized(p.hasCaption ? p.caption : nil)
         type = VocalType(rawValue: p.musicVocalType) ?? .unknown
-        publishDate = Date(timeIntervalSince1970: Double(p.archivePublishedAt) / 1000)
+        // 2019-01-01 00:00:00 UTC, expressed in the archive's milliseconds.
+        publishDate = p.archivePublishedAt >= 1_546_300_800_000
+            ? Date(timeIntervalSince1970: Double(p.archivePublishedAt) / 1000)
+            : nil
         releaseConditionID = Int(p.releaseConditionID); assetBundleName = p.assetbundleName
         characters = p.characters.map { VocalCharacter(protobuf: $0) }
     }

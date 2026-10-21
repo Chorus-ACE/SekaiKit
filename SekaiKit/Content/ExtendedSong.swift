@@ -58,8 +58,8 @@ extension Song {
         public var caption: LocalizableData<String>
         /// The type of the version.
         public var type: VocalType
-        /// The date this version is published in the archive.
-        public var publishDate: Date
+        /// The date this version is published in the archive, or `nil` for dates before 2019.
+        public var publishDate: Date?
         
         /// The identifier of the condition required to unlock this version.
         public var releaseConditionID: Int
@@ -109,8 +109,8 @@ extension Song {
         public static func allWithCache(trait: SekaiCache.CacheTrait = .invocationElidable) async -> [VocalVersion]? {
             let baseURL = SekaiProtobuf.baseURL
             let locale = SekaiLocale.primaryLocale
-            // Use a new key so older, unordered cached lists are not reused.
-            let cacheID = "AllSongVocalVersions_sourceOrder_v1_\(SekaiProtobuf.cacheKey)_\(locale.rawValue)"
+            // Refresh older lists that retain placeholder publication dates before 2019.
+            let cacheID = "AllSongVocalVersions_sourceOrder_v2_\(SekaiProtobuf.cacheKey)_\(locale.rawValue)"
             return await SekaiCache.withDirectCache(id: cacheID, trait: trait) {
                 await SekaiProtobuf.$baseURL.withValue(baseURL) {
                     await SekaiCache.$preferCachedNetworkSource.withValue(trait != .realTime) {

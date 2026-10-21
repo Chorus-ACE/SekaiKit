@@ -14,6 +14,21 @@ final class SongVocalOrderTests: XCTestCase {
         }
     }
 
+    func testPublicationDatesBefore2019AreDiscarded() {
+        let cutoff: Int64 = 1_546_300_800_000 // 2019-01-01 00:00:00 UTC
+        for timestamp in [-1, 0, cutoff - 1, cutoff, cutoff + 1, 1_600_000_000_000] {
+            var protobuf = vocal(1, caption: "Vocal")
+            protobuf.archivePublishedAt = timestamp
+            let version = Song.VocalVersion(protobuf: protobuf)
+            if timestamp < cutoff {
+                XCTAssertNil(version.publishDate)
+            } else {
+                XCTAssertEqual(version.publishDate, Date(timeIntervalSince1970: Double(timestamp) / 1000))
+            }
+            XCTAssertEqual(Song.VocalVersion(fromCache: version.dataForCache), version)
+        }
+    }
+
     func testRegionalMergePreservesSourceOrderAndLocalizedCaptions() {
         let jp = [40, 2, 9].map { Song.VocalVersion(protobuf: vocal(Int32($0), caption: "jp_\($0)")) }
         let en = [9, 40, 7, 6].map { Song.VocalVersion(protobuf: vocal(Int32($0), caption: "en_\($0)")) }
