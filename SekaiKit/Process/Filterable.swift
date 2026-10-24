@@ -83,12 +83,21 @@ private let hasAppendFilterKey = SekaiFilter.Key(
 )
 
 extension Song: SekaiFilterable {
+    /// Whether a song was commissioned for the game or already existed.
+    public static let typeFilterKey = SekaiFilter.Key(
+        id: "song-type",
+        options: [
+            .init(id: 1, selectorName: NSLocalizedString("Song.type.commission", bundle: #bundle, comment: "")),
+            .init(id: 0, selectorName: NSLocalizedString("Song.type.pre-existed", bundle: #bundle, comment: ""))
+        ]
+    )
+
     /// An optional exact chart level; an empty selection disables this filter.
     public static let levelFilterKey = SekaiFilter.Key(id: "song-level", allowMultipleSelection: false, options: [], defaultOptions: [])
 
     /// The filter keys supported by this content type.
     public static var filterKeys: [SekaiFilter.Key] {
-        [Unit.filterKey.withOtherOption, Song.MediaType.filterKey, hasAppendFilterKey, levelFilterKey]
+        [Unit.filterKey.withOtherOption, typeFilterKey, Song.MediaType.filterKey, hasAppendFilterKey, levelFilterKey]
     }
     
     /// Evaluates the selected options against this record.
@@ -96,6 +105,7 @@ extension Song: SekaiFilterable {
     /// - Parameter filter: The filter selections to apply.
     /// - Returns: `true` if the record satisfies the selections.
     public func _matches(_ filter: SekaiFilter) -> Bool {
+        guard filter.permits(isNewlyWrittenMusic.filterValue, inKey: Self.typeFilterKey.id) else { return false }
         if let levels = filter[Self.levelFilterKey], !levels.isEmpty {
             guard difficultyLevel.values.contains(where: { levels.contains($0) }) else { return false }
         }

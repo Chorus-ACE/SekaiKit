@@ -75,6 +75,39 @@ final class AdditionalContentTests: XCTestCase {
         }
     }
 
+    func testSongTypeFilterSelectsCommissionedAndPreExistingSongs() {
+        var preExisting = Song(protobuf: .init())
+        preExisting.id = 1
+        preExisting.isNewlyWrittenMusic = false
+        preExisting.difficultyLevel = [.expert: 25]
+        var commissioned = preExisting
+        commissioned.id = 2
+        commissioned.isNewlyWrittenMusic = true
+        let songs = [preExisting, commissioned]
+        var filter = SekaiFilter(forKeys: Song.filterKeys)
+
+        XCTAssertTrue(Song.filterKeys.contains(Song.typeFilterKey))
+        XCTAssertFalse(filter.isFiltering(referencing: Song.filterKeys))
+        XCTAssertEqual(songs.filter(withSekaiFilter: filter).map(\.id), [1, 2])
+        filter[Song.typeFilterKey.id] = [1]
+        XCTAssertEqual(songs.filter(withSekaiFilter: filter).map(\.id), [2])
+        filter[Song.typeFilterKey.id] = [0]
+        XCTAssertEqual(songs.filter(withSekaiFilter: filter).map(\.id), [1])
+        filter[Song.typeFilterKey.id] = []
+        XCTAssertTrue(songs.filter(withSekaiFilter: filter).isEmpty)
+        filter[Song.typeFilterKey.id] = [0, 1]
+        XCTAssertFalse(filter.isFiltering(referencing: Song.filterKeys))
+        XCTAssertTrue(songs.allSatisfy { $0._matches(filter) })
+        XCTAssertEqual(songs.filter(withSekaiFilter: SekaiFilter(["song-type": [1]])).map(\.id), [2])
+        filter[Song.typeFilterKey.id] = [1]
+        filter[Song.levelFilterKey.id] = [26]
+        XCTAssertTrue(songs.filter(withSekaiFilter: filter).isEmpty)
+        filter[Song.levelFilterKey.id] = [25]
+        XCTAssertEqual(songs.filter(withSekaiFilter: filter).map(\.id), [2])
+        filter[Song.typeFilterKey.id] = nil
+        XCTAssertEqual(songs.filter(withSekaiFilter: filter).map(\.id), [1, 2])
+    }
+
     func testSongLevelMatchesAnyChartAndClearsToDefaults() {
         var song = Song(
             id: 1, title: .unlocalized("Song"), isNewlyWrittenMusic: false,

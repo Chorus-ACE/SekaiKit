@@ -195,6 +195,23 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
     public var color: Color? {
         return self.colorInfo.first(where: { $0.unit == self.unit })?.mainColor
     }
+    
+    /// If today is their birthday.
+    public var isBirthdayAtToday: Bool {
+        self.isBirthdayAtToday(timeZone: TimeZone.current)
+    }
+    
+    /// If today is their birthday.
+    ///
+    /// - Parameter timezone: The time zone for matching.
+    /// - Returns: `true` if the date in given time zone is the same date as the character's birthday.
+    public func isBirthdayAtToday(timeZone: TimeZone) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        
+        let today = calendar.dateComponents(Set([.month, .day]), from: Date.now)
+        return today == self.birthday
+    }
 }
 
 extension Character: ListGettable, GettableByID {
