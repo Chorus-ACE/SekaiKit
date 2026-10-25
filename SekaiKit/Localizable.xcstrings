@@ -1561,6 +1561,94 @@
         }
       }
     },
+    "Model3D.error.wrong-locale" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This selection belongs to another region. Load that region’s wardrobe first."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选搭配属于其他地区，请先加载对应地区的衣柜。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所選搭配屬於其他地區，請先載入對應地區的衣櫃。"
+          }
+        }
+      }
+    },
+    "Model3D.error.missing-defaults" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The default outfit is incomplete. Update the wardrobe and try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认服装数据不完整，请更新衣柜后重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "預設服裝資料不完整，請更新衣櫃後重試。"
+          }
+        }
+      }
+    },
+    "Model3D.error.unknown-character" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected character is not in this wardrobe."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "衣柜中没有所选角色。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "衣櫃中沒有所選角色。"
+          }
+        }
+      }
+    },
+    "Model3D.error.unknown-variant" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The selected outfit part is not available for this character."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选部件不适用于这个角色。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所選部件不適用於這個角色。"
+          }
+        }
+      }
+    },
     "Song.category.all" : {
       "localizations" : {
         "en" : {

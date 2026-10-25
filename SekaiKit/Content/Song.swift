@@ -77,9 +77,9 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
     /// The type of media that is used for background.
     public enum MediaType: String, Hashable, Sendable, Codable, CaseIterable, SekaiCachable {
         /// The media case stored with the `mv` source value.
-        case _2DMV = "mv"
+        case _3DMV = "mv"
         /// The media case stored with the `mv_2d` source value.
-        case _3DMV = "mv_2d"
+        case _2DMV = "mv_2d"
         /// A static cover image.
         case image = "image"
         /// The original music video.

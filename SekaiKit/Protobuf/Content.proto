@@ -50,6 +50,21 @@ message _Fixture {
     repeated _FixtureBlueprint blueprints = 14;
     optional int32 mysekai_fixture_main_genre_id = 15;
     optional int32 mysekai_fixture_sub_genre_id = 16;
+    repeated _FixtureDialogue dialogues = 17;
+    optional bool dialogues_included = 18;
+}
+
+message _FixtureDialogue {
+    int32 id = 1;
+    int32 game_character_unit_id = 2;
+    string reaction_type = 3;
+    string text = 4;
+    optional string motion_name = 5;
+    optional string expression_eye_name = 6;
+    optional string expression_mouth_name = 7;
+    optional string emoticon_name = 8;
+    optional int32 character_id = 9;
+    optional string unit = 10;
 }
 
 message _FixtureSize {
@@ -129,6 +144,16 @@ message _Song {
     optional bool is_available_for_music_score_maker = 22;
     repeated _SongVocal vocals = 23;
     _ReleaseCondition release_condition = 24;
+    repeated string original_video_links = 25;
+    repeated _MusicAssetVariant asset_variants = 26;
+}
+
+message _MusicAssetVariant {
+    int32 id = 1;
+    int32 music_vocal_id = 2;
+    int32 seq = 3;
+    string music_asset_type = 4;
+    string assetbundle_name = 5;
 }
 
 message _SongChart {

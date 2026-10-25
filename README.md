@@ -53,3 +53,36 @@ For all additional archives and JSON parity checks, also set
 `SEKAI_ADDITIONAL_PROTOBUF_ASSETS` and `SEKAI_PROTOBUF_MASTER_DATA` (the converter's offline input directory).
 The external statistics endpoint may deny downloads; verification archives containing synthetic statistics
 are test artifacts and must not be published.
+
+### 3D wardrobe
+
+Load one region explicitly. SekaiKit requests only `regions/{locale}.json`; it does
+not load the merged catalog, consult other regions, or fall back across regions.
+
+```swift
+let library = try await Model3DClient.shared.library(for: .jp)
+if let character = library.characters.first(where: { $0.characterID == 19 }),
+   var selection = character.defaultSelection() {
+    if let variant = character.costumes.first?.variants.first {
+        selection.costumeID = variant.id
+    }
+    selection.accessoryID = nil
+    let configuration = try library.resolve(selection)
+    // Pass configuration.recipeJSON to Haruki's window.loadModel(...).
+    // Serve resources with Model3DClient.shared.resource(at:in:).
+}
+```
+
+`Model3DLibrary.locale` records the chosen region. Its characters expose `costumes`,
+`hairstyles`, and `accessories`, grouped into color variants. Names and color names
+are plain optional strings from that region; source metadata is available directly
+on each variant. There is no LocalizedData wrapper or cross-region identity map.
+
+A selection retains its region and cannot be used with another region's library.
+Changing regions means loading that region's library and starting a new selection.
+Complete head accessories set `hairstyleIsLocked`; removing them restores independent
+hairstyle selection. Renderer head-slot details stay inside SekaiKit.
+
+Older regional indexes without grouping metadata remain readable and show one entry
+per exported variant. Model files are still cached and shared by content hash across
+regions; separating indexes does not force duplicate resource downloads.
