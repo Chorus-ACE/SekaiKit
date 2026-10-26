@@ -15,6 +15,7 @@ let package = Package(
         .library(name: "SekaiKitMacro", targets: ["SekaiKitMacro"])
     ],
     dependencies: [
+        .package(path: "Packages/SekaiModelImporter"),
         .package(url: "https://github.com/apple/swift-protobuf", from: "1.38.1"),
         .package(url: "https://github.com/Alamofire/Alamofire", from: "5.10.2"),
         .package(url: "https://github.com/SwiftyJSON/SwiftyJSON", from: "5.0.2"),
@@ -25,6 +26,7 @@ let package = Package(
         .target(
             name: "SekaiKit",
             dependencies: [
+                .product(name: "SekaiModelImporter", package: "SekaiModelImporter"),
                 "Alamofire",
                 "SwiftyJSON",
                 "SekaiKitMacro",

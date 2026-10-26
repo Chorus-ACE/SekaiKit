@@ -86,3 +86,49 @@ hairstyle selection. Renderer head-slot details stay inside SekaiKit.
 Older regional indexes without grouping metadata remain readable and show one entry
 per exported variant. Model files are still cached and shared by content hash across
 regions; separating indexes does not force duplicate resource downloads.
+
+### Experimental device-side 3D processing
+
+The regular `Model3DClient` and regional wardrobes remain unchanged. The separate
+prototype API downloads original Unity Bundles and converts a bounded JP sample
+on the device:
+
+```swift
+let source = try Model3DDeviceSourceManifest.japaneseSamples()
+let result = try await Model3DDeviceClient.shared.prepare(
+    partID: "body-7002", manifest: source
+)
+// result.directory contains locally generated scene.json and textures/*.png.
+// result.cacheHit / downloadedBytes / conversionSeconds describe this request.
+```
+
+The sample source plan is pinned to three parts and five dependency Bundles
+(4.23 MB total). It contains no converted meshes or PNGs. The native importer is
+in `Packages/SekaiModelImporter`; its README documents format support, limits and
+verification. Its implementation types are not exposed through SekaiKit's public
+API. GreatSekai exposes the prototype as a separate tool.
+
+This first stage previews authored rest-pose geometry with diffuse textures.
+Animation, skin colors, dedicated SEKAI materials, physics and complete character
+assembly are not yet integrated, so this API does not replace the existing viewer.
+Physical iPhone performance and peak memory still require measurement.
+
+The experimental device importer can now use dynamic, regional source catalogs:
+
+```swift
+let sources = Model3DDeviceSourceClient.shared
+let region = try await sources.catalog(for: .jp)
+let parts = try await sources.parts(for: 1, in: region)
+if let part = parts.parts.first(where: \.isReady) {
+    let plan = try await sources.manifest(for: part, in: parts)
+    let model = try await Model3DDeviceClient.shared.prepare(partID: part.id, manifest: plan)
+    // model.directory contains locally generated scene.json and textures/.
+}
+```
+
+Only the selected character's metadata and part dependency plan are fetched.
+Pending source checks are explicit, regional data is never combined, and immutable
+metadata is SHA-256 verified and cached. Other regions expose their own directories
+but on-device import remains JP-only; colour variants and full rendering semantics
+remain outside this prototype. See the asset repository's `DEVICE-SOURCES.md` for
+scheduled update budgets and publication contracts.

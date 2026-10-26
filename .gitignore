@@ -1,6 +1,9 @@
 .DS_Store
 /.build
-/Packages
+/Packages/*
+!/Packages/SekaiModelImporter/
+/Packages/SekaiModelImporter/.build/
+/Packages/SekaiModelImporter/.swiftpm/
 xcuserdata/
 DerivedData/
 .swiftpm/configuration/registries.json
