@@ -61,6 +61,30 @@ final class Model3DDeviceSourceTests: XCTestCase {
             XCTAssertTrue(cached.cacheHit)
         }
     }
+    func testOptionalOnePublishedPartConvertsOnDevice() async throws {
+        guard ProcessInfo.processInfo.environment["SEKAI_DEVICE_CONVERSION_PROBE"] == "1" else {
+            throw XCTSkip("Explicit opt-in: one published part, at most 8 MiB of raw dependencies")
+        }
+        let sources = Model3DDeviceSourceClient()
+        let region = try await sources.catalog(for: .jp)
+        let parts = try await sources.parts(for: 1, in: region)
+        let part = try XCTUnwrap(parts.parts.first(where: \.isReady))
+        let plan = try await sources.manifest(for: part, in: parts)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(plan)) as? [String: Any])
+        let records = try XCTUnwrap(json["bundles"] as? [String: [String: Any]])
+        let bytes = try records.values.reduce(0) { sum, record in sum + (try XCTUnwrap(record["bytes"] as? Int)) }
+        guard bytes <= 8 * 1024 * 1024 else { throw XCTSkip("Selected dependency closure exceeds the explicit probe budget") }
+        let cache = FileManager.default.temporaryDirectory.appendingPathComponent("device-published-probe-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: cache) }
+        let importer = Model3DDeviceClient(cacheDirectory: cache)
+        let result = try await importer.prepare(partID: part.id, manifest: plan)
+        XCTAssertGreaterThan(result.vertexCount, 0)
+        XCTAssertFalse(result.cacheHit)
+        let hot = try await importer.prepare(partID: part.id, manifest: plan)
+        XCTAssertTrue(hot.cacheHit)
+        XCTAssertEqual(hot.downloadedBytes, 0)
+        print("PUBLISHED DEVICE PART", part.id, "DOWNLOADED", result.downloadedBytes, "VERTICES", result.vertexCount, "SECONDS", result.elapsedSeconds)
+    }
     func testOptionalPublishedRegionalCatalogs() async throws {
         guard ProcessInfo.processInfo.environment["SEKAI_DEVICE_PUBLISHED_PROBE"] == "1" else {
             throw XCTSkip("Opt-in published metadata probe; never downloads original Bundles")
