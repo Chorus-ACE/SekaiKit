@@ -21,6 +21,11 @@ final class DeviceClientTests: XCTestCase {
         json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any]); json["bundles"] = [:]
         let missing = try JSONDecoder().decode(DeviceModelSourceManifest.self, from: JSONSerialization.data(withJSONObject: json))
         XCTAssertThrowsError(try missing.validate())
+        json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        var parts = try XCTUnwrap(json["parts"] as? [[String: Any]])
+        parts[0]["primaryBundle"] = "missing/primary"; json["parts"] = parts
+        let wrongPrimary = try JSONDecoder().decode(DeviceModelSourceManifest.self, from: JSONSerialization.data(withJSONObject: json))
+        XCTAssertThrowsError(try wrongPrimary.validate())
     }
     func testCachedRawBundlesConvertWithoutNetworkAndCorruptDerivedCacheRebuilds() async throws {
         guard let fixtures = ProcessInfo.processInfo.environment["SEKAI_RAW_BUNDLE_FIXTURES"] else { throw XCTSkip("Opt-in local resource test") }
@@ -44,6 +49,12 @@ final class DeviceClientTests: XCTestCase {
         let revised = try JSONDecoder().decode(DeviceModelSourceManifest.self, from: JSONSerialization.data(withJSONObject: unrelated))
         let unaffected = try await client.prepare(partID: "body-7002", manifest: revised)
         XCTAssertTrue(unaffected.cacheHit); XCTAssertEqual(unaffected.directory, cold.directory)
+        parts[0]["primaryBundle"] = "live_pv/model/characterv2/body/99/0005/ladies_m"
+        unrelated["parts"] = parts
+        let primary = try JSONDecoder().decode(DeviceModelSourceManifest.self, from: JSONSerialization.data(withJSONObject: unrelated))
+        let selected = try await client.prepare(partID: "body-7002", manifest: primary)
+        XCTAssertFalse(selected.cacheHit); XCTAssertNotEqual(selected.directory, cold.directory)
+        XCTAssertEqual(selected.vertexCount, cold.vertexCount); XCTAssertEqual(selected.downloadedBytes, 0)
         try Data("broken".utf8).write(to: cold.directory.appending(path: "scene.json"))
         let repaired = try await client.prepare(partID: "body-7002", manifest: manifest)
         XCTAssertFalse(repaired.cacheHit); XCTAssertEqual(repaired.downloadedBytes, 0)

@@ -37,6 +37,7 @@ public actor DeviceModelClient {
         let importerRevision: String
         let partID: String
         let assetBaseURL: URL
+        let primaryBundle: String?
         let variationBundle: String?
         let bundles: [String: DeviceModelSourceManifest.Bundle]
     }
@@ -50,7 +51,7 @@ public actor DeviceModelClient {
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         let identity = try encoder.encode(CacheIdentity(region: manifest.region, platform: manifest.platform,
             importerRevision: DeviceModelImporter.revision, partID: part.id,
-            assetBaseURL: manifest.assetBaseURL, variationBundle: part.variationBundle,
+            assetBaseURL: manifest.assetBaseURL, primaryBundle: part.primaryBundle, variationBundle: part.variationBundle,
             bundles: Dictionary(uniqueKeysWithValues: part.bundles.map { ($0, manifest.bundles[$0]!) })))
         let destination = root.appendingPathComponent("converted/" + digest(identity), isDirectory: true)
         if let receipt = validReceipt(at: destination) {
@@ -109,7 +110,8 @@ public actor DeviceModelClient {
         }
         try Task.checkCancellation()
         let variations = Set(part.bundles.enumerated().filter { $0.element == part.variationBundle }.map(\.offset))
-        let conversion = Task.detached(priority: .utility) { try DeviceModelImporter.convert(bundles: input, variationBundleIndices: variations) }
+        let primary = part.primaryBundle.flatMap { part.bundles.firstIndex(of: $0) }
+        let conversion = Task.detached(priority: .utility) { try DeviceModelImporter.convert(bundles: input, variationBundleIndices: variations, primaryBundleIndex: primary) }
         let result = try await withTaskCancellationHandler { try await conversion.value } onCancel: { conversion.cancel() }
         try Task.checkCancellation()
         let stage = root.appendingPathComponent("staging-" + UUID().uuidString, isDirectory: true)

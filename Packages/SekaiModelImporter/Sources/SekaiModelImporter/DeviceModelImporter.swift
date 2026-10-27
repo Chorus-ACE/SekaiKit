@@ -34,11 +34,12 @@ public enum DeviceModelImporter {
         return text
     }
     public static let revision = "native-character-v2"
-    public static func convert(bundles: [Data], variationBundleIndices: Set<Int> = []) throws -> DeviceModelConversion {
+    public static func convert(bundles: [Data], variationBundleIndices: Set<Int> = [], primaryBundleIndex: Int? = nil) throws -> DeviceModelConversion {
         let start = Date()
         guard !bundles.isEmpty, bundles.count <= 32, bundles.reduce(0, { $0 + $1.count }) <= 64 * 1024 * 1024 else { throw ModelImportError.budgetExceeded }
+        guard primaryBundleIndex.map({ bundles.indices.contains($0) }) ?? true else { throw ModelImportError.malformed("primary bundle index") }
         var files: [String: UnitySerializedFile] = [:], resources: [String: Data] = [:]
-        var expanded = 0, variationFiles = Set<String>()
+        var expanded = 0, variationFiles = Set<String>(), primaryFiles = Set<String>()
         for (bundleIndex, bundle) in bundles.enumerated() {
             try Task.checkCancellation()
             let archive = try UnityFSArchive(data: bundle)
@@ -46,6 +47,7 @@ public enum DeviceModelImporter {
             guard expanded <= 128 * 1024 * 1024 else { throw ModelImportError.budgetExceeded }
             for entry in archive.entries {
                 let key = entry.name.lowercased()
+                if bundleIndex == primaryBundleIndex { primaryFiles.insert(key) }
                 if variationBundleIndices.contains(bundleIndex) { variationFiles.insert(key) }
                 if entry.name.hasSuffix(".resS") || entry.name.hasSuffix(".resource") {
                     if let old = resources[key], old != entry.data { throw ModelImportError.malformed("conflicting resource files") }
@@ -58,6 +60,7 @@ public enum DeviceModelImporter {
         }
         let context = Context(files: files, resources: resources)
         context.variationFiles = variationFiles
+        context.primaryFiles = primaryBundleIndex == nil ? nil : primaryFiles
         return try context.convert(bundleCount: bundles.count, start: start)
     }
 }
@@ -76,6 +79,7 @@ private final class Context {
     var materials: [DeviceModelScene.Material] = []
     var texturePixels = 0
     var variationFiles = Set<String>()
+    var primaryFiles: Set<String>?
     var identifiers: [ObjectKey: Int] = [:]
 
     init(files: [String: UnitySerializedFile], resources: [String: Data]) {
@@ -206,6 +210,9 @@ private final class Context {
         }
         var prefabRoots = Set<ObjectKey>()
         for key in ordered where classID(key) == 142 {
+            // Dependencies can contain another complete face prefab. Read their
+            // referenced objects, but instantiate only the requested part.
+            if let primaryFiles, !primaryFiles.contains(key.file) { continue }
             for item in try object(key)["m_Container"].array {
                 let path = item["first"].text.lowercased()
                 if ["/body.prefab", "/face.prefab", "/optional.prefab"].contains(where: path.hasSuffix),

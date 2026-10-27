@@ -49,6 +49,18 @@ final class Model3DLocalClientTests: XCTestCase {
             let data = try await client.resource(at: path, in: result)
             let scene = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
             let meshes = try XCTUnwrap(scene["meshes"] as? [[String: Any]])
+            let nodes = try XCTUnwrap(scene["nodes"] as? [[String: Any]])
+            let parents = Dictionary(uniqueKeysWithValues: nodes.map { (($0["id"] as! Int), $0["parentID"] as? Int) })
+            let prefabRoots = Set(meshes.compactMap { mesh -> Int? in
+                guard var id = mesh["transformID"] as? Int else { return nil }
+                var visited = Set<Int>()
+                while let parent = parents[id] ?? nil {
+                    guard visited.insert(id).inserted else { return nil }
+                    id = parent
+                }
+                return id
+            })
+            XCTAssertEqual(prefabRoots.count, 1, "Dependency prefabs must not be instantiated alongside the selected part")
             vertices += meshes.reduce(0) { $0 + (($1["positions"] as? [Double])?.count ?? 0)/3 }
             motions += (scene["animationClips"] as? [Any])?.count ?? 0
             if let output {
@@ -66,6 +78,9 @@ final class Model3DLocalClientTests: XCTestCase {
         }
         XCTAssertGreaterThan(vertices, 1000)
         XCTAssertGreaterThan(motions, 0)
+        if let rawOutput = ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_RAW_OUTPUT"] {
+            try FileManager.default.copyItem(at: cache.appendingPathComponent("models/raw"), to: URL(filePath: rawOutput))
+        }
         let hot = try await client.prepare(selection, in: wardrobe)
         XCTAssertEqual(hot.recipeJSON, result.recipeJSON)
         if ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_HEAD_TEST"] == "1" {

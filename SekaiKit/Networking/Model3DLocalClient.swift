@@ -105,10 +105,10 @@ public struct Model3DLocalWardrobe: Decodable, Sendable {
             let region: String; let platform: String; let sourceRevision: String; let assetBaseURL: URL
             let bundles: [String: SourceBundle]
             let parts: [Part]
-            struct Part: Encodable { let id: String; let name: String; let bundles: [String]; let variationBundle: String? }
+            struct Part: Encodable { let id: String; let name: String; let bundles: [String]; let primaryBundle: String?; let variationBundle: String? }
         }
         let plan = Plan(region: region.rawValue, platform: platform, sourceRevision: revision, assetBaseURL: assetBaseURL,
-                        bundles: references, parts: [.init(id: part.id, name: part.name ?? part.id, bundles: part.bundleKeys, variationBundle: part.variationBundle)])
+                        bundles: references, parts: [.init(id: part.id, name: part.name ?? part.id, bundles: part.bundleKeys, primaryBundle: part.primaryBundle, variationBundle: part.variationBundle)])
         return try JSONDecoder().decode(Model3DDeviceSourceManifest.self, from: JSONEncoder().encode(plan))
     }
 }

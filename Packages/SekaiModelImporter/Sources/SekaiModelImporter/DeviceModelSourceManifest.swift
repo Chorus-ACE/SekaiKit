@@ -16,7 +16,7 @@ public struct DeviceModelSourceManifest: Codable, Sendable {
         public let sourceHash: String?
         public let downloadPath: String?
     }
-    public struct Part: Codable, Identifiable, Sendable { public let id: String; public let name: String; public let bundles: [String]; public let variationBundle: String? }
+    public struct Part: Codable, Identifiable, Sendable { public let id: String; public let name: String; public let bundles: [String]; public let primaryBundle: String?; public let variationBundle: String? }
 
     /// Pinned, bounded JP samples for the prototype, not a production wardrobe.
     public static func japaneseSamples() throws -> Self {
@@ -38,7 +38,8 @@ public struct DeviceModelSourceManifest: Codable, Sendable {
                   bundle.downloadPath.map({ !$0.contains("..") && !$0.contains("/") && !$0.contains("\\") && !$0.isEmpty }) ?? true else { throw ModelImportError.malformed("raw bundle record") }
         }
         for part in parts {
-            guard part.variationBundle.map({ part.bundles.contains($0) }) ?? true, !part.id.isEmpty, !part.bundles.isEmpty, Set(part.bundles).count == part.bundles.count,
+            guard part.primaryBundle.map({ part.bundles.contains($0) }) ?? true,
+                  part.variationBundle.map({ part.bundles.contains($0) }) ?? true, !part.id.isEmpty, !part.bundles.isEmpty, Set(part.bundles).count == part.bundles.count,
                   part.bundles.allSatisfy({ bundles[$0] != nil }),
                   part.bundles.reduce(0, { $0 + (bundles[$1]?.bytes ?? 0) }) <= 64 * 1024 * 1024 else { throw ModelImportError.malformed("raw part dependencies") }
         }

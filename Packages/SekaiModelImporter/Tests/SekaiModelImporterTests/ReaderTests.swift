@@ -1,6 +1,30 @@
 import XCTest
 @testable import SekaiModelImporter
 final class ReaderTests: XCTestCase {
+    func testPrimaryBundleDoesNotInstantiateDependencyPrefab() throws {
+        guard let root = ProcessInfo.processInfo.environment["SEKAI_SHARED_PREFAB_FIXTURES"] else { throw XCTSkip("Opt-in shared-prefab regression") }
+        let directory = URL(filePath: root)
+        let bundles = try ["0001", "0182n", "common"].map { try Data(contentsOf: directory.appendingPathComponent($0 + ".bundle")) }
+        let unfiltered = try DeviceModelImporter.convert(bundles: bundles)
+        let selected = try DeviceModelImporter.convert(bundles: bundles, primaryBundleIndex: 1)
+        XCTAssertEqual(unfiltered.scene.meshes.count, 4)
+        XCTAssertEqual(selected.scene.meshes.count, 2)
+        let nodes = Dictionary(uniqueKeysWithValues: (selected.scene.nodes ?? []).map { ($0.id, $0) })
+        func rootID(_ id: Int?) -> Int? {
+            var node = id.flatMap { nodes[$0] }
+            while let parent = node?.parentID { node = nodes[parent] }
+            return node?.id
+        }
+        let roots = Set(selected.scene.meshes.compactMap { rootID($0.transformID) })
+        XCTAssertEqual(roots.count, 1)
+        for mesh in selected.scene.meshes {
+            for bone in mesh.boneIDs ?? [] { XCTAssertTrue(roots.contains(try XCTUnwrap(rootID(bone)))) }
+        }
+        let reordered = try DeviceModelImporter.convert(bundles: [bundles[1], bundles[0], bundles[2]], primaryBundleIndex: 0)
+        XCTAssertEqual(reordered.vertexCount, selected.vertexCount)
+        XCTAssertEqual(reordered.scene.meshes.map(\.positions), selected.scene.meshes.map(\.positions))
+        XCTAssertThrowsError(try DeviceModelImporter.convert(bundles: bundles, primaryBundleIndex: 3))
+    }
     func testNullSkinSlotsDoNotShiftWeightedBindings() throws {
         let result = try DeviceModelImporter.skinBonePalette([10,nil,30], indices: [2,0,0,0], weights: [1,0,0,0], fallback: 10)
         XCTAssertEqual(result, [10,10,30])
