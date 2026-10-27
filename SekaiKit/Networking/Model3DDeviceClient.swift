@@ -1,10 +1,10 @@
 import Foundation
 import SekaiModelImporter
 
-/// Experimental JP raw-source plan. Production wardrobes use Model3DLibrary.
+/// A regional original-resource plan used by the on-device importer.
 public struct Model3DDeviceSourceManifest: Codable, Sendable {
     internal let raw: DeviceModelSourceManifest
-    public var locale: SekaiLocale { .jp }
+    public var locale: SekaiLocale { SekaiLocale(rawValue: raw.region)! }
     public var sourceRevision: String { raw.sourceRevision }
     public var parts: [Part] { raw.parts.map { .init(id: $0.id, name: $0.name) } }
     public struct Part: Identifiable, Sendable { public let id: String; public let name: String }
@@ -29,8 +29,8 @@ public struct Model3DDeviceResult: Sendable {
     }
 }
 
-/// Isolated on-device prototype. Animation, SEKAI shader effects and full wardrobe
-/// assembly still use the existing Haruki pipeline; no silent server fallback occurs.
+/// Native Unity conversion and bounded raw/derived caches. The production
+/// Model3DLocalClient composes these results for the embedded Haruki renderer.
 public actor Model3DDeviceClient {
     public static let shared = Model3DDeviceClient()
     public static var thirdPartyNotices: String { DeviceModelImporter.thirdPartyNotices }

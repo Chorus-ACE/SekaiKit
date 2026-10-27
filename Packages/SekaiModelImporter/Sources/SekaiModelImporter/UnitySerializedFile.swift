@@ -26,14 +26,17 @@ struct UnitySerializedFile {
     init(name: String, data: Data) throws {
         self.name = name; self.data = data
         var r = BinaryReader(data: data)
-        _ = try r.integer(UInt32.self); _ = try r.integer(UInt32.self)
+        _ = try r.integer(UInt32.self); let shortSize = try r.integer(UInt32.self)
         let version = try r.integer(UInt32.self)
-        _ = try r.integer(UInt32.self)
-        guard version == 22 else { throw ModelImportError.unsupported("serialized file version \(version)") }
+        let shortOffset = try r.integer(UInt32.self)
+        guard (17...22).contains(version) else { throw ModelImportError.unsupported("serialized file version \(version)") }
         let endian = try r.integer(UInt8.self); try r.skip(3)
-        _ = try r.integer(UInt32.self)
-        let fileSize = try r.integer(UInt64.self), dataOffset = try r.integer(UInt64.self)
-        try r.skip(8)
+        let fileSize: UInt64, dataOffset: UInt64
+        if version >= 22 {
+            _ = try r.integer(UInt32.self)
+            fileSize = try r.integer(UInt64.self); dataOffset = try r.integer(UInt64.self)
+            try r.skip(8)
+        } else { fileSize = UInt64(shortSize); dataOffset = UInt64(shortOffset) }
         guard fileSize == data.count, dataOffset <= data.count, endian <= 1 else { throw ModelImportError.malformed("serialized header") }
         r.littleEndian = endian == 0; littleEndian = r.littleEndian
         _ = try r.zeroString(); _ = try r.integer(Int32.self)
@@ -52,7 +55,7 @@ struct UnitySerializedFile {
                 let level = Int(try r.integer(UInt8.self)); _ = try r.integer(UInt8.self)
                 let type = try r.integer(UInt32.self), field = try r.integer(UInt32.self)
                 let size = Int(try r.integer(Int32.self)); _ = try r.integer(Int32.self)
-                let flags = try r.integer(UInt32.self); try r.skip(8)
+                let flags = try r.integer(UInt32.self); if version >= 19 { try r.skip(8) }
                 guard level <= 64 else { throw ModelImportError.budgetExceeded }
                 rows.append((type, field, level, size, flags))
             }
@@ -76,14 +79,15 @@ struct UnitySerializedFile {
                 } else if i > 0 || nodes[i].level != 0 { throw ModelImportError.malformed("type-tree root") }
                 parents.append(i)
             }
-            try r.skip((try r.count(limit: 65_536)) * 4)
+            if version >= 21 { try r.skip((try r.count(limit: 65_536)) * 4) }
             parsedTypes.append(.init(classID: classID, nodes: nodes))
         }
         var parsedObjects: [ObjectInfo] = []
         var identities = Set<Int64>()
         for _ in 0..<(try r.count(limit: 100_000)) {
             try r.align()
-            let id = try r.integer(Int64.self), relative = try r.integer(UInt64.self)
+            let id = try r.integer(Int64.self)
+            let relative = version >= 22 ? try r.integer(UInt64.self) : UInt64(try r.integer(UInt32.self))
             let size = UInt64(try r.integer(UInt32.self)), index = Int(try r.integer(Int32.self))
             guard index >= 0, index < parsedTypes.count, relative <= UInt64(data.count) - dataOffset,
                   size <= UInt64(data.count) - dataOffset - relative, identities.insert(id).inserted else { throw ModelImportError.malformed("object table") }

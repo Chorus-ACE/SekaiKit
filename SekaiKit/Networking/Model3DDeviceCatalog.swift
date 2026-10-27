@@ -138,7 +138,7 @@ public actor Model3DDeviceSourceClient {
               catalog.characters.count <= 128, Set(catalog.characters.map(\.id)).count == catalog.characters.count,
               catalog.characters.allSatisfy({ $0.id > 0 && $0.readyCount >= 0 && $0.readyCount <= $0.partCount && $0.partCount <= $0.totalCount }),
               catalog.counts.values.allSatisfy({ $0 >= 0 }) else { throw Failure.invalidCatalog }
-        guard catalog.importerRevision == Model3DDeviceClient.importerRevision else { throw Failure.incompatibleImporter }
+        guard ["native-rest-pose-v1", Model3DDeviceClient.importerRevision].contains(catalog.importerRevision) else { throw Failure.incompatibleImporter }
         return catalog
     }
     public func parts(for characterID: Int, in catalog: Model3DDeviceCatalog) async throws -> Model3DDevicePartCatalog {

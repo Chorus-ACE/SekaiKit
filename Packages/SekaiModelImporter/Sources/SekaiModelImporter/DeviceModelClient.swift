@@ -18,6 +18,8 @@ public actor DeviceModelClient {
     private let session: URLSession
     private let maximumCacheBytes: Int
     private var busy = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private struct RawReceipt: Codable { let bytes: Int; let sha256: String }
     private struct Receipt: Codable {
         let resources: [String: String]
         let vertexCount: Int
@@ -34,17 +36,21 @@ public actor DeviceModelClient {
         let platform: String
         let importerRevision: String
         let partID: String
+        let assetBaseURL: URL
+        let variationBundle: String?
         let bundles: [String: DeviceModelSourceManifest.Bundle]
     }
     public func prepare(partID: String, manifest: DeviceModelSourceManifest) async throws -> DeviceModelResult {
-        guard !busy else { throw ModelImportError.unsupported("another model is being processed") }
+        while busy { await withCheckedContinuation { waiters.append($0) }; try Task.checkCancellation() }
+        try Task.checkCancellation()
         try manifest.validate()
         guard let part = manifest.parts.first(where: { $0.id == partID }) else { throw ModelImportError.malformed("unknown sample part") }
-        busy = true; defer { busy = false }
+        busy = true; defer { busy = false; let ready = waiters; waiters = []; for waiter in ready { waiter.resume() } }
         let started = Date(), fm = FileManager.default
         let encoder = JSONEncoder(); encoder.outputFormatting = [.sortedKeys]
         let identity = try encoder.encode(CacheIdentity(region: manifest.region, platform: manifest.platform,
             importerRevision: DeviceModelImporter.revision, partID: part.id,
+            assetBaseURL: manifest.assetBaseURL, variationBundle: part.variationBundle,
             bundles: Dictionary(uniqueKeysWithValues: part.bundles.map { ($0, manifest.bundles[$0]!) })))
         let destination = root.appendingPathComponent("converted/" + digest(identity), isDirectory: true)
         if let receipt = validReceipt(at: destination) {
@@ -57,11 +63,18 @@ public actor DeviceModelClient {
         for key in part.bundles {
             try Task.checkCancellation()
             let entry = manifest.bundles[key]!
-            let path = root.appendingPathComponent("raw/" + entry.sha256 + ".bundle")
-            if let cached = try? Data(contentsOf: path, options: .mappedIfSafe), cached.count == entry.bytes, digest(cached) == entry.sha256 {
+            let sourceKey = digest(try encoder.encode([manifest.region, manifest.assetBaseURL.absoluteString, key, String(decoding: encoder.encode(entry), as: UTF8.self)]))
+            let mapping = root.appendingPathComponent("raw/" + sourceKey + ".json")
+            var actual = entry.sha256.map { RawReceipt(bytes: entry.bytes, sha256: $0) }
+            if actual == nil, let data = try? Data(contentsOf: mapping), data.count < 1024 {
+                actual = try? JSONDecoder().decode(RawReceipt.self, from: data)
+            }
+            if let actual, DeviceModelSourceManifest.validHash(actual.sha256), actual.bytes <= 32 * 1024 * 1024,
+               let cached = try? Data(contentsOf: root.appendingPathComponent("raw/" + actual.sha256 + ".bundle"), options: .mappedIfSafe),
+               cached.count == actual.bytes, digest(cached) == actual.sha256 {
                 input.append(cached); continue
             }
-            if !signed {
+            if !signed && manifest.region == "jp" {
                 var request = URLRequest(url: URL(string: "https://issue.sekai.colorfulpalette.org/api/signature")!)
                 request.httpMethod = "POST"; request.timeoutInterval = 30
                 let (_, response) = try await session.data(for: request)
@@ -71,23 +84,32 @@ public actor DeviceModelClient {
                 sourceCookie = try Self.signatureCookieHeader(http.value(forHTTPHeaderField: "Set-Cookie") ?? "")
                 signed = true
             }
-            let url = manifest.assetBaseURL.appendingPathComponent(key)
+            let base = entry.downloadPath.map { manifest.assetBaseURL.appendingPathComponent($0, isDirectory: true) } ?? manifest.assetBaseURL
+            let url = base.appendingPathComponent(key)
             var request = URLRequest(url: url, timeoutInterval: 60)
             request.httpShouldHandleCookies = false
             request.setValue(sourceCookie, forHTTPHeaderField: "Cookie")
-            let (temporary, response) = try await session.download(for: request)
+            let wireLimit = min(32 * 1024 * 1024 + 4, entry.bytes + max(65536, entry.bytes / 10))
+            let (temporary, response) = try await session.download(for: request, delegate: RawDownloadLimit(maximum: wireLimit))
             defer { try? fm.removeItem(at: temporary) }
             guard let http = response as? HTTPURLResponse, http.statusCode == 200, http.url?.host == url.host,
                   let size = try temporary.resourceValues(forKeys: [.fileSizeKey]).fileSize,
-                  size == entry.bytes || size == entry.bytes + 4 else { throw ModelImportError.malformed("raw download response (HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0))") }
+                  size <= wireLimit else { throw ModelImportError.malformed("raw download response (HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0))") }
             let raw = try UnityFSArchive.normalizeTransport(Data(contentsOf: temporary, options: .mappedIfSafe))
-            guard raw.count == entry.bytes, digest(raw) == entry.sha256 else { throw ModelImportError.malformed("raw download integrity") }
+            let hash = digest(raw)
+            if let expected = entry.sha256 {
+                guard raw.count == entry.bytes, hash == expected else { throw ModelImportError.malformed("raw download integrity") }
+            }
+            guard raw.count <= 32 * 1024 * 1024 else { throw ModelImportError.budgetExceeded }
+            let path = root.appendingPathComponent("raw/" + hash + ".bundle")
             try Task.checkCancellation()
             try raw.write(to: path, options: .atomic)
+            try encoder.encode(RawReceipt(bytes: raw.count, sha256: hash)).write(to: mapping, options: .atomic)
             downloaded += size; input.append(raw)
         }
         try Task.checkCancellation()
-        let conversion = Task.detached(priority: .utility) { try DeviceModelImporter.convert(bundles: input) }
+        let variations = Set(part.bundles.enumerated().filter { $0.element == part.variationBundle }.map(\.offset))
+        let conversion = Task.detached(priority: .utility) { try DeviceModelImporter.convert(bundles: input, variationBundleIndices: variations) }
         let result = try await withTaskCancellationHandler { try await conversion.value } onCancel: { conversion.cancel() }
         try Task.checkCancellation()
         let stage = root.appendingPathComponent("staging-" + UUID().uuidString, isDirectory: true)
@@ -150,5 +172,14 @@ public actor DeviceModelClient {
         for item in items.sorted(by: { $0.date < $1.date }) where total > maximumCacheBytes && item.url != directory {
             do { try fm.removeItem(at: item.url); total -= item.bytes } catch { continue }
         }
+    }
+}
+
+private final class RawDownloadLimit: NSObject, URLSessionDownloadDelegate, @unchecked Sendable {
+    let maximum: Int64
+    init(maximum: Int) { self.maximum = Int64(maximum) }
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {}
+    func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didWriteData bytesWritten: Int64, totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64) {
+        if totalBytesWritten > maximum || totalBytesExpectedToWrite > maximum { downloadTask.cancel() }
     }
 }

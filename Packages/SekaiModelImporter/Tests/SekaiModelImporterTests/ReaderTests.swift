@@ -1,6 +1,17 @@
 import XCTest
 @testable import SekaiModelImporter
 final class ReaderTests: XCTestCase {
+    func testColorVariationChangesTexturesAndPreservesGeometry() throws {
+        guard let root = ProcessInfo.processInfo.environment["SEKAI_RAW_BUNDLE_FIXTURES"] else { throw XCTSkip("Opt-in local resource test") }
+        let directory = URL(filePath: root)
+        let body = try Data(contentsOf: directory.appendingPathComponent("live_pv/model/characterv2/body/99/2209/ladies_m.bundle"))
+        let colors = try Data(contentsOf: directory.appendingPathComponent("live_pv/model/characterv2/color_variation/body/99/2209/ladies_m/01.bundle"))
+        let base = try DeviceModelImporter.convert(bundles: [body])
+        let variant = try DeviceModelImporter.convert(bundles: [body, colors], variationBundleIndices: [1])
+        XCTAssertEqual(base.vertexCount, variant.vertexCount)
+        XCTAssertEqual(base.scene.meshes.first?.positions, variant.scene.meshes.first?.positions)
+        XCTAssertNotEqual(base.scene.materials.first?.textures, variant.scene.materials.first?.textures)
+    }
     func testTruncatedAndOversizedArchivesFail() {
         for data in [Data(), Data("UnityFS\0".utf8), Data([0x10, 0, 0, 0]), Data(repeating: 0, count: 200)] {
             XCTAssertThrowsError(try UnityFSArchive(data: data))
@@ -10,7 +21,8 @@ final class ReaderTests: XCTestCase {
         guard let root = ProcessInfo.processInfo.environment["SEKAI_RAW_BUNDLE_FIXTURES"] else { throw XCTSkip("Opt-in local resource test") }
         for path in ["live_pv/model/characterv2/body/99/0005/ladies_m.bundle", "live_pv/model/characterv2/face/01/0016.bundle", "live_pv/model/characterv2/head_optional/2209/a01.bundle"] {
             let data = try Data(contentsOf: URL(filePath: root).appending(path: path))
-            let result = try DeviceModelImporter.convert(bundles: [data])
+            let common = try Data(contentsOf: URL(filePath: root).appending(path: "live_pv/model/characterv2/face/common.bundle"))
+            let result = try DeviceModelImporter.convert(bundles: path.contains("/face/") ? [data,common] : path.contains("/body/") ? [data, try Data(contentsOf: URL(filePath: root).appending(path: "character/motion/costume_setting/01_00.bundle"))] : [data])
             XCTAssertGreaterThan(result.scene.meshes.count, 0)
             XCTAssertEqual(result.vertexCount, path.contains("/body/") ? 6822 : path.contains("/face/") ? 3745 : 300)
             XCTAssertGreaterThan(result.texturePNGs.count, 0)

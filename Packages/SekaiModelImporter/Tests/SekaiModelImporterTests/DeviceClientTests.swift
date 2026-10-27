@@ -29,7 +29,7 @@ final class DeviceClientTests: XCTestCase {
         defer { try? FileManager.default.removeItem(at: root) }
         try FileManager.default.createDirectory(at: root.appending(path: "raw"), withIntermediateDirectories: true)
         for (key, record) in manifest.bundles {
-            try Data(contentsOf: URL(filePath: fixtures).appending(path: key + ".bundle")).write(to: root.appending(path: "raw/" + record.sha256 + ".bundle"))
+            try Data(contentsOf: URL(filePath: fixtures).appending(path: key + ".bundle")).write(to: root.appending(path: "raw/" + (try XCTUnwrap(record.sha256)) + ".bundle"))
         }
         let config = URLSessionConfiguration.ephemeral; config.protocolClasses = [NoNetwork.self]
         let client = DeviceModelClient(cacheDirectory: root, session: URLSession(configuration: config))

@@ -54,81 +54,52 @@ For all additional archives and JSON parity checks, also set
 The external statistics endpoint may deny downloads; verification archives containing synthetic statistics
 are test artifacts and must not be published.
 
-### 3D wardrobe
+### On-device 3D wardrobe
 
-Load one region explicitly. SekaiKit requests only `regions/{locale}.json`; it does
-not load the merged catalog, consult other regions, or fall back across regions.
+The production viewer uses `Model3DLocalClient`. Load the requested region, then
+only the selected character's compressed metadata. There is no merged index or
+cross-region model fallback.
 
 ```swift
-let library = try await Model3DClient.shared.library(for: .jp)
-if let character = library.characters.first(where: { $0.characterID == 19 }),
-   var selection = character.defaultSelection() {
-    if let variant = character.costumes.first?.variants.first {
-        selection.costumeID = variant.id
-    }
+let client = Model3DLocalClient.shared
+let library = try await client.library(for: .jp)
+let wardrobe = try await client.wardrobe(for: "19:school_refusal", in: library)
+if var selection = wardrobe.character.defaultSelection() {
+    // wardrobe.character exposes costumes, hairstyles and accessories, with variants.
     selection.accessoryID = nil
-    let configuration = try library.resolve(selection)
-    // Pass configuration.recipeJSON to Haruki's window.loadModel(...).
-    // Serve resources with Model3DClient.shared.resource(at:in:).
+    let configuration = try await client.prepare(selection, in: wardrobe)
+    // Pass configuration.recipeJSON to the embedded window.loadModel(...).
+    // Serve sekai3d://runtime paths via client.resource(at:in:).
 }
 ```
 
-`Model3DLibrary.locale` records the chosen region. Its characters expose `costumes`,
-`hairstyles`, and `accessories`, grouped into color variants. Names and color names
-are plain optional strings from that region; source metadata is available directly
-on each variant. There is no LocalizedData wrapper or cross-region identity map.
+Role IDs come from `library.roles`; Virtual Singer support units have separate
+identities. A selection cannot be used with another region's wardrobe. Complete
+head sets supply their own hairstyle and set `hairstyleIsLocked`. Original
+regional attachment and grouping metadata remains on each `CostumeVariant`.
 
-A selection retains its region and cannot be used with another region's library.
-Changing regions means loading that region's library and starting a new selection.
-Complete head accessories set `hairstyleIsLocked`; removing them restores independent
-hairstyle selection. Renderer head-slot details stay inside SekaiKit.
+`prepare` downloads the selected original Unity dependency closure from its
+regional official source. It converts geometry, bind poses, weights, morphs,
+materials, textures, controllers and animation in Swift/C++ on a utility task.
+The embedded Haruki runtime assembles parts, applies its SEKAI materials and skin
+colors, plays the local motion and simulates hair/clothing springs. Converted
+model Releases, Python and .NET are not needed on the client.
 
-Older regional indexes without grouping metadata remain readable and show one entry
-per exported variant. Model files are still cached and shared by content hash across
-regions; separating indexes does not force duplicate resource downloads.
+Metadata is SHA-256 verified before bounded DEFLATE decompression. V2 source hashes
+identify upstream builds; they are not advertised as binary checksums. On first
+download the client measures and hashes the normalized Bundle, then revalidates
+that SHA-256 on cache reuse. V1 plans with pinned binary SHA-256 remain supported.
+Raw resources are content-addressed; derived scenes are cached per selection source
+and importer revision. Model cache default: 512 MiB. Unsupported formats fail
+explicitly; there is no silent fallback to the old model server.
 
-### Experimental device-side 3D processing
+`Model3DClient` and the V1 `Model3DDeviceSourceClient` remain for API compatibility.
+The old prototype tool has been retired from GreatSekai. Low-level bounded fixture
+APIs such as `Model3DDeviceSourceManifest.japaneseSamples()` are retained for tests.
 
-The regular `Model3DClient` and regional wardrobes remain unchanged. The separate
-prototype API downloads original Unity Bundles and converts a bounded JP sample
-on the device:
-
-```swift
-let source = try Model3DDeviceSourceManifest.japaneseSamples()
-let result = try await Model3DDeviceClient.shared.prepare(
-    partID: "body-7002", manifest: source
-)
-// result.directory contains locally generated scene.json and textures/*.png.
-// result.cacheHit / downloadedBytes / conversionSeconds describe this request.
-```
-
-The sample source plan is pinned to three parts and five dependency Bundles
-(4.23 MB total). It contains no converted meshes or PNGs. The native importer is
-in `Packages/SekaiModelImporter`; its README documents format support, limits and
-verification. Its implementation types are not exposed through SekaiKit's public
-API. GreatSekai exposes the prototype as a separate tool.
-
-This first stage previews authored rest-pose geometry with diffuse textures.
-Animation, skin colors, dedicated SEKAI materials, physics and complete character
-assembly are not yet integrated, so this API does not replace the existing viewer.
-Physical iPhone performance and peak memory still require measurement.
-
-The experimental device importer can now use dynamic, regional source catalogs:
-
-```swift
-let sources = Model3DDeviceSourceClient.shared
-let region = try await sources.catalog(for: .jp)
-let parts = try await sources.parts(for: 1, in: region)
-if let part = parts.parts.first(where: \.isReady) {
-    let plan = try await sources.manifest(for: part, in: parts)
-    let model = try await Model3DDeviceClient.shared.prepare(partID: part.id, manifest: plan)
-    // model.directory contains locally generated scene.json and textures/.
-}
-```
-
-Only the selected character's metadata and part dependency plan are fetched.
-Pending source checks are explicit, regional data is never combined, and immutable
-metadata is SHA-256 verified and cached. Other regions expose their own directories
-but on-device import remains JP-only; colour variants and full rendering semantics
-remain outside this prototype. See the asset repository's `DEVICE-SOURCES.md` for
-scheduled update budgets and publication contracts.
+See `Packages/SekaiModelImporter/README.md` for format limits and opt-in fixture
+tests. Run `swift test`; set `SEKAI_LOCAL_VIEWER_BASE` to a generated V2 catalog
+base to validate wardrobe metadata. `SEKAI_LOCAL_VIEWER_DOWNLOAD=1` enables one
+selected default character, and `SEKAI_LOCAL_VIEWER_HEAD_TEST=1` adds one complete
+head set. These tests deliberately do not download a wardrobe library. Physical
+iPhone latency and peak memory still require device measurement.

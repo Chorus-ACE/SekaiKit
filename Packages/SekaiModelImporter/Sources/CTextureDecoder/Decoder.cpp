@@ -2,6 +2,7 @@
 #include "vendor/astc.h"
 #include "vendor/etc.h"
 #include "vendor/bcn.h"
+#include "vendor/pvrtc.h"
 #include <algorithm>
 #include <vector>
 #include <cstring>
@@ -10,6 +11,7 @@ int sekai_decode_texture(const uint8_t *src, size_t size, int w, int h, int form
     if (!src || !rgba || w <= 0 || h <= 0 || w > 4096 || h > 4096 || out_size != size_t(w) * h * 4) return 0;
     int bx = 4, by = 4, bytes = 0, kind = 0;
     if (format == 34) { bytes = 8; kind = 1; }
+    else if (format >= 30 && format <= 33) { bx = (format <= 31) ? 8 : 4; bytes = 8; kind = 12; }
     else if (format == 45) { bytes = 8; kind = 2; }
     else if (format == 46) { bytes = 8; kind = 3; }
     else if (format == 47) { bytes = 16; kind = 4; }
@@ -21,6 +23,10 @@ int sekai_decode_texture(const uint8_t *src, size_t size, int w, int h, int form
     } else if (format == 4) { bytes = 4; bx = by = 1; kind = 9; }
     else if (format == 3) { bytes = 3; bx = by = 1; kind = 10; }
     else if (format == 1) { bytes = 1; bx = by = 1; kind = 11; }
+    else if (format == 14) { bytes = 4; bx = by = 1; kind = 13; }
+    else if (format == 5) { bytes = 4; bx = by = 1; kind = 14; }
+    else if (format == 2 || format == 7 || format == 13) { bytes = 2; bx = by = 1; kind = 15; }
+    else if (format == 63) { bytes = 1; bx = by = 1; kind = 16; }
     else return 0;
     const size_t required = size_t((w + bx - 1) / bx) * ((h + by - 1) / by) * bytes;
     if (size < required) return 0;
@@ -34,15 +40,26 @@ int sekai_decode_texture(const uint8_t *src, size_t size, int w, int h, int form
         case 5: ok = decode_bc1(src,w,h,pixels.data()); break;
         case 6: ok = decode_bc3(src,w,h,pixels.data()); break;
         case 7: ok = decode_bc7(src,w,h,pixels.data()); break;
+        case 12: ok = decode_pvrtc(src,w,h,pixels.data(),format<=31); break;
         case 8: ok = decode_astc(src,w,h,bx,by,pixels.data()); break;
     }
     if (!ok) return 0;
     const auto *bgra = reinterpret_cast<const uint8_t *>(pixels.data());
+    // Haruki exports PNGs with ConvertToStream(..., false) and uploads them
+    // with texture.flipY=false. Preserve Unity's decode order here as well.
     for (int y=0; y<h; ++y) for (int x=0; x<w; ++x) {
-        const size_t input=(size_t(y)*w+x), output=(size_t(h-1-y)*w+x)*4;
+        const size_t input=(size_t(y)*w+x), output=input*4;
         if (kind == 9) std::memcpy(rgba+output,src+input*4,4);
         else if (kind == 10) { std::memcpy(rgba+output,src+input*3,3); rgba[output+3]=255; }
         else if (kind == 11) { rgba[output]=rgba[output+1]=rgba[output+2]=255; rgba[output+3]=src[input]; }
+        else if (kind == 13) { rgba[output]=src[input*4+2];rgba[output+1]=src[input*4+1];rgba[output+2]=src[input*4];rgba[output+3]=src[input*4+3]; }
+        else if (kind == 14) { rgba[output]=src[input*4+1];rgba[output+1]=src[input*4+2];rgba[output+2]=src[input*4+3];rgba[output+3]=src[input*4]; }
+        else if (kind == 15) { const unsigned v=src[input*2]|(unsigned(src[input*2+1])<<8);
+            if(format==7){rgba[output]=((v>>11)&31)*255/31;rgba[output+1]=((v>>5)&63)*255/63;rgba[output+2]=(v&31)*255/31;rgba[output+3]=255;}
+            else if(format==13){rgba[output]=((v>>12)&15)*17;rgba[output+1]=((v>>8)&15)*17;rgba[output+2]=((v>>4)&15)*17;rgba[output+3]=(v&15)*17;}
+            else{rgba[output]=((v>>8)&15)*17;rgba[output+1]=((v>>4)&15)*17;rgba[output+2]=(v&15)*17;rgba[output+3]=((v>>12)&15)*17;}
+        }
+        else if (kind == 16) {rgba[output]=src[input];rgba[output+1]=rgba[output+2]=0;rgba[output+3]=255;}
         else { rgba[output]=bgra[input*4+2];rgba[output+1]=bgra[input*4+1];rgba[output+2]=bgra[input*4];rgba[output+3]=bgra[input*4+3]; }
     }
     return 1;

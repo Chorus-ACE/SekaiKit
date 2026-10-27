@@ -1,74 +1,56 @@
-# SekaiModelImporter — device-side prototype
+# SekaiModelImporter
 
-This package reads original UnityFS Bundles on Apple devices using Swift,
-Apple Compression and a small statically linked C++ texture decoder. No .NET,
-Unity runtime, desktop subprocess or preconverted mesh/PNG is required.
+Native original Unity Bundle conversion on Apple devices. Swift, Apple Compression
+and statically linked MIT texture decoders produce local scene JSON and PNGs.
+No Unity runtime, .NET, Python, subprocess or preconverted model is needed.
 
-## Current scope
+Supported input: UnityFS v6–8 (uncompressed/LZ4/LZ4HC), serialized files v17–22
+with type trees, streamed mesh/texture data, standard vertex channels and triangle
+indices. ASTC, ETC, selected BC, PVRTC and common uncompressed pixel formats decode
+natively. Unknown formats fail explicitly.
 
-The bundled JP sample manifest contains **only metadata** for three known parts:
-body 7002, face/hair 29001, accessory 2075025. Its five raw dependency Bundles
-sum to 4.23 MB; selecting a part downloads only its dependency closure. The source
-snapshot is pinned to asset version 7.1.0.10. This is not a complete regional index.
+Scenes preserve prefab transforms, rig/bind matrices, skin weights, sparse morphs,
+material properties/texture transforms, character/spring controllers and raw Unity
+animation clips. Color-variation bundles override the original material textures.
+The embedded renderer converts Unity coordinates once and adapts these scenes to
+Haruki's real composer, SEKAI materials, animation and spring runtime.
 
-The importer currently supports UnityFS v6–8 (uncompressed/LZ4/LZ4HC), serialized
-file v22 with type trees, streamed vertex/texture data, standard vertex channels,
-triangle indices, authored transforms, prefab selection and diffuse textures.
-ASTC, ETC and selected BC formats decode to local PNG. Duplicate FBX and sitting
-prefabs are excluded by following the explicit body/face/optional prefab roots.
+## Sources and cache
 
-The scene previews the **authored rest pose**. It does not implement animation,
-skin palettes, SEKAI shader/controller effects, SpringBone simulation or complete
-character assembly. The separate experiment tool does not change the production
-Haruki viewer. These missing semantics must be resolved before any default switch.
+Source plans are region-specific. JP uses its official signed source; EN and the
+three iOS regions use their own versioned source paths. Signed cookies remain in
+memory. V1 plans enforce pinned binary SHA-256 and exact normalized length. V2
+upstream `sourceHash` identifies source metadata, not file bytes. Newly downloaded
+Bundles are normalized, measured, SHA-256 hashed and mapped to that source identity.
+Cache reuse revalidates the actual binary hash.
 
-## Data and caching
+Downloads and expanded data are bounded. Conversion runs off the UI thread with
+cancellation; canceled work does not publish partial results. One conversion runs
+per client, with subsequent requests queued. Atomic scenes/texture receipts are
+SHA-256 verified; damaged outputs rebuild from valid raw cache. Raw and derived
+files share a default 512 MiB cache budget, with old entries pruned after conversion.
+Cache identity includes region/platform, source URL, selected dependencies, color
+variation, part identity and importer revision. Unrelated names do not invalidate it.
 
-`DeviceModelClient.prepare` obtains the official source signature, downloads only
-the selected dependencies, normalizes the transport header, checks byte length and
-pinned SHA-256, converts on a utility task, then atomically publishes the local
-scene and texture files. Cookies remain in memory and are never logged.
-
-Raw Bundles and conversion outputs are cached separately. Cache identity includes the region, platform, selected dependency hashes, part
-and converter revision; unrelated index or label updates do not invalidate it. A receipt verifies every
-converted resource by SHA-256. Damaged outputs rebuild from valid raw cache.
-Only one conversion runs per client; cancellation prevents partial publication.
-The default disk budget is 512 MiB with pruning of old entries after conversion.
-
-Input limits: 32 Bundles, 64 MiB compressed input, 128 MiB expanded input,
-500,000 vertices and 16,777,216 decoded texture pixels per conversion. Unsupported
-formats fail explicitly. There is no automatic fallback to preconverted models.
+Limits per part: 32 Bundles, 64 MiB compressed input, 128 MiB expanded input,
+500,000 vertices, 16,777,216 decoded texture pixels, 4096px maximum texture edge.
+There is no automatic fallback to server-converted models.
 
 ## Verification
 
-```
+```sh
 swift test --package-path Packages/SekaiModelImporter
 SEKAI_RAW_BUNDLE_FIXTURES=/path/to/input/asset-bundles \
   swift test --package-path Packages/SekaiModelImporter
 ```
 
-The optional local fixture suite reads the existing 12-Bundle experiment, checks
-3,987 mesh/material/texture/transform/container objects, and converts three sample
-parts with expected counts of 6,822 / 3,745 / 300 vertices.
+The bounded fixture suite reuses 12 local Bundles, validates 3,987 Unity objects,
+converts body/face/accessory samples (6,822 / 3,745 / 300 vertices), checks color
+variation, cache repair/reuse, pixel channel order and PNG orientation.
+The SDK integration suite additionally loads live regional metadata and can opt
+in to a single default character per chosen region. Offscreen WKWebView tests
+exercise real GPU materials, complete heads, animation and physics; they are not
+physical iPhone benchmarks or proof that every upstream costume is supported.
 
-One small official download can be explicitly enabled with
-`SEKAI_RAW_NETWORK_PROBE=1`. The sample test downloads the body and its dependency,
-not a whole wardrobe. Do not use it as a bulk downloader.
-
-Measured on M4 Pro, Debug, 2026-10-26: body source download + conversion + cache
-publication took about 1.83 seconds for 1.77 MB downloaded; offline conversion and
-publication about 79 ms, verified cache hit about 0.8 ms. These are single-sample
-Mac measurements, not iPhone results or a full-library benchmark. Memory peak and
-physical iPhone performance are not yet measured.
-
-## Next validation gates
-
-- Physical iPhone memory, latency and cancellation measurements.
-- Match Haruki's bone binding, coordinate transforms and material/skin semantics.
-- Integrate runtime animation and SpringBone without depending on converted meshes.
-- Produce versioned regional source plans from current master data and dependency
-  indexes; the demo's pinned SHA-256 values do not establish a full-library plan.
-- Expand beyond known fixtures, including variants, missing bones and new formats.
-
-Upstream decoder provenance and licenses are in THIRD_PARTY_NOTICES.txt. The
-same notices ship as a package resource and appear in GreatSekai Acknowledgements.
+Decoder provenance and MIT licenses are in THIRD_PARTY_NOTICES.txt. Identical
+notices ship as a package resource and appear in GreatSekai Acknowledgements.
