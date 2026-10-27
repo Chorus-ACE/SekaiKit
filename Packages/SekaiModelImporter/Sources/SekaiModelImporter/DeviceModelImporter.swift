@@ -371,7 +371,12 @@ private final class Context {
                     let f: Float
                     switch format {
                     case 0: f = Float(bitPattern: try r.integer(UInt32.self))
-                    case 1: f = Float(Float16(bitPattern: try r.integer(UInt16.self)))
+                    case 1:
+                        #if arch(arm64)
+                        f = Float(Swift.Float16(bitPattern: try r.integer(UInt16.self)))
+                        #else
+                        f = sekai_decode_float16(try r.integer(UInt16.self))
+                        #endif
                     case 2: f = Float(try r.integer(UInt8.self)) / 255
                     case 3: f = max(-1, Float(try r.integer(Int8.self)) / 127)
                     case 4: f = Float(try r.integer(UInt16.self)) / 65535

@@ -3,9 +3,14 @@
 #include "vendor/etc.h"
 #include "vendor/bcn.h"
 #include "vendor/pvrtc.h"
+#include "vendor/fp16.h"
 #include <algorithm>
 #include <vector>
 #include <cstring>
+
+float sekai_decode_float16(uint16_t bits) {
+    return fp16_ieee_to_fp32_value(bits);
+}
 
 int sekai_decode_texture(const uint8_t *src, size_t size, int w, int h, int format, uint8_t *rgba, size_t out_size) {
     if (!src || !rgba || w <= 0 || h <= 0 || w > 4096 || h > 4096 || out_size != size_t(w) * h * 4) return 0;
