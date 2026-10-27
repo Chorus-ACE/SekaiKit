@@ -11,13 +11,23 @@ final class Model3DLocalClientTests: XCTestCase {
         let locale = SekaiLocale(rawValue: ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_REGION"] ?? "jp")!
         let library = try await client.library(for: locale)
         XCTAssertEqual(library.roles.count, 31)
-        let wardrobe = try await client.wardrobe(for: "1:light_sound", in: library)
+        let wardrobe = try await client.wardrobe(for: ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_ROLE"] ?? "1:light_sound", in: library)
         let character = wardrobe.character
         XCTAssertEqual(character.locale, locale)
         XCTAssertGreaterThan(character.costumes.count, 100)
         XCTAssertGreaterThan(character.hairstyles.count, 5)
         XCTAssertGreaterThan(character.accessories.count, 100)
         XCTAssertNotNil(character.defaultSelection())
+        let initial = try XCTUnwrap(character.defaultSelection())
+        let wrongRegion = Model3DSelection(locale: locale == .jp ? .en : .jp, characterID: initial.characterID, costumeID: initial.costumeID, hairstyleID: initial.hairstyleID)
+        do {
+            _ = try await client.prepare(wrongRegion, in: wardrobe)
+            XCTFail("Cross-region selection must fail before raw resource access")
+        } catch Model3DLibrary.Failure.wrongLocale { }
+        let reference = try XCTUnwrap(library.roles.first(where: { $0.id == character.id })).catalog
+        try Data("damaged".utf8).write(to: cache.appendingPathComponent("metadata/" + reference.sha256 + ".json"))
+        let repaired = try await client.wardrobe(for: character.id, in: library)
+        XCTAssertEqual(repaired.character.costumes.count, character.costumes.count)
         guard ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_DOWNLOAD"] == "1" else { return }
         // Explicitly bounded experiment: one default character and one existing
         // known wardrobe sample. There is no full-wardrobe download loop.
@@ -25,7 +35,7 @@ final class Model3DLocalClientTests: XCTestCase {
         let result = try await client.prepare(selection, in: wardrobe)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(result.recipeJSON.utf8)) as? [String: Any])
         let parts = try XCTUnwrap(json["parts"] as? [[String: Any]])
-        XCTAssertEqual(parts.count, 2)
+        XCTAssertEqual(parts.count, selection.accessoryID == nil ? 2 : 3)
         var vertices = 0, motions = 0
         let output = ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_OUTPUT"].map { URL(filePath: $0) }
         if let output { try FileManager.default.createDirectory(at: output, withIntermediateDirectories: true); try Data(result.recipeJSON.utf8).write(to: output.appendingPathComponent("recipe.json")) }

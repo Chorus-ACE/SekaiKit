@@ -75,7 +75,8 @@ public struct Model3DLocalWardrobe: Decodable, Sendable {
         self.character = character
     }
     fileprivate func selected(_ selection: Model3DSelection) throws -> (Model3DRenderConfiguration, [SourcePart]) {
-        guard selection.locale == region, selection.characterID == character.id else { throw Model3DLibrary.Failure.unknownCharacter }
+        guard selection.locale == region else { throw Model3DLibrary.Failure.wrongLocale }
+        guard selection.characterID == character.id else { throw Model3DLibrary.Failure.unknownCharacter }
         let resolved = try library.resolve(selection)
         let ids = [selection.costumeID, selection.hairstyleID, selection.accessoryID].compactMap { $0 }
         var selected: [SourcePart] = []

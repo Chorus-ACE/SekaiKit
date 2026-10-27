@@ -2,7 +2,7 @@ import XCTest
 @testable import SekaiKit
 
 final class Model3DLibraryTests: XCTestCase {
-    private func fixture(locale: SekaiLocale = .jp, legacy: Bool = false, unit: String = "light_sound", thumbnail: String? = nil) throws -> Model3DCatalog {
+    private func fixture(locale: SekaiLocale = .jp, legacy: Bool = false, unit: String = "light_sound", thumbnail: String? = nil, defaultHead: Int = 1) throws -> Model3DCatalog {
         func part(_ id: Int, _ kind: String, group: Int? = nil, color: Int = 1) -> [String: Any] {
             var value: [String: Any] = ["id": "1:\(unit):\(kind):\(id)", "costumeID": id, "type": kind,
                 "name": locale == .jp ? "衣装" : "Outfit", "colorName": color == 1 ? "" : "Another"]
@@ -15,12 +15,21 @@ final class Model3DLibraryTests: XCTestCase {
         }
         let source: [String: Any] = ["schemaVersion": 1, "region": locale.rawValue, "revision": locale.rawValue, "files": [:],
             "roles": [["id": "1:\(unit)", "characterId": 1, "unit": unit, "name": "Ichika",
-                       "bodyCostume3dId": 2, "headCostume3dId": 1, "hairCostume3dId": 201,
+                       "bodyCostume3dId": 2, "headCostume3dId": defaultHead, "hairCostume3dId": 201,
                        "characterHeightMeters": 1.61, "skinColors": ["default": "#fff5e8"],
                        "parts": [part(2, "body"), part(201, "hair"), part(1, "head_optional"),
                                  part(1002, "body", group: 1001), part(1004, "body", group: 1001, color: 2),
                                  part(8, "head_optional", group: 1001), part(9, "head"), part(999, "future_slot")]]]]
         return try JSONDecoder().decode(Model3DCatalog.self, from: JSONSerialization.data(withJSONObject: source))
+    }
+
+    func testDefaultCompleteHeadRemainsVisibleAndSelected() throws {
+        let library = try Model3DLibrary(catalog: fixture(defaultHead: 9))
+        let character = try XCTUnwrap(library.characters.first)
+        let selection = try XCTUnwrap(character.defaultSelection())
+        let head = try XCTUnwrap(character.accessories.flatMap(\.variants).first { $0.costumeID == 9 })
+        XCTAssertEqual(selection.accessoryID, head.id)
+        XCTAssertTrue(try library.resolve(selection).hairstyleIsLocked)
     }
 
     func testRegionalWardrobeGroupsColorsAndPreservesSourceValues() throws {

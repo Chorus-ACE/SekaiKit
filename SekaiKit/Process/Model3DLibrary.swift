@@ -63,7 +63,10 @@ public struct Model3DLibrary: Sendable {
             // Preserve unknown slots in the transport manifest; they cannot be selected
             // until the renderer's new assembly semantics are supported.
             guard let kind = Model3DPartKind(rawValue: part.type) else { continue }
-            if kind.category == "accessory", part.costumeID == role.headCostumeID { continue }
+            // Empty default accessory slots are placeholders. A default complete
+            // head is real content and must remain selectable/removable.
+            if kind == .accessory, part.costumeID == role.headCostumeID,
+               part.metadata.status == nil || part.metadata.status == "empty" { continue }
             let prefix = "\(locale.rawValue):\(role.id):\(kind.category)"
             let identity = part.metadata.groupID.map { "group:\($0)" } ?? "part:\(part.id)"
             let groupID = prefix + ":" + identity

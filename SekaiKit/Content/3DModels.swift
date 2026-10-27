@@ -112,7 +112,8 @@ public struct Model3DCharacter: Identifiable, Sendable {
     public func defaultSelection() -> Model3DSelection? {
         guard let costume = costumes.lazy.flatMap(\.variants).first(where: { $0.costumeID == defaultCostumeID }),
               let hairstyle = hairstyles.lazy.flatMap(\.variants).first(where: { $0.costumeID == defaultHairstyleID }) else { return nil }
-        return .init(locale: locale, characterID: id, costumeID: costume.id, hairstyleID: hairstyle.id)
+        let head = accessories.lazy.flatMap(\.variants).first { $0.costumeID == defaultHeadID }
+        return .init(locale: locale, characterID: id, costumeID: costume.id, hairstyleID: hairstyle.id, accessoryID: head?.id)
     }
 }
 
