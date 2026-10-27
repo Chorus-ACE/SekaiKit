@@ -31,7 +31,11 @@ final class Model3DLocalClientTests: XCTestCase {
         guard ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_DOWNLOAD"] == "1" else { return }
         // Explicitly bounded experiment: one default character and one existing
         // known wardrobe sample. There is no full-wardrobe download loop.
-        let selection = try XCTUnwrap(character.defaultSelection())
+        var selection = try XCTUnwrap(character.defaultSelection())
+        if let value = ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_HAIR_ID"], let id = Int(value) {
+            selection.hairstyleID = try XCTUnwrap(character.hairstyles.flatMap(\.variants).first { $0.costumeID == id }).id
+            selection.accessoryID = nil
+        }
         let result = try await client.prepare(selection, in: wardrobe)
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(result.recipeJSON.utf8)) as? [String: Any])
         let parts = try XCTUnwrap(json["parts"] as? [[String: Any]])

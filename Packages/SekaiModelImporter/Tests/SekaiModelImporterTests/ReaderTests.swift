@@ -39,6 +39,12 @@ final class ReaderTests: XCTestCase {
                     }
                 }
                 print("HAIR SKIN PALETTE", name, result.vertexCount)
+                if let output = ProcessInfo.processInfo.environment["SEKAI_HAIR_VARIANT_FIXTURES"] {
+                    let folder = URL(filePath: output).appendingPathComponent(name)
+                    try FileManager.default.createDirectory(at: folder.appendingPathComponent("textures"), withIntermediateDirectories: true)
+                    try JSONEncoder().encode(result.scene).write(to: folder.appendingPathComponent("scene.json"))
+                    for (path, data) in result.texturePNGs { try data.write(to: folder.appendingPathComponent(path)) }
+                }
             } catch { XCTFail("Hairstyle \(name): \(error)"); throw error }
         }
     }
