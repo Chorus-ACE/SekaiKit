@@ -8,6 +8,26 @@ import CTextureDecoder
 /// Pure on-device conversion; no .NET, subprocess, server-converted mesh or texture.
 /// Preserves Unity geometry, rigs, controller data and animation for the local renderer.
 public enum DeviceModelImporter {
+    static func skinBonePalette(_ bones: [Int?], indices: [Float], weights: [Float], fallback: Int?) throws -> [Int] {
+        guard indices.count == weights.count, indices.count % 4 == 0 else { throw ModelImportError.malformed("skin influence channels") }
+        var weightedSlots = Set<Int>()
+        for (index, weight) in zip(indices, weights) {
+            guard weight.isFinite, weight >= 0 else { throw ModelImportError.malformed("skin influence weight") }
+            if weight > 0 {
+                guard index.isFinite, index >= 0, index < Float(bones.count), index.rounded(.towardZero) == index else { throw ModelImportError.malformed("skin influence index") }
+                weightedSlots.insert(Int(index))
+            }
+        }
+        return try bones.enumerated().map { slot, bone in
+            if let bone { return bone }
+            // Null slots are legal only when no vertex references them. Retain
+            // their index: removing one would shift all subsequent influences.
+            guard !weightedSlots.contains(slot), !weights.isEmpty, let fallback else {
+                throw ModelImportError.malformed("missing weighted skin bone \(slot)")
+            }
+            return fallback
+        }
+    }
     public static var thirdPartyNotices: String {
         guard let url = Bundle.module.url(forResource: "DeviceModelThirdPartyNotices", withExtension: "txt"),
               let text = try? String(contentsOf: url, encoding: .utf8) else { return "" }
@@ -238,10 +258,12 @@ private final class Context {
             var output = DeviceModelScene.Mesh(name: mesh["m_Name"].text, positions: geometry.positions, normals: geometry.normals, uv: geometry.uv, indices: geometry.indices, groups: groups, matrix: elements)
             output.transformID = identifiers[transform]
             output.rootBoneID = try pointer(renderer["m_RootBone"], in: key.file).flatMap { identifiers[$0] }
-            output.boneIDs = try renderer["m_Bones"].array.map { ref in
-                guard let key = try pointer(ref, in: key.file), let id = identifiers[key] else { throw ModelImportError.malformed("missing skin bone") }
+            let rendererBones: [Int?] = try renderer["m_Bones"].array.map { ref in
+                guard let bone = try pointer(ref, in: key.file) else { return nil }
+                guard let id = identifiers[bone], classID(bone) == 4 else { throw ModelImportError.malformed("missing skin bone in \(output.name)") }
                 return id
             }
+            output.boneIDs = classID(key) == 137 ? try DeviceModelImporter.skinBonePalette(rendererBones, indices: geometry.extra[13] ?? [], weights: geometry.extra[12] ?? [], fallback: output.rootBoneID ?? output.transformID) : []
             output.boneNameHashes = mesh["m_BoneNameHashes"].array.map { UInt32(truncatingIfNeeded: $0.int) }
             output.inverseBindMatrices = mesh["m_BindPose"].array.flatMap { matrix in (0..<4).flatMap { col in (0..<4).map { row in matrix["e\(row)\(col)"].float } } }
             output.skinIndices = geometry.extra[13]; output.skinWeights = geometry.extra[12]

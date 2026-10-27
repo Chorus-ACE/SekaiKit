@@ -1,6 +1,47 @@
 import XCTest
 @testable import SekaiModelImporter
 final class ReaderTests: XCTestCase {
+    func testNullSkinSlotsDoNotShiftWeightedBindings() throws {
+        let result = try DeviceModelImporter.skinBonePalette([10,nil,30], indices: [2,0,0,0], weights: [1,0,0,0], fallback: 10)
+        XCTAssertEqual(result, [10,10,30])
+        XCTAssertThrowsError(try DeviceModelImporter.skinBonePalette([10,nil,30], indices: [1,0,0,0], weights: [1,0,0,0], fallback: 10))
+        XCTAssertThrowsError(try DeviceModelImporter.skinBonePalette([10,nil,30], indices: [3,0,0,0], weights: [1,0,0,0], fallback: 10))
+        XCTAssertThrowsError(try DeviceModelImporter.skinBonePalette([10,nil,30], indices: [], weights: [], fallback: 10))
+    }
+    func testExistingHairVariantsRetainSkinPalettes() throws {
+        guard let root = ProcessInfo.processInfo.environment["SEKAI_RAW_BUNDLE_FIXTURES"] else { throw XCTSkip("Opt-in local resource test") }
+        let directory = URL(filePath: root)
+        let common = try Data(contentsOf: directory.appendingPathComponent("live_pv/model/characterv2/face/common.bundle"))
+        for name in ["0001", "0016", "0086", "2115n"] {
+            let data = try Data(contentsOf: directory.appendingPathComponent("live_pv/model/characterv2/face/01/" + name + ".bundle"))
+            do {
+                let result = try DeviceModelImporter.convert(bundles: [data, common])
+                XCTAssertFalse(result.scene.meshes.isEmpty)
+                for mesh in result.scene.meshes {
+                    let indices = mesh.skinIndices ?? [], weights = mesh.skinWeights ?? []
+                    let bones = mesh.boneIDs ?? []
+                    XCTAssertEqual(indices.count, weights.count)
+                    for (index, weight) in zip(indices, weights) where weight > 0 {
+                        XCTAssertTrue(bones.indices.contains(Int(index)))
+                    }
+                }
+                if name == "2115n" {
+                    let mesh = try XCTUnwrap(result.scene.meshes.first { $0.boneIDs?.count == 24 })
+                    let unused: Set<Int> = [2,3,6,7,14,15,22,23]
+                    for (index, weight) in zip(mesh.skinIndices ?? [], mesh.skinWeights ?? []) where weight > 0 {
+                        XCTAssertFalse(unused.contains(Int(index)))
+                    }
+                    if let output = ProcessInfo.processInfo.environment["SEKAI_HAIR_REGRESSION_OUTPUT"] {
+                        let folder = URL(filePath: output)
+                        try FileManager.default.createDirectory(at: folder.appendingPathComponent("textures"), withIntermediateDirectories: true)
+                        try JSONEncoder().encode(result.scene).write(to: folder.appendingPathComponent("scene.json"))
+                        for (name, data) in result.texturePNGs { try data.write(to: folder.appendingPathComponent(name)) }
+                    }
+                }
+                print("HAIR SKIN PALETTE", name, result.vertexCount)
+            } catch { XCTFail("Hairstyle \(name): \(error)"); throw error }
+        }
+    }
     func testColorVariationChangesTexturesAndPreservesGeometry() throws {
         guard let root = ProcessInfo.processInfo.environment["SEKAI_RAW_BUNDLE_FIXTURES"] else { throw XCTSkip("Opt-in local resource test") }
         let directory = URL(filePath: root)
