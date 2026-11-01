@@ -54,6 +54,34 @@ For all additional archives and JSON parity checks, also set
 The external statistics endpoint may deny downloads; verification archives containing synthetic statistics
 are test artifacts and must not be published.
 
+### Lyrics
+
+Lyrics are loaded separately from [Sekai-Lyrics](https://github.com/Chorus-ACE/Sekai-Lyrics),
+which checks missing songs daily and refreshes all available lyrics monthly.
+`try await song.lyrics()` (or `SekaiLyrics.lyrics(forSongID:)`) returns nil for an
+unpublished song and throws for network, malformed-data, and song-ID errors.
+The reader supports source schema versions 1–4 and retains Japanese text,
+available Chinese/English translations, stanza breaks, performer segments,
+ruby readings, full/game renditions, translation editions, and source/license metadata.
+Translation languages are independent of `SekaiLocale`. Missing translations are
+not generated. Source v4 translation editions currently contain Chinese only.
+`Attribution.component` is an array of typed `Attribution.Component` values.
+Within each rendition (and the legacy attribution list), records with the same
+provider, title, source revision/link, and license are merged, with duplicate
+components removed in first-seen order. Unknown components remain available as
+`.unknown(String)`. The source repository's JSON format is unchanged.
+
+```swift
+if let lyrics = try await song.lyrics(), let rendition = lyrics.renditions.first {
+    let lines = lyrics.lines(for: rendition, length: .full)
+    let sources = rendition.provenance
+}
+```
+
+Use `SekaiLyrics.$baseURL.withValue` for mirrors or a local `lyrics/` fixture directory.
+Set `SEKAI_LYRICS_FIXTURES` to that directory when running
+`swift test --filter SongLyricsTests` to also validate the mirrored corpus.
+
 ### On-device 3D wardrobe
 
 The production viewer uses `Model3DLocalClient`. Load the requested region, then

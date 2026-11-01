@@ -49,6 +49,8 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
     
     /// The card’s power values, keyed by parameter type and then by level.
     public var cardParameters: [ParameterType: [Int: Int]]
+    /// Regional level limits, master-rank bonuses and episode bonuses, when present in the archive.
+    public var statRules: LocalizableData<CardStatRules>
     /// The fixed power bonus from special training for each parameter type.
     public var specialTrainingFixedBonus: [ParameterType: Int]
 //    public var specialTrainingCosts: [String] // TODO
@@ -232,6 +234,19 @@ extension Card {
     public var afterTrainingArtURL: URL? {
         guard self.rarity.canTrain else { return nil }
         return .init(string: "https://storage.sekai.best/sekai-jp-assets/character/member/\(self.assetbundleName)/card_after_training.webp")!
+    }
+
+    /// A possible transparent character cutout for the original artwork.
+    /// Not every card has a cutout, so loading the URL may fail.
+    public var beforeTrainingCutoutURL: URL {
+        .init(string: "https://assets.unipjsk.com/startapp/character/member_cutout_trm/\(self.assetbundleName)/normal.png")!
+    }
+
+    /// A possible transparent character cutout for the trained artwork.
+    /// Not every trainable card has a cutout, so loading the URL may fail.
+    public var afterTrainingCutoutURL: URL? {
+        guard self.rarity.canTrain else { return nil }
+        return .init(string: "https://assets.unipjsk.com/startapp/character/member_cutout_trm/\(self.assetbundleName)/after_training.png")!
     }
     
     /// The URL of the card’s original thumbnail in the Japanese asset collection.

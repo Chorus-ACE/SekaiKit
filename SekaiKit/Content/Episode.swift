@@ -76,6 +76,11 @@ public struct Episode: Hashable, Codable, Identifiable, Sendable, SekaiCachable 
 public struct StoryTranscript: Hashable, Codable, Sendable, SekaiCachable {
     public var lines: [Line]
     public struct Line: Hashable, Codable, Identifiable, Sendable {
+        public enum TextKind: String, Codable, Sendable {
+            case dialogue, caption, narration
+        }
+        // Optional so transcripts cached before text kinds were recorded still decode.
+        public var textKind: TextKind? = nil
         public var id: Int
         public var speaker: String
         public var text: String
@@ -114,13 +119,14 @@ public struct StoryTranscript: Hashable, Codable, Sendable, SekaiCachable {
                     let category = episode.kind == .card ? "card_scenario" : "scenario"
                     voiceURL = URL(string: "https://storage.sekai.best/\(episode.locale._assetsPath)/sound/\(category)/voice/\(bundle)/\(voice).mp3")
                 }
-                return Line(id: offset, speaker: talk["WindowDisplayName"].stringValue, text: text, characterIDs: ids, voiceURL: voiceURL)
+                return Line(textKind: .dialogue, id: offset, speaker: talk["WindowDisplayName"].stringValue, text: text, characterIDs: ids, voiceURL: voiceURL)
             }
             let effects = json["SpecialEffectData"].arrayValue
             if snippet["Action"].int == 6, effects.indices.contains(index),
                [8, 18, 24, 38].contains(effects[index]["EffectType"].intValue),
                let text = effects[index]["StringVal"].string, !text.isEmpty {
-                return Line(id: offset, speaker: "", text: text, characterIDs: nil, voiceURL: nil)
+                return Line(textKind: effects[index]["EffectType"].int == 24 ? .narration : .caption,
+                            id: offset, speaker: "", text: text, characterIDs: nil, voiceURL: nil)
             }
             return nil
         }

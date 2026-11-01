@@ -162,6 +162,21 @@ final class AdditionalContentTests: XCTestCase {
         XCTAssertFalse(song._matches(filter))
     }
 
+    func testTranscriptDistinguishesNarrationFromLocationCaptions() throws {
+        let json = JSON([
+            "Snippets": [["Action": 6, "ReferenceIndex": 0], ["Action": 6, "ReferenceIndex": 1], ["Action": 6, "ReferenceIndex": 2]],
+            "TalkData": [],
+            "SpecialEffectData": [
+                ["EffectType": 24, "StringVal": "Narration"],
+                ["EffectType": 8, "StringVal": "Two years later"],
+                ["EffectType": 18, "StringVal": "Room"]
+            ]
+        ] as [String: Any])
+        let transcript = try XCTUnwrap(StoryTranscript(json: json))
+        XCTAssertEqual(transcript.lines.map(\.textKind), [.narration, .caption, .caption])
+        XCTAssertEqual(StoryTranscript(fromCache: transcript.dataForCache), transcript)
+    }
+
     func testTranscriptUsesSnippetOrderAndIgnoresBrokenReferences() throws {
         let json = JSON(["Snippets": [["Action": 1, "ReferenceIndex": 1], ["Action": 1, "ReferenceIndex": -1], ["Action": 1, "ReferenceIndex": 0], ["Action": 1, "ReferenceIndex": 5]], "TalkData": [["Body": "First", "WindowDisplayName": "A"], ["Body": "Second", "WindowDisplayName": "B"]]])
         let transcript = try XCTUnwrap(StoryTranscript(json: json))

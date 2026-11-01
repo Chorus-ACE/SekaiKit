@@ -34,10 +34,36 @@ message _Card {
     string archive_display_type = 20;
     optional int64 archive_published_at = 21;
     string assetbundle_name = 22;
+    // Regional calculation rules joined during conversion.
+    optional _CardStatRules stat_rules = 23;
 }
 
 message _CardParameter {
     string type = 1 [json_name = "cardParameterType"];
     int32 level = 2 [json_name = "cardLevel"];
     int32 power = 3;
+}
+
+// Limits and fixed bonuses joined from regional rarity, lesson, episode and canvas tables.
+message _CardStatRules {
+    optional int32 normal_max_level = 1;
+    optional int32 trained_max_level = 2;
+    repeated _CardMasterBonus master_bonuses = 3;
+    repeated _CardEpisodeBonus episode_bonuses = 4;
+    optional _CardFixedBonus mysekai_canvas_bonus = 5;
+}
+message _CardFixedBonus {
+    optional int32 performance = 1;
+    optional int32 stamina = 2;
+    optional int32 technique = 3;
+}
+message _CardMasterBonus {
+    optional int32 rank = 1;
+    optional _CardFixedBonus bonus = 2;
+}
+message _CardEpisodeBonus {
+    optional int32 episode_id = 1;
+    optional int32 sequence = 2;
+    optional _CardFixedBonus bonus = 3;
+    optional string part_type = 4;
 }

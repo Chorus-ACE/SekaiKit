@@ -7,6 +7,7 @@ import CompilerPluginSupport
 
 let package = Package(
     name: "SekaiKit",
+    defaultLocalization: "en",
     platforms: [
         .iOS(.v17), .macCatalyst(.v17), .macOS(.v14), .visionOS("1.1"), .watchOS(.v10)
     ],

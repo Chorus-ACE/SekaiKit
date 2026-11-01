@@ -106,6 +106,15 @@ message _SkillEffect {
     optional string condition_type = 4;
     repeated _SkillEffectDetail skill_effect_details = 5;
     _SkillEnhanceCondition skill_enhance_condition = 6;
+    optional int32 id = 7;
+    _SkillEnhance skill_enhance = 8;
+}
+
+message _SkillEnhance {
+    string skill_enhance_type = 1;
+    optional string activate_effect_value_type = 2;
+    optional int32 activate_effect_value = 3;
+    _SkillEnhanceCondition skill_enhance_condition = 4;
 }
 
 message _SkillEffectDetail {

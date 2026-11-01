@@ -183,6 +183,32 @@ extension Event {
     public func logoImageURL(in locale: SekaiLocale? = nil) -> URL {
         .init(string: "https://storage.sekai.best/\((locale ?? self.title.majorLocale ?? .primaryLocale )._assetsPath)/event/\(self.assetBundleName)/logo/logo.webp")!
     }
+
+    /// The event screen background URL in the preferred available locale.
+    public var backgroundImageURL: URL {
+        self.backgroundImageURL(in: nil)
+    }
+
+    /// Returns the event screen background URL for a locale.
+    ///
+    /// - Parameter locale: The asset locale, or `nil` to use the title’s locale and then the primary locale.
+    /// - Returns: The URL of the event screen background.
+    public func backgroundImageURL(in locale: SekaiLocale? = nil) -> URL {
+        .init(string: "https://storage.sekai.best/\((locale ?? self.title.majorLocale ?? .primaryLocale )._assetsPath)/event/\(self.assetBundleName)/screen/bg.webp")!
+    }
+
+    /// The event screen character artwork URL in the preferred available locale.
+    public var characterImageURL: URL {
+        self.characterImageURL(in: nil)
+    }
+
+    /// Returns the event screen character artwork URL for a locale.
+    ///
+    /// - Parameter locale: The asset locale, or `nil` to use the title’s locale and then the primary locale.
+    /// - Returns: The URL of the event screen character artwork.
+    public func characterImageURL(in locale: SekaiLocale? = nil) -> URL {
+        .init(string: "https://storage.sekai.best/\((locale ?? self.title.majorLocale ?? .primaryLocale )._assetsPath)/event/\(self.assetBundleName)/screen/character.webp")!
+    }
 }
 
 

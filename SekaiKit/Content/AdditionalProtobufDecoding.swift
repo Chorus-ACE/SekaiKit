@@ -62,14 +62,17 @@ extension Skill {
         id = Int(p.id); description = p.description_p; shortDescription = p.shortDescription
         style = Style(rawValue: Int(p.skillFilterID)); _descriptionSpriteName = p.descriptionSpriteName; _filterID = Int(p.skillFilterID)
         effects = p.skillEffects.map { effect in
-            Effect(type: Effect.EffectType(rawValue: effect.skillEffectType) ?? .unknown,
+            Effect(id: effect.hasID ? Int(effect.id) : nil, type: Effect.EffectType(rawValue: effect.skillEffectType) ?? .unknown,
                    activateNotesJudgmentType: Effect.NotesJudgmentType(rawValue: effect.activateNotesJudgmentType),
                    activateCharacterRank: effect.hasActivateCharacterRank ? Int(effect.activateCharacterRank) : nil,
                    conditionIncludesGreater: effect.conditionType == "equals_or_over",
                    _conditionType: effect.hasConditionType ? effect.conditionType : nil,
                    details: effect.skillEffectDetails.map {
                        Effect.EffectDetail(level: Int($0.level), duration: $0.activateEffectDuration, valueType: Effect.EffectDetail.ValueType(rawValue: $0.activateEffectValueType) ?? .unknown, value: Int($0.activateEffectValue))
-                   }, enhancement: Unit(rawValue: effect.skillEnhanceCondition.unit))
+                   }, enhancement: Unit(rawValue: effect.hasSkillEnhance ? effect.skillEnhance.skillEnhanceCondition.unit : effect.skillEnhanceCondition.unit),
+                   enhancementValue: effect.skillEnhance.hasActivateEffectValue ? Int(effect.skillEnhance.activateEffectValue) : nil,
+                   enhancementValueType: effect.skillEnhance.hasActivateEffectValueType ? (Effect.EffectDetail.ValueType(rawValue: effect.skillEnhance.activateEffectValueType) ?? .unknown) : nil,
+                   enhancementType: effect.hasSkillEnhance ? (Effect.EnhancementType(rawValue: effect.skillEnhance.skillEnhanceType) ?? .unknown) : nil)
         }
     }
 }

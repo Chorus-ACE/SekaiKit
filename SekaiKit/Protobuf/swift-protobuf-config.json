@@ -6,7 +6,8 @@
                 "Event.proto",
                 "Card.proto",
                 "Gacha.proto",
-                "Content.proto"
+                "Content.proto",
+                "LiveTitles.proto"
             ],
             "visibility": "internal",
             "useAccessLevelOnImports": true

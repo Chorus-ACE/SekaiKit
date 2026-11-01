@@ -44,6 +44,8 @@ extension _SongList: RegionalProtobufList {}
 extension _VocalistList: RegionalProtobufList {}
 extension _StickerList: RegionalProtobufList {}
 extension _ComicList: RegionalProtobufList {}
+extension _HonorList: RegionalProtobufList {}
+extension _VirtualLiveList: RegionalProtobufList {}
 extension _FixtureList: RegionalProtobufList {}
 extension _SkillList: RegionalProtobufList {}
 extension _ReleaseConditionList: RegionalProtobufList {}

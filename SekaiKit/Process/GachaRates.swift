@@ -30,7 +30,27 @@ extension Gacha.Configuration {
               let rates = rates(guaranteeing: rarity),
               let rate = rates.first(where: { $0.rarity == cardRarity })?.rate else { return nil }
         let total = cards.filter { cardRarities[$0.cardID] == cardRarity }.reduce(0.0) { $0 + Double($1.weight) }
-        guard total > 0, rate.isFinite, rate >= 0 else { return nil }
+        guard total > 0, rate.isFinite, (0...100).contains(rate) else { return nil }
         return Double(entry.weight) / total * rate / 100
+    }
+}
+
+/// Independent ordinary draws. Guarantees, exchanges and player-selected lotteries are excluded.
+public enum GachaDrawEstimate {
+    public static func probability(perDraw: Double, draws: Int) -> Double? {
+        guard perDraw.isFinite, (0...1).contains(perDraw), draws >= 0 else { return nil }
+        if draws == 0 || perDraw == 0 { return 0 }
+        if perDraw == 1 { return 1 }
+        return -expm1(Double(draws) * log1p(-perDraw))
+    }
+
+    public static func draws(perDraw: Double, target: Double) -> Int? {
+        guard perDraw.isFinite, target.isFinite, (0...1).contains(perDraw), (0..<1).contains(target) else { return nil }
+        if target == 0 { return 0 }
+        if perDraw == 0 { return nil }
+        if perDraw == 1 { return 1 }
+        let result = ceil(log1p(-target) / log1p(-perDraw))
+        guard result.isFinite, result < Double(Int.max) else { return nil }
+        return Int(result)
     }
 }

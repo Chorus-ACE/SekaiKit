@@ -17,7 +17,7 @@ extension Song {
         /// The extracted movie filename comes from the bundle's own metadata.
         public func videoURL() async -> URL? {
             let directory = mediaType == .originalMV ? "original_mv" : "sekai_mv"
-            let base = "https://storage.sekai.best/\(locale._assetsPath)/live/2dmode/\(directory)/\(assetBundleName)_rip"
+            let base = "https://storage.sekai.best/\(locale._assetsPath)/live/2dmode/\(directory)/\(assetBundleName)"
             guard let data = await requestJSON("\(base)/moviebundlebuilddata.asset"),
                   let name = data["movieBundleDatas"].array?.first?["usmFileName"].string else { return nil }
             let filename = name.replacingOccurrences(of: #"(-\d{3})?\.usm\.bytes$"#, with: "", options: .regularExpression).lowercased()

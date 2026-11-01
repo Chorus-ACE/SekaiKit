@@ -56,7 +56,12 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
         public var width: Int
         public var depth: Int
         public var height: Int
+        
+        public var isEmpty: Bool {
+            width == 0 && depth == 0 && height == 0
+        }
     }
+    
     public struct MaterialCost: Hashable, Codable, Sendable, SekaiCachable, Identifiable {
         public var id: Int
         /// Absent when a regional recipe references a missing material record.

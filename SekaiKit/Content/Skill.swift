@@ -5,6 +5,10 @@
 //  Created by ThreeManager785 on 2026/2/28.
 //
 
+import Foundation
+internal import SwiftyJSON
+internal import SwiftProtobuf
+
 /// A card skill and the effects it applies during gameplay.
 public struct Skill: Hashable, Identifiable, Sendable, SekaiCachable {
     /// The unique identifier of the skill.
@@ -24,6 +28,8 @@ public struct Skill: Hashable, Identifiable, Sendable, SekaiCachable {
     
     /// An effect applied by a skill, including activation conditions and level details.
     public struct Effect: Hashable, Sendable, SekaiCachable {
+        /// The source effect ID used by description placeholders; absent in older archives.
+        public var id: Int? = nil
         /// The kind of effect applied by the skill.
         public var type: EffectType
         /// The note judgment required to activate the effect, if specified.
@@ -38,6 +44,17 @@ public struct Skill: Hashable, Identifiable, Sendable, SekaiCachable {
         public var details: [EffectDetail]
         /// The unit specified by the skill enhancement condition, if any.
         public var enhancement: Unit?
+        /// The additional value per matching member, when supplied by the source.
+        public var enhancementValue: Int? = nil
+        /// How to interpret the enhancement magnitude.
+        public var enhancementValueType: EffectDetail.ValueType? = nil
+        /// The rule used to apply the enhancement.
+        public var enhancementType: EnhancementType? = nil
+
+        public enum EnhancementType: String, Hashable, Codable, Sendable, SekaiCachable {
+            case subUnitScoreUp = "sub_unit_score_up"
+            case unknown
+        }
         
         /// The duration and magnitude of an effect at a particular skill level.
         public struct EffectDetail: Hashable, Sendable, SekaiCachable {
@@ -106,6 +123,11 @@ public struct Skill: Hashable, Identifiable, Sendable, SekaiCachable {
         case judgmentUp
         /// An effect that restores life.
         case lifeRecovery
+
+        /// The display name localized for the app’s current language.
+        public var localizedName: String {
+            NSLocalizedString("Skill.style.\(rawValue)", bundle: #bundle, comment: "")
+        }
     }
 }
 
@@ -116,6 +138,66 @@ extension Skill {
     /// - Returns: The skills, or `nil` if the request fails.
     public static func all(forLocale locale: SekaiLocale = .primaryLocale) async -> [Skill]? {
         guard let list = await requestProtobuf("skill.aar", as: _SkillList.self) else { return nil }
-        return list.items(in: locale).map { Skill(protobuf: $0) }
+        let skills = list.items(in: locale).map { Skill(protobuf: $0) }
+        // Older archives omitted effect IDs. Read the regional source until new assets are published.
+        guard skills.contains(where: { $0.effects.contains(where: { $0.id == nil }) }) else { return skills }
+        guard let rows = await requestJSON("https://raw.githubusercontent.com/Sekai-World/\(locale._databasePath)/main/skills.json")?.array else { return skills }
+        var options = JSONDecodingOptions()
+        options.ignoreUnknownFields = true
+        let source = Dictionary(rows.compactMap { row -> (Int, Skill)? in
+            guard let data = try? row.rawData(), let record = try? _Skill(jsonUTF8Data: data, options: options) else { return nil }
+            let skill = Skill(protobuf: record)
+            return (skill.id, skill)
+        }, uniquingKeysWith: { first, _ in first })
+        return skills.map { source[$0.id] ?? $0 }
+    }
+}
+
+
+extension Skill {
+    /// Resolves source effect IDs and ranges at the requested level.
+    /// Player-dependent placeholders stay unavailable when no player state is provided.
+    public func description(atLevel level: Int, short: Bool = false, characterName: String? = nil, characterRank: Int? = nil) -> String {
+        let template = short ? shortDescription : description
+        guard let regex = try? NSRegularExpression(pattern: #"\{\{([^{}]+)\}\}"#) else { return template }
+        var result = template
+        for match in regex.matches(in: template, range: NSRange(template.startIndex..., in: template)).reversed() {
+            guard let range = Range(match.range, in: result),
+                  let bodyRange = Range(match.range(at: 1), in: template) else { continue }
+            let parts = template[bodyRange].split(separator: ";")
+            var replacement: String?
+            if parts.count == 2 {
+                let ids = parts[0].split(separator: ",").compactMap { Int($0) }
+                let first = effects.first { $0.id == ids.first }
+                let detail = first?.details.first { $0.level == level }
+                let last = effects.first { $0.id == ids.last }?.details.first { $0.level == level }
+                func number(_ value: Int?) -> String? { value?.formatted(.number.grouping(.never)) }
+                switch parts[1] {
+                case "c": replacement = characterName
+                case "d": replacement = detail?.duration.formatted(.number.precision(.fractionLength(0...2)))
+                case "e": replacement = number(first?.enhancementValue)
+                case "m":
+                    if first?.enhancementType == .subUnitScoreUp, first?.enhancementValueType == .rate, let base = detail?.value, let bonus = first?.enhancementValue {
+                        // Four other unit members, plus the full-team matching bonus.
+                        replacement = number(base + bonus * 5)
+                    }
+                case "v":
+                    if ids.count == 2, let base = detail?.value, let bonus = last?.value { replacement = number(base + bonus) }
+                    else { replacement = number(detail?.value) }
+                case "r":
+                    if let low = detail?.value, let high = last?.value { replacement = low == high ? number(low) : "\(low)–\(high)" }
+                case "s":
+                    if let rank = characterRank, let base = detail?.value, let lower = ids.first, let upper = ids.last, lower <= upper {
+                        let bonus = effects.filter { ($0.id.map { (lower...upper).contains($0) } ?? false) && $0.type == .scoreUpCharacterRank }
+                            .filter { ($0.activateCharacterRank ?? Int.max) <= rank }
+                            .compactMap { $0.details.first { $0.level == level }?.value }.max() ?? 0
+                        replacement = number(base + bonus)
+                    }
+                default: break
+                }
+            }
+            result.replaceSubrange(range, with: replacement ?? "—")
+        }
+        return result
     }
 }
