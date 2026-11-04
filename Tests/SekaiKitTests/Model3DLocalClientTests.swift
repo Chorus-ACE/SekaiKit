@@ -1,8 +1,54 @@
 import Foundation
+import Compression
 import XCTest
 @testable import SekaiKit
 
 final class Model3DLocalClientTests: XCTestCase {
+    func testCurrentRegionalWardrobesDecodeWithoutModelDownloads() throws {
+        guard let directory = ProcessInfo.processInfo.environment["SEKAI_LOCAL_WARDROBE_FIXTURES"] else {
+            throw XCTSkip("Set SEKAI_LOCAL_WARDROBE_FIXTURES to the current device/v2 directory")
+        }
+        let root = URL(filePath: directory)
+        let decoder = JSONDecoder()
+        var wardrobeCount = 0
+        for locale in SekaiLocale.allCases {
+            let data = try Data(contentsOf: root.appending(path: "regions/\(locale.rawValue).json"))
+            let library = try decoder.decode(Model3DLocalLibrary.self, from: data)
+            XCTAssertEqual(library.schemaVersion, 2)
+            XCTAssertEqual(library.region, locale)
+            for role in library.roles {
+                let resource = role.catalog
+                let compressed = try Data(contentsOf: root.appending(path: resource.path))
+                var decoded = Data(count: resource.decodedBytes)
+                let count = decoded.withUnsafeMutableBytes { output in
+                    compressed.withUnsafeBytes { input in
+                        compression_decode_buffer(output.bindMemory(to: UInt8.self).baseAddress!, resource.decodedBytes,
+                            input.bindMemory(to: UInt8.self).baseAddress!, compressed.count, nil, COMPRESSION_ZLIB)
+                    }
+                }
+                XCTAssertEqual(count, resource.decodedBytes)
+                let wardrobe = try decoder.decode(Model3DLocalWardrobe.self, from: decoded)
+                XCTAssertEqual(wardrobe.character.id, role.id)
+                XCTAssertEqual(wardrobe.region, locale)
+                XCTAssertNotNil(wardrobe.character.defaultSelection())
+                var incomplete = try XCTUnwrap(JSONSerialization.jsonObject(with: decoded) as? [String: Any])
+                incomplete.removeValue(forKey: "compatibility")
+                XCTAssertThrowsError(try decoder.decode(Model3DLocalWardrobe.self,
+                    from: JSONSerialization.data(withJSONObject: incomplete)))
+                wardrobeCount += 1
+            }
+            var incomplete = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+            var roles = try XCTUnwrap(incomplete["roles"] as? [[String: Any]])
+            var resource = try XCTUnwrap(roles[0]["catalog"] as? [String: Any])
+            resource.removeValue(forKey: "decodedBytes")
+            roles[0]["catalog"] = resource
+            incomplete["roles"] = roles
+            XCTAssertThrowsError(try decoder.decode(Model3DLocalLibrary.self,
+                from: JSONSerialization.data(withJSONObject: incomplete)))
+        }
+        XCTAssertGreaterThan(wardrobeCount, 0)
+    }
+
     func testRegionalDirectoryAndNativeCharacterSelection() async throws {
         guard let base = ProcessInfo.processInfo.environment["SEKAI_LOCAL_VIEWER_BASE"] else { throw XCTSkip("Generated local metadata fixture") }
         let cache = FileManager.default.temporaryDirectory.appendingPathComponent("sekai-native-viewer-tests-" + UUID().uuidString)

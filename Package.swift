@@ -13,9 +13,12 @@ let package = Package(
     ],
     products: [
         .library(name: "SekaiKit", targets: ["SekaiKit"]),
-        .library(name: "SekaiKitMacro", targets: ["SekaiKitMacro"])
+        .library(name: "SekaiKitMacro", targets: ["SekaiKitMacro"]),
+        .library(name: "SekaiKitMCP", targets: ["SekaiKitMCP"]),
+        .executable(name: "sekai-mcp", targets: ["SekaiMCPServer"])
     ],
     dependencies: [
+        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", .upToNextMinor(from: "0.12.1")),
         .package(path: "Packages/SekaiModelImporter"),
         .package(url: "https://github.com/apple/swift-protobuf", from: "1.38.1"),
         .package(url: "https://github.com/Alamofire/Alamofire", from: "5.10.2"),
@@ -24,6 +27,9 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
     ],
     targets: [
+        .target(name: "SekaiKitMCP", dependencies: ["SekaiKit", .product(name: "MCP", package: "swift-sdk")], path: "Sources/SekaiKitMCP"),
+        .executableTarget(name: "SekaiMCPServer", dependencies: ["SekaiKitMCP", .product(name: "MCP", package: "swift-sdk")], path: "Sources/SekaiMCPServer"),
+        .testTarget(name: "SekaiKitMCPTests", dependencies: ["SekaiKitMCP", "SekaiKit", .product(name: "MCP", package: "swift-sdk")], path: "Tests/SekaiKitMCPTests"),
         .target(
             name: "SekaiKit",
             dependencies: [

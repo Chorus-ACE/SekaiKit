@@ -24,7 +24,7 @@ public struct DeviceModelSourceManifest: Codable, Sendable {
         return try JSONDecoder().decode(Self.self, from: Data(contentsOf: url))
     }
     public func validate() throws {
-        guard [1,2].contains(schemaVersion), ["jp","en","tw","kr","cn"].contains(region), platform == (["jp","en"].contains(region) ? "android" : "ios"), parts.count <= 16, bundles.count <= 32,
+        guard schemaVersion == 2, ["jp","en","tw","kr","cn"].contains(region), platform == (["jp","en"].contains(region) ? "android" : "ios"), parts.count <= 16, bundles.count <= 32,
               assetBaseURL.scheme == "https", assetBaseURL.user == nil, assetBaseURL.password == nil, assetBaseURL.port == nil,
               assetBaseURL.query == nil, assetBaseURL.fragment == nil, let host = assetBaseURL.host,
               trustedHost(host), !assetBaseURL.path.contains(".."), assetBaseURL.hasDirectoryPath, Set(parts.map(\.id)).count == parts.count else {
@@ -34,7 +34,7 @@ public struct DeviceModelSourceManifest: Codable, Sendable {
             guard !path.isEmpty, path.count < 1024, !path.hasPrefix("/"), !path.contains(".."),
                   path.unicodeScalars.allSatisfy({ CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyz0123456789_-/").contains($0) }),
                   bundle.bytes > 0, bundle.bytes <= 32 * 1024 * 1024,
-                  (bundle.sha256.map(Self.validHash) ?? (schemaVersion == 2 && bundle.sourceHash.map(Self.validHash) == true)),
+                  (bundle.sha256.map(Self.validHash) ?? (bundle.sourceHash.map(Self.validHash) == true)),
                   bundle.downloadPath.map({ !$0.contains("..") && !$0.contains("/") && !$0.contains("\\") && !$0.isEmpty }) ?? true else { throw ModelImportError.malformed("raw bundle record") }
         }
         for part in parts {

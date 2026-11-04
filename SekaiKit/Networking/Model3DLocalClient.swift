@@ -21,7 +21,7 @@ public struct Model3DLocalLibrary: Decodable, Sendable {
         public let path: String
         public let sha256: String
         public let bytes: Int
-        public let decodedBytes: Int?
+        public let decodedBytes: Int
     }
 }
 
@@ -64,7 +64,7 @@ public struct Model3DLocalWardrobe: Decodable, Sendable {
         bundles = try c.decode([String: SourceBundle].self, forKey: .bundles)
         assetBaseURL = try c.decode(URL.self, forKey: .assetBaseURL)
         platform = try c.decode(String.self, forKey: .platform)
-        compatibility = try c.decodeIfPresent([Compatibility].self, forKey: .compatibility) ?? []
+        compatibility = try c.decode([Compatibility].self, forKey: .compatibility)
         guard schemaVersion == 2, parts.count <= 32_000, bundles.count <= 32_000,
               Set(parts.map(\.id)).count == parts.count,
               parts.allSatisfy({ Set($0.bundleKeys).count == $0.bundleKeys.count }) else { throw Model3DDeviceSourceClient.Failure.invalidCatalog }
@@ -147,10 +147,9 @@ public actor Model3DLocalClient {
     public func wardrobe(for roleID: String, in library: Model3DLocalLibrary) async throws -> Model3DLocalWardrobe {
         guard let role = library.roles.first(where: { $0.id == roleID }) else { throw Model3DLibrary.Failure.unknownCharacter }
         let r = role.catalog
-        let compressed = r.decodedBytes != nil
-        guard r.sha256.count == 64, r.sha256.allSatisfy({ "0123456789abcdef".contains($0) }), r.path == "objects/" + r.sha256 + (compressed ? ".json.deflate" : ".json"),
+        guard r.sha256.count == 64, r.sha256.allSatisfy({ "0123456789abcdef".contains($0) }), r.path == "objects/" + r.sha256 + ".json.deflate",
               r.bytes > 0, r.bytes <= 32 * 1024 * 1024,
-              r.decodedBytes.map({ $0 > 0 && $0 <= 32 * 1024 * 1024 }) ?? true else { throw Model3DDeviceSourceClient.Failure.invalidCatalog }
+              r.decodedBytes > 0, r.decodedBytes <= 32 * 1024 * 1024 else { throw Model3DDeviceSourceClient.Failure.invalidCatalog }
         let file = metadata.appendingPathComponent(r.sha256 + ".json")
         func valid(_ data: Data) -> Bool { data.count == r.bytes && Self.sha(data) == r.sha256 }
         let data: Data
@@ -163,18 +162,15 @@ public actor Model3DLocalClient {
         }
         try? FileManager.default.setAttributes([.modificationDate: Date()], ofItemAtPath: file.path)
         pruneMetadata(protecting: file)
-        let decoded: Data
-        if let count = r.decodedBytes {
-            var output = Data(count: count)
-            let size = output.withUnsafeMutableBytes { destination in
-                data.withUnsafeBytes { source in
-                    compression_decode_buffer(destination.bindMemory(to: UInt8.self).baseAddress!, count,
-                        source.bindMemory(to: UInt8.self).baseAddress!, data.count, nil, COMPRESSION_ZLIB)
-                }
+        let count = r.decodedBytes
+        var decoded = Data(count: count)
+        let size = decoded.withUnsafeMutableBytes { destination in
+            data.withUnsafeBytes { source in
+                compression_decode_buffer(destination.bindMemory(to: UInt8.self).baseAddress!, count,
+                    source.bindMemory(to: UInt8.self).baseAddress!, data.count, nil, COMPRESSION_ZLIB)
             }
-            guard size == count else { throw Model3DDeviceSourceClient.Failure.integrityFailure }
-            decoded = output
-        } else { decoded = data }
+        }
+        guard size == count else { throw Model3DDeviceSourceClient.Failure.integrityFailure }
         let wardrobe = try JSONDecoder().decode(Model3DLocalWardrobe.self, from: decoded)
         guard wardrobe.region == library.region, wardrobe.character.id == roleID else { throw Model3DDeviceSourceClient.Failure.invalidCatalog }
         return wardrobe

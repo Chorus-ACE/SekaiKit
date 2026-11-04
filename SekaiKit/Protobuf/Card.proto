@@ -34,7 +34,7 @@ message _Card {
     string archive_display_type = 20;
     optional int64 archive_published_at = 21;
     string assetbundle_name = 22;
-    // Regional calculation rules joined during conversion.
+    // Shared calculation rules joined and normalized across regions during conversion.
     optional _CardStatRules stat_rules = 23;
 }
 
@@ -44,7 +44,7 @@ message _CardParameter {
     int32 power = 3;
 }
 
-// Limits and fixed bonuses joined from regional rarity, lesson, episode and canvas tables.
+// Shared limits and fixed bonuses sourced from rarity, lesson, episode and canvas tables.
 message _CardStatRules {
     optional int32 normal_max_level = 1;
     optional int32 trained_max_level = 2;

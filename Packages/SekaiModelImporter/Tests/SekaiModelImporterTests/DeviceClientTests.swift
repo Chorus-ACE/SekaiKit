@@ -27,6 +27,14 @@ final class DeviceClientTests: XCTestCase {
         let wrongPrimary = try JSONDecoder().decode(DeviceModelSourceManifest.self, from: JSONSerialization.data(withJSONObject: json))
         XCTAssertThrowsError(try wrongPrimary.validate())
     }
+    func testOldSourceManifestVersionIsRejected() throws {
+        let manifest = try DeviceModelSourceManifest.japaneseSamples()
+        var value = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(manifest)) as? [String: Any])
+        value["schemaVersion"] = 1
+        let old = try JSONDecoder().decode(DeviceModelSourceManifest.self, from: JSONSerialization.data(withJSONObject: value))
+        XCTAssertThrowsError(try old.validate())
+    }
+
     func testCachedRawBundlesConvertWithoutNetworkAndCorruptDerivedCacheRebuilds() async throws {
         guard let fixtures = ProcessInfo.processInfo.environment["SEKAI_RAW_BUNDLE_FIXTURES"] else { throw XCTSkip("Opt-in local resource test") }
         let manifest = try DeviceModelSourceManifest.japaneseSamples()

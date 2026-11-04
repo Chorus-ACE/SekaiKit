@@ -17,7 +17,8 @@ message _GachaList {
 
 message _Gacha {
     int32 id = 1;
-    _GachaType gacha_type = 2;
+    reserved 2;
+    reserved "gacha_type";
     string name = 3;
     int32 seq = 4;
     string asset_bundle_name = 5;
@@ -35,52 +36,13 @@ message _Gacha {
     repeated _GachaBehavior gacha_behaviors = 17;
     repeated _GachaPickup gacha_pickups = 18;
     _GachaInformation gacha_information = 19;
-    // Preserve new upstream categories even when the typed enum is unspecified.
+    // Upstream category, including values not yet recognized by clients.
     optional string gacha_type_name = 20;
     optional int32 spin_limit = 21;
     optional int32 daily_spin_limit = 22;
     optional int32 drawable_gacha_hour = 23;
 }
 
-enum _GachaType {
-    GACHA_TYPE_UNSPECIFIED = 0;
-    GACHA_TYPE_NORMAL = 1;
-    GACHA_TYPE_CEIL = 2;
-    GACHA_TYPE_GIFT = 3;
-    GACHA_TYPE_BEGINNER = 4;
-    GACHA_TYPE_SPECIAL_BEGINNER = 5;
-    GACHA_TYPE_SPECIAL_RETURN = 6;
-    GACHA_TYPE_SPECIAL_NORMAL = 7;
-    GACHA_TYPE_RETURNING = 8;
-}
-enum _CardRarityType {
-    CARD_RARITY_TYPE_UNSPECIFIED = 0;
-    CARD_RARITY_TYPE_RARITY2 = 1;
-    CARD_RARITY_TYPE_RARITY3 = 2;
-    CARD_RARITY_TYPE_RARITY4 = 3;
-    CARD_RARITY_TYPE_RARITY_BIRTHDAY = 4;
-}
-enum _LotteryType {
-    LOTTERY_TYPE_UNSPECIFIED = 0;
-    LOTTERY_TYPE_NORMAL = 1;
-    LOTTERY_TYPE_CATEGORIZED_WISH = 2;
-    LOTTERY_TYPE_RATE_CHOICE_FIRST = 3;
-    LOTTERY_TYPE_RATE_CHOICE_SECOND = 4;
-}
-enum _GachaBehaviorType {
-    GACHA_BEHAVIOR_TYPE_UNSPECIFIED = 0;
-    GACHA_BEHAVIOR_TYPE_NORMAL = 1;
-    GACHA_BEHAVIOR_TYPE_ONCE_A_DAY = 2;
-    GACHA_BEHAVIOR_TYPE_ONCE_A_WEEK = 3;
-    GACHA_BEHAVIOR_TYPE_OVER_RARITY_3_ONCE = 4;
-    GACHA_BEHAVIOR_TYPE_OVER_RARITY_4_ONCE = 5;
-}
-enum _CostResourceType {
-    COST_RESOURCE_TYPE_UNSPECIFIED = 0;
-    COST_RESOURCE_TYPE_JEWEL = 1;
-    COST_RESOURCE_TYPE_PAID_JEWEL = 2;
-    COST_RESOURCE_TYPE_GACHA_TICKET = 3;
-}
 enum _GachaResourceCategory {
     GACHA_RESOURCE_CATEGORY_UNSPECIFIED = 0;
     GACHA_RESOURCE_CATEGORY_FREE_RESOURCE = 1;
@@ -99,9 +61,8 @@ enum _GachaPickupType {
 message _GachaCardRarityRate {
     optional int32 id = 1;
     optional int32 group_id = 2;
-    _CardRarityType card_rarity_type = 3;
-    _LotteryType lottery_type = 4;
-    float rate = 5;
+    reserved 3, 4, 5;
+    reserved "card_rarity_type", "lottery_type", "rate";
     optional string rarity_name = 6;
     optional string lottery_name = 7;
     optional double precise_rate = 8;
@@ -118,8 +79,8 @@ message _GachaDetail {
 message _GachaBehavior {
     int32 id = 1;
     int32 gacha_id = 2;
-    _GachaBehaviorType gacha_behavior_type = 3;
-    _CostResourceType cost_resource_type = 4;
+    reserved 3, 4;
+    reserved "gacha_behavior_type", "cost_resource_type";
     optional int32 cost_resource_id = 5;
     int32 cost_resource_quantity = 6;
     int32 spin_count = 7;

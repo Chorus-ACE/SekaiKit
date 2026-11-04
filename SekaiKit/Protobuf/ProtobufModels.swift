@@ -69,7 +69,7 @@ extension Card {
             specialTrainingSkillID: value.hasSpecialTrainingSkillID ? Int(value.specialTrainingSkillID) : nil,
             specialTrainingSkillName: .unlocalized(value.hasSpecialTrainingSkillName ? value.specialTrainingSkillName : nil),
             cardParameters: parameters,
-            statRules: .unlocalized(value.hasStatRules ? CardStatRules(protobuf: value.statRules) : nil),
+            statRules: value.hasStatRules ? CardStatRules(protobuf: value.statRules) : nil,
             specialTrainingFixedBonus: [
                 .performance: Int(value.specialTrainingPower1BonusFixed),
                 .stamina: Int(value.specialTrainingPower2BonusFixed),

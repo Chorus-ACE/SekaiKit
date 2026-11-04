@@ -23,7 +23,7 @@ final class ProtobufTests: XCTestCase {
         XCTAssertEqual(event.backgroundMusicURL.host, "storage.sekai.best")
     }
 
-    func testEventFocusMetadataAndOldArchiveCompatibility() throws {
+    func testEventFocusMetadataAndAbsence() throws {
         let wire = _Event.with {
             $0.id = 150
             $0.focusCharacterID = 19
@@ -32,15 +32,15 @@ final class ProtobufTests: XCTestCase {
         let event = Event(protobuf: try _Event(serializedBytes: wire.serializedData()))
         XCTAssertEqual(event.focusCharacterID, 19)
         XCTAssertEqual(event.focusCharacterIndex, 5)
-        let legacy = Event(protobuf: .with { $0.id = 150 })
-        XCTAssertNil(legacy.focusCharacterID)
-        XCTAssertNil(legacy.focusCharacterIndex)
+        let missing = Event(protobuf: .with { $0.id = 150 })
+        XCTAssertNil(missing.focusCharacterID)
+        XCTAssertNil(missing.focusCharacterIndex)
         let restored = try JSONDecoder().decode(Event.self, from: JSONEncoder().encode(event))
         XCTAssertEqual(restored.focusCharacterID, 19)
         XCTAssertEqual(restored.focusCharacterIndex, 5)
     }
 
-    func testEventOutlinePreservesPresenceAndOldArchiveCompatibility() throws {
+    func testEventOutlinePreservesMissingAndEmptyValues() throws {
         let wire = _Event.with {
             $0.id = 150
             $0.outline = "紹介\n二行目"
@@ -51,10 +51,9 @@ final class ProtobufTests: XCTestCase {
         XCTAssertEqual(restored.outline, event.outline)
         let empty = Event(protobuf: .with { $0.id = 150; $0.outline = "" })
         XCTAssertEqual(empty.outline.majorValue, "")
-        // Field 1 only: bytes produced before outline was added to the schema.
-        let legacy = Event(protobuf: try _Event(serializedBytes: [UInt8(0x08), 0x01]))
-        XCTAssertEqual(legacy.id, 1)
-        XCTAssertNil(legacy.outline.majorValue)
+        let missing = Event(protobuf: .with { $0.id = 1 })
+        XCTAssertEqual(missing.id, 1)
+        XCTAssertNil(missing.outline.majorValue)
     }
 
     func testCardMappingPreservesPresenceAndMilliseconds() throws {

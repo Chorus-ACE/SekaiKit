@@ -6,8 +6,6 @@
 //
 
 import Foundation
-internal import SwiftyJSON
-internal import SwiftProtobuf
 
 /// A card skill and the effects it applies during gameplay.
 public struct Skill: Hashable, Identifiable, Sendable, SekaiCachable {
@@ -28,8 +26,8 @@ public struct Skill: Hashable, Identifiable, Sendable, SekaiCachable {
     
     /// An effect applied by a skill, including activation conditions and level details.
     public struct Effect: Hashable, Sendable, SekaiCachable {
-        /// The source effect ID used by description placeholders; absent in older archives.
-        public var id: Int? = nil
+        /// The source effect ID used by description placeholders.
+        public var id: Int
         /// The kind of effect applied by the skill.
         public var type: EffectType
         /// The note judgment required to activate the effect, if specified.
@@ -138,18 +136,7 @@ extension Skill {
     /// - Returns: The skills, or `nil` if the request fails.
     public static func all(forLocale locale: SekaiLocale = .primaryLocale) async -> [Skill]? {
         guard let list = await requestProtobuf("skill.aar", as: _SkillList.self) else { return nil }
-        let skills = list.items(in: locale).map { Skill(protobuf: $0) }
-        // Older archives omitted effect IDs. Read the regional source until new assets are published.
-        guard skills.contains(where: { $0.effects.contains(where: { $0.id == nil }) }) else { return skills }
-        guard let rows = await requestJSON("https://raw.githubusercontent.com/Sekai-World/\(locale._databasePath)/main/skills.json")?.array else { return skills }
-        var options = JSONDecodingOptions()
-        options.ignoreUnknownFields = true
-        let source = Dictionary(rows.compactMap { row -> (Int, Skill)? in
-            guard let data = try? row.rawData(), let record = try? _Skill(jsonUTF8Data: data, options: options) else { return nil }
-            let skill = Skill(protobuf: record)
-            return (skill.id, skill)
-        }, uniquingKeysWith: { first, _ in first })
-        return skills.map { source[$0.id] ?? $0 }
+        return list.items(in: locale).map { Skill(protobuf: $0) }
     }
 }
 
@@ -188,7 +175,7 @@ extension Skill {
                     if let low = detail?.value, let high = last?.value { replacement = low == high ? number(low) : "\(low)–\(high)" }
                 case "s":
                     if let rank = characterRank, let base = detail?.value, let lower = ids.first, let upper = ids.last, lower <= upper {
-                        let bonus = effects.filter { ($0.id.map { (lower...upper).contains($0) } ?? false) && $0.type == .scoreUpCharacterRank }
+                        let bonus = effects.filter { (lower...upper).contains($0.id) && $0.type == .scoreUpCharacterRank }
                             .filter { ($0.activateCharacterRank ?? Int.max) <= rank }
                             .compactMap { $0.details.first { $0.level == level }?.value }.max() ?? 0
                         replacement = number(base + bonus)

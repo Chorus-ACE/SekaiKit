@@ -109,8 +109,7 @@ extension Song {
         public static func allWithCache(trait: SekaiCache.CacheTrait = .invocationElidable) async -> [VocalVersion]? {
             let baseURL = SekaiProtobuf.baseURL
             let locale = SekaiLocale.primaryLocale
-            // Refresh older lists that retain placeholder publication dates before 2019.
-            let cacheID = "AllSongVocalVersions_sourceOrder_v2_\(SekaiProtobuf.cacheKey)_\(locale.rawValue)"
+            let cacheID = "AllSongVocalVersions_\(SekaiProtobuf.cacheKey)_\(locale.rawValue)"
             return await SekaiCache.withDirectCache(id: cacheID, trait: trait) {
                 await SekaiProtobuf.$baseURL.withValue(baseURL) {
                     await SekaiCache.$preferCachedNetworkSource.withValue(trait != .realTime) {

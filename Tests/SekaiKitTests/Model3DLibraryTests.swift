@@ -79,12 +79,11 @@ final class Model3DLibraryTests: XCTestCase {
         XCTAssertTrue(plan.recipeJSON.contains("\"headCostume3dId\":1"))
     }
 
-    func testLegacyIndexAndUnknownUnitsRemainUsable() throws {
-        let library = try Model3DLibrary(catalog: fixture(legacy: true, unit: "future_unit"))
+    func testUnknownUnitsRemainUsable() throws {
+        let library = try Model3DLibrary(catalog: fixture(unit: "future_unit"))
         let character = try XCTUnwrap(library.characters.first)
         XCTAssertNil(character.unit)
         XCTAssertEqual(character.unitID, "future_unit")
-        XCTAssertTrue(character.costumes.allSatisfy { $0.variants.count == 1 })
         let selection = try XCTUnwrap(character.defaultSelection())
         XCTAssertEqual(try library.resolve(selection).locale, .jp)
     }
@@ -107,8 +106,7 @@ final class Model3DLibraryTests: XCTestCase {
     }
 
     func testMissingAndUnsafeThumbnailNamesDoNotProduceSpeculativeURLs() throws {
-        let legacy = try Model3DLibrary(catalog: fixture(legacy: true))
-        XCTAssertTrue(try XCTUnwrap(legacy.characters.first?.costumes.first?.variants.first).thumbnailImageURLs(in: .jp).isEmpty)
+        XCTAssertThrowsError(try Model3DLibrary(catalog: fixture(legacy: true)))
         for name in ["../hidden", "nested/cos0001_body", "nested\\cos0001_body"] {
             let library = try Model3DLibrary(catalog: fixture(thumbnail: name))
             XCTAssertTrue(try XCTUnwrap(library.characters.first?.costumes.first?.variants.first).thumbnailImageURLs(in: .jp).isEmpty)

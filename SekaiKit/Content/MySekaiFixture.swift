@@ -32,26 +32,6 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
         public var materials: [MaterialCost]
     }
 
-    /// Decodes fields absent from older caches as unknown.
-    public init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
-        displayOrder = try container.decodeIfPresent(LocalizableData<Int>.self, forKey: .displayOrder) ?? .unlocalized(nil)
-        title = try container.decode(LocalizableData<String>.self, forKey: .title)
-        description = try container.decode(LocalizableData<String>.self, forKey: .description)
-        type = try container.decode(LocalizableData<FixtureType>.self, forKey: .type)
-        site = try container.decode(LocalizableData<Site>.self, forKey: .site)
-        layout = try container.decode(LocalizableData<Layout>.self, forKey: .layout)
-        assetBundleName = try container.decode(LocalizableData<String>.self, forKey: .assetBundleName)
-        mainGenre = try container.decode(LocalizableData<String>.self, forKey: .mainGenre)
-        subGenre = try container.decode(LocalizableData<String>.self, forKey: .subGenre)
-        size = try container.decode(LocalizableData<Size>.self, forKey: .size)
-        canDisassemble = try container.decode(LocalizableData<Bool>.self, forKey: .canDisassemble)
-        hasCharacterAction = try container.decode(LocalizableData<Bool>.self, forKey: .hasCharacterAction)
-        blueprints = try container.decodeIfPresent(LocalizableData<[Blueprint]>.self, forKey: .blueprints) ?? .unlocalized(nil)
-        materials = try container.decode(LocalizableData<[MaterialCost]>.self, forKey: .materials)
-    }
-
     public struct Size: Hashable, Codable, Sendable, SekaiCachable {
         public var width: Int
         public var depth: Int

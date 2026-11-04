@@ -16,7 +16,7 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
     public var id: Int
     /// The localized title of the event.
     public var title: LocalizableData<String>
-    /// The localized story introduction (`eventStories.outline`), absent in older archives.
+    /// The localized story introduction (`eventStories.outline`), when supplied by the regional source.
     public var outline: LocalizableData<String>
     /// The gameplay format of the event.
     public var eventType: Event.EventType

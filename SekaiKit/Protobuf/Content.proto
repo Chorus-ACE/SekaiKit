@@ -51,7 +51,8 @@ message _Fixture {
     optional int32 mysekai_fixture_main_genre_id = 15;
     optional int32 mysekai_fixture_sub_genre_id = 16;
     repeated _FixtureDialogue dialogues = 17;
-    optional bool dialogues_included = 18;
+    reserved 18;
+    reserved "dialogues_included";
 }
 
 message _FixtureDialogue {
@@ -105,7 +106,8 @@ message _SkillEffect {
     optional int32 activate_character_rank = 3;
     optional string condition_type = 4;
     repeated _SkillEffectDetail skill_effect_details = 5;
-    _SkillEnhanceCondition skill_enhance_condition = 6;
+    reserved 6;
+    reserved "skill_enhance_condition";
     optional int32 id = 7;
     _SkillEnhance skill_enhance = 8;
 }

@@ -49,8 +49,8 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
     
     /// The card’s power values, keyed by parameter type and then by level.
     public var cardParameters: [ParameterType: [Int: Int]]
-    /// Regional level limits, master-rank bonuses and episode bonuses, when present in the archive.
-    public var statRules: LocalizableData<CardStatRules>
+    /// Shared level limits and power bonuses, when present in the archive.
+    public var statRules: CardStatRules?
     /// The fixed power bonus from special training for each parameter type.
     public var specialTrainingFixedBonus: [ParameterType: Int]
 //    public var specialTrainingCosts: [String] // TODO

@@ -5,7 +5,7 @@ import Foundation
 @testable import SekaiKit
 
 final class CardDetailCalculationTests: XCTestCase {
-    func testRegionalPowerAndTrainingCaps() throws {
+    func testPowerAndTrainingCaps() throws {
         let card = Card(protobuf: _Card.with {
             $0.rarity = "rarity_4"
             $0.cardParameters = ["param1", "param2", "param3"].flatMap { type in
@@ -74,18 +74,16 @@ final class CardDetailCalculationTests: XCTestCase {
                 $0.mysekaiCanvasBonus = .with { $0.performance = 500; $0.stamina = 500; $0.technique = 500 }
             }
         })
-        let en = Card(protobuf: _Card.with {
-            $0.id = 1; $0.statRules = .with {
-                $0.normalMaxLevel = 40
-                $0.mysekaiCanvasBonus = .with { $0.performance = 100; $0.stamina = 100; $0.technique = 100 }
-            }
-        })
+        // The converter emits the same power configuration in every regional record.
+        var en = jp
+        en.name = .unlocalized("English title")
         let card = try XCTUnwrap(Card.combineLocalizations([.jp: jp, .en: en], defaultLocale: .jp))
-        XCTAssertEqual(card.statRules.localizedData?[.jp]?.normalMaxLevel, 50)
-        XCTAssertEqual(card.statRules.localizedData?[.en]?.normalMaxLevel, 40)
-        XCTAssertNil(card.statRules.localizedData?[.kr])
-        XCTAssertEqual(card.statRules.localizedData?[.jp]?.mySekaiCanvasBonus?.total, 1500)
-        XCTAssertEqual(card.statRules.localizedData?[.en]?.mySekaiCanvasBonus?.total, 300)
+        XCTAssertEqual(card.statRules?.normalMaxLevel, 50)
+        XCTAssertEqual(card.statRules?.mySekaiCanvasBonus?.total, 1500)
+        let englishPreferred = try XCTUnwrap(Card.combineLocalizations([.jp: jp, .en: en], defaultLocale: .en))
+        XCTAssertEqual(englishPreferred.statRules, jp.statRules)
+        XCTAssertEqual(card.statRules, englishPreferred.statRules)
+        XCTAssertEqual(englishPreferred.name.localizedData?[.en], "English title")
         XCTAssertEqual(Card(fromCache: card.dataForCache), card)
         XCTAssertNil(CardStatRules(protobuf: _CardStatRules()))
         XCTAssertNil(CardStatRules(protobuf: .with {
@@ -100,13 +98,13 @@ final class CardDetailCalculationTests: XCTestCase {
         for rows in [list.jp, list.en, list.tc, list.cn, list.kr] {
             for row in rows {
                 let card = Card(protobuf: row)
-                XCTAssertNotNil(card.statRules.majorValue, "Card \(card.id)")
-                XCTAssertNotNil(card.statRules.majorValue?.mySekaiCanvasBonus, "Canvas bonus for card \(card.id)")
+                XCTAssertNotNil(card.statRules, "Card \(card.id)")
+                XCTAssertNotNil(card.statRules?.mySekaiCanvasBonus, "Canvas bonus for card \(card.id)")
             }
         }
     }
 
-    func testSkillUsesEffectIDsAndPreservesLegacyAbsence() {
+    func testSkillUsesEffectIDs() {
         let skill = Skill(protobuf: _Skill.with {
             $0.description_p = "{{8;d}}s / {{5;v}}% / {{5;d}}s"
             $0.shortDescription = "{{5;v}}%"
@@ -121,8 +119,7 @@ final class CardDetailCalculationTests: XCTestCase {
         XCTAssertEqual(skill.description(atLevel: 4), "6s / 30% / 5s")
         XCTAssertEqual(skill.description(atLevel: 4, short: true), "30%")
         XCTAssertEqual(skill.description(atLevel: 1), "—s / —% / —s")
-        let legacy = Skill(protobuf: _Skill.with { $0.skillEffects = [.with { $0.skillEffectType = "score_up" }] })
-        XCTAssertNil(legacy.effects.first?.id)
+
     }
 
     func testEnhancementAndPlayerDependentSkillTemplates() throws {

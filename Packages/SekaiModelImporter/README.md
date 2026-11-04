@@ -19,8 +19,8 @@ Haruki's real composer, SEKAI materials, animation and spring runtime.
 
 Source plans are region-specific. JP uses its official signed source; EN and the
 three iOS regions use their own versioned source paths. Signed cookies remain in
-memory. V1 plans enforce pinned binary SHA-256 and exact normalized length. V2
-upstream `sourceHash` identifies source metadata, not file bytes. Newly downloaded
+memory. Only schema v2 plans are accepted. Explicit binary SHA-256 values enforce
+the checksum and exact normalized length. Upstream `sourceHash` identifies source metadata, not file bytes. Newly downloaded
 Bundles are normalized, measured, SHA-256 hashed and mapped to that source identity.
 Cache reuse revalidates the actual binary hash.
 

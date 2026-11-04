@@ -21,15 +21,15 @@ final class AdditionalProtobufTests: XCTestCase {
         XCTAssertEqual(MySekaiFixture(fromCache: fixture.dataForCache), fixture)
     }
 
-    func testGachaLegacyEnumsAndNewPrecisionAndPresence() throws {
+    func testGachaCategoriesPrecisionAndPresence() throws {
         var p = _Gacha.with {
-            $0.id = 1; $0.name = "Gacha"; $0.gachaType = .specialBeginner
-            $0.gachaCardRarityRates = [.with { $0.id = 1; $0.cardRarityType = .rarity4; $0.lotteryType = .normal; $0.rate = 3 }]
+            $0.id = 1; $0.name = "Gacha"; $0.gachaTypeName = "subeginner"
+            $0.gachaCardRarityRates = [.with { $0.id = 1; $0.rarityName = "rarity_4"; $0.lotteryName = "normal"; $0.preciseRate = 3 }]
         }
-        let legacy = Gacha(protobuf: p)
-        XCTAssertEqual(legacy.type, .specialBeginner)
-        XCTAssertEqual(legacy.configuration.majorValue?.rarityRates.first?.rarityType, "rarity_4")
-        XCTAssertNil(legacy.startDate.majorValue)
+        let initial = Gacha(protobuf: p)
+        XCTAssertEqual(initial.type, .specialBeginner)
+        XCTAssertEqual(initial.configuration.majorValue?.rarityRates.first?.rarityType, "rarity_4")
+        XCTAssertNil(initial.startDate.majorValue)
         p.gachaTypeName = "future"
         p.spinLimit = 0; p.startAt = 0
         p.gachaCardRarityRates[0].preciseRate = 0.123456789

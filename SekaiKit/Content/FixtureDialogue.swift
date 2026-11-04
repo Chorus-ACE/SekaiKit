@@ -19,8 +19,7 @@ extension MySekaiFixture {
 
     public func dialogues(in locale: SekaiLocale) async -> [Dialogue]? {
         guard let list = await requestProtobuf("fixture.aar", as: _FixtureList.self),
-              let record = list.items(in: locale).first(where: { $0.id == id }),
-              record.dialoguesIncluded else { return nil }
+              let record = list.items(in: locale).first(where: { $0.id == id }) else { return nil }
         return record.dialogues.map(Dialogue.init(protobuf:))
     }
 }

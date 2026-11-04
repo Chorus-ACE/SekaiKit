@@ -22,9 +22,14 @@ public struct Model3DLibrary: Sendable {
         }
     }
 
-    /// Builds one region's wardrobe, including older indexes without grouping metadata.
+    /// Builds one region's wardrobe from records with explicit grouping metadata.
     public init(catalog: Model3DCatalog) throws {
-        guard catalog.schemaVersion == 1 else { throw Model3DClient.Failure.invalidManifest }
+        guard catalog.schemaVersion == 1,
+              catalog.roles.allSatisfy({ role in
+                  role.parts.allSatisfy { part in
+                      Model3DPartKind(rawValue: part.type) == nil || part.metadata.groupID != nil
+                  }
+              }) else { throw Model3DClient.Failure.invalidManifest }
         self.catalog = catalog
         locale = catalog.region
         revision = catalog.revision
@@ -68,7 +73,8 @@ public struct Model3DLibrary: Sendable {
             if kind == .accessory, part.costumeID == role.headCostumeID,
                part.metadata.status == nil || part.metadata.status == "empty" { continue }
             let prefix = "\(locale.rawValue):\(role.id):\(kind.category)"
-            let identity = part.metadata.groupID.map { "group:\($0)" } ?? "part:\(part.id)"
+            guard let sourceGroupID = part.metadata.groupID else { continue }
+            let identity = "group:\(sourceGroupID)"
             let groupID = prefix + ":" + identity
             var group = groups[kind.category]?[groupID] ?? .init(name: part.name, variants: [], order: order)
             let variant = CostumeVariant(id: "\(locale.rawValue):\(part.id)", costumeID: part.costumeID, name: part.name,

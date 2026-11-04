@@ -1,6 +1,6 @@
 import Foundation
 
-/// Regional rules needed to calculate a card's own power, before team bonuses.
+/// Shared rules needed to calculate a card's own power, before team bonuses.
 public struct CardStatRules: Hashable, Sendable, SekaiCachable {
     public struct Power: Hashable, Codable, Sendable {
         public var performance: Int
@@ -15,7 +15,7 @@ public struct CardStatRules: Hashable, Sendable, SekaiCachable {
         }
     }
 
-    /// The regional fixed bonus for owning the card’s MySekai canvas, when available.
+    /// The fixed bonus for owning the card’s MySekai canvas, when available.
     public let mySekaiCanvasBonus: Power?
 
     public let normalMaxLevel: Int

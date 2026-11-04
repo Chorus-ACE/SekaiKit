@@ -62,14 +62,14 @@ extension Skill {
         id = Int(p.id); description = p.description_p; shortDescription = p.shortDescription
         style = Style(rawValue: Int(p.skillFilterID)); _descriptionSpriteName = p.descriptionSpriteName; _filterID = Int(p.skillFilterID)
         effects = p.skillEffects.map { effect in
-            Effect(id: effect.hasID ? Int(effect.id) : nil, type: Effect.EffectType(rawValue: effect.skillEffectType) ?? .unknown,
+            Effect(id: Int(effect.id), type: Effect.EffectType(rawValue: effect.skillEffectType) ?? .unknown,
                    activateNotesJudgmentType: Effect.NotesJudgmentType(rawValue: effect.activateNotesJudgmentType),
                    activateCharacterRank: effect.hasActivateCharacterRank ? Int(effect.activateCharacterRank) : nil,
                    conditionIncludesGreater: effect.conditionType == "equals_or_over",
                    _conditionType: effect.hasConditionType ? effect.conditionType : nil,
                    details: effect.skillEffectDetails.map {
                        Effect.EffectDetail(level: Int($0.level), duration: $0.activateEffectDuration, valueType: Effect.EffectDetail.ValueType(rawValue: $0.activateEffectValueType) ?? .unknown, value: Int($0.activateEffectValue))
-                   }, enhancement: Unit(rawValue: effect.hasSkillEnhance ? effect.skillEnhance.skillEnhanceCondition.unit : effect.skillEnhanceCondition.unit),
+                   }, enhancement: Unit(rawValue: effect.skillEnhance.skillEnhanceCondition.unit),
                    enhancementValue: effect.skillEnhance.hasActivateEffectValue ? Int(effect.skillEnhance.activateEffectValue) : nil,
                    enhancementValueType: effect.skillEnhance.hasActivateEffectValueType ? (Effect.EffectDetail.ValueType(rawValue: effect.skillEnhance.activateEffectValueType) ?? .unknown) : nil,
                    enhancementType: effect.hasSkillEnhance ? (Effect.EnhancementType(rawValue: effect.skillEnhance.skillEnhanceType) ?? .unknown) : nil)
@@ -126,8 +126,7 @@ extension Episode {
 extension Gacha {
     internal init(protobuf p: _Gacha) {
         id = Int(p.id); title = .unlocalized(p.name)
-        let oldTypes = [1: "normal", 2: "ceil", 3: "gift", 4: "beginner", 5: "subeginner", 6: "sureturn", 7: "sunormal", 8: "return"]
-        type = GachaType(rawValue: p.hasGachaTypeName ? p.gachaTypeName : oldTypes[p.gachaType.rawValue] ?? "") ?? .unknown
+        type = GachaType(rawValue: p.gachaTypeName) ?? .unknown
         summary = .unlocalized(p.gachaInformation.hasSummary ? p.gachaInformation.summary : nil)
         description = .unlocalized(p.gachaInformation.hasDescription_p ? p.gachaInformation.description_p : nil)
         startDate = protobufDate(p.startAt, present: p.hasStartAt); endDate = protobufDate(p.endAt, present: p.hasEndAt)
@@ -139,13 +138,9 @@ extension Gacha {
             pickupCardIDs: p.gachaPickups.map { Int($0.cardID) },
             cards: p.gachaDetails.map { PoolCard(id: Int($0.id), cardID: Int($0.cardID), weight: Int($0.weight), isWish: $0.isWish, wishType: $0.hasWishType ? $0.wishType : nil, fixedBonusWeight: $0.hasFixedBonusWeight ? Int($0.fixedBonusWeight) : nil) },
             rarityRates: p.gachaCardRarityRates.enumerated().map { index, rate in
-                let rarity = [1: "rarity_2", 2: "rarity_3", 3: "rarity_4", 4: "rarity_birthday"]
-                let lottery = [1: "normal", 2: "categorized_wish", 3: "rate_choice_first", 4: "rate_choice_second"]
-                return RarityRate(id: rate.hasID ? Int(rate.id) : -(index + 1), rarityType: rate.hasRarityName ? rate.rarityName : rarity[rate.cardRarityType.rawValue] ?? "", lotteryType: rate.hasLotteryName ? rate.lotteryName : lottery[rate.lotteryType.rawValue] ?? "", rate: rate.hasPreciseRate ? rate.preciseRate : Double(rate.rate))
+                return RarityRate(id: rate.hasID ? Int(rate.id) : -(index + 1), rarityType: rate.rarityName, lotteryType: rate.lotteryName, rate: rate.preciseRate)
             }, behaviors: p.gachaBehaviors.map {
-                let behavior = [1: "normal", 2: "once_a_day", 3: "once_a_week", 4: "over_rarity_3_once", 5: "over_rarity_4_once"]
-                let resource = [1: "jewel", 2: "paid_jewel", 3: "gacha_ticket"]
-                return Behavior(id: Int($0.id), type: $0.hasTypeName ? $0.typeName : behavior[$0.gachaBehaviorType.rawValue] ?? "", costResourceType: $0.hasCostResourceTypeName ? $0.costResourceTypeName : resource[$0.costResourceType.rawValue], costResourceID: $0.hasCostResourceID ? Int($0.costResourceID) : nil, costQuantity: Int($0.costResourceQuantity), spinCount: Int($0.spinCount), executeLimit: $0.hasExecuteLimit ? Int($0.executeLimit) : nil, groupID: $0.hasGroupID ? Int($0.groupID) : nil, priority: Int($0.priority))
+                return Behavior(id: Int($0.id), type: $0.typeName, costResourceType: $0.hasCostResourceTypeName ? $0.costResourceTypeName : nil, costResourceID: $0.hasCostResourceID ? Int($0.costResourceID) : nil, costQuantity: Int($0.costResourceQuantity), spinCount: Int($0.spinCount), executeLimit: $0.hasExecuteLimit ? Int($0.executeLimit) : nil, groupID: $0.hasGroupID ? Int($0.groupID) : nil, priority: Int($0.priority))
             }))
     }
 }

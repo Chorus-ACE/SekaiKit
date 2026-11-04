@@ -82,7 +82,7 @@ final class SongVideoTests: XCTestCase {
         XCTAssertEqual(content.videos.map(\.assetBundleName), ["0138", "8007"])
     }
 
-    func testOldArchiveWithoutNewFieldsStillDecodes() throws {
+    func testMissingOptionalMediaAndEmptyDialogueList() throws {
         let record = _Song.with { $0.id = 6; $0.media = ["mv_2d"] }
         let decoded = try _Song(serializedBytes: record.serializedData())
         let result = Song.videoContent(protobuf: decoded, locale: .tw)
@@ -91,6 +91,5 @@ final class SongVideoTests: XCTestCase {
         XCTAssertTrue(result.externalURLs.isEmpty)
         let fixture = try _Fixture(serializedBytes: _Fixture.with { $0.id = 1 }.serializedData())
         XCTAssertTrue(fixture.dialogues.isEmpty)
-        XCTAssertFalse(fixture.hasDialoguesIncluded)
     }
 }
