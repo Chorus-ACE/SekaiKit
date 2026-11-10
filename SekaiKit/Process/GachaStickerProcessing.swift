@@ -2,7 +2,7 @@ import Foundation
 
 private func categoryFilter(id: String, values: [String]) -> SekaiFilter.Key {
     SekaiFilter.Key(id: id, options: values.enumerated().map { index, value in
-        .init(id: index, selectorName: NSLocalizedString("Filter.option.\(id).\(value)", bundle: #bundle, comment: ""))
+        .init(id: index, selectorName: categoryOptionName(id: id, value: value))
     }).withOtherOption
 }
 
@@ -88,3 +88,16 @@ extension Sticker: TitleDescribable, SekaiSearchable, SekaiFilterable, SekaiSort
     }
 }
 
+
+private func categoryOptionName(id: String, value: String) -> String {
+    switch "\(id).\(value)" {
+    case "gachaCost.free": NSLocalizedString("Filter.option.gachaCost.free", bundle: #bundle, comment: "")
+    case "gachaCost.gacha_ticket": NSLocalizedString("Filter.option.gachaCost.gacha_ticket", bundle: #bundle, comment: "")
+    case "gachaCost.jewel": NSLocalizedString("Filter.option.gachaCost.jewel", bundle: #bundle, comment: "")
+    case "gachaCost.paid_jewel": NSLocalizedString("Filter.option.gachaCost.paid_jewel", bundle: #bundle, comment: "")
+    case "gachaStatus.closed": NSLocalizedString("Filter.option.gachaStatus.closed", bundle: #bundle, comment: "")
+    case "gachaStatus.open": NSLocalizedString("Filter.option.gachaStatus.open", bundle: #bundle, comment: "")
+    case "gachaStatus.upcoming": NSLocalizedString("Filter.option.gachaStatus.upcoming", bundle: #bundle, comment: "")
+    default: value
+    }
+}

@@ -23,7 +23,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-protobuf", from: "1.38.1"),
         .package(url: "https://github.com/Alamofire/Alamofire", from: "5.10.2"),
         .package(url: "https://github.com/SwiftyJSON/SwiftyJSON", from: "5.0.2"),
-        .package(url: "https://github.com/swift-library/swift-gyb", from: "0.0.1"),
+        .package(url: "https://github.com/swift-library/swift-gyb", .upToNextMinor(from: "0.2.0")),
         .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
     ],
     targets: [
@@ -45,7 +45,7 @@ let package = Package(
                 .process("Resources")
             ],
             plugins: [
-                .plugin(name: "Gyb", package: "swift-gyb"),
+                .plugin(name: "GybPlugin", package: "swift-gyb"),
                 .plugin(name: "SwiftProtobufPlugin", package: "swift-protobuf")
             ]
         ),

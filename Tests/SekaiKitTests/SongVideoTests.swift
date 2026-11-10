@@ -71,6 +71,18 @@ final class SongVideoTests: XCTestCase {
         XCTAssertTrue(en.externalURLs.isEmpty)
     }
 
+    func testMusicVideoUsesItsRegionalVocalSoundtrack() throws {
+        let content = Song.videoContent(protobuf: .with {
+            $0.id = 8; $0.media = ["mv_2d", "original"]
+            $0.vocals = [
+                .with { $0.id = 9; $0.musicVocalType = "original_song"; $0.assetbundleName = "regional_original" },
+                .with { $0.id = 10; $0.musicVocalType = "sekai"; $0.assetbundleName = "regional_sekai" }
+            ]
+        }, locale: .tw)
+        XCTAssertEqual(content.videos.map(\.audioAssetBundleName), ["regional_sekai", "regional_original"])
+        XCTAssertEqual(content.videos[0].audioURL?.absoluteString, "https://storage.sekai.best/sekai-tc-assets/music/long/regional_sekai/regional_sekai.mp3")
+    }
+
     func testPartialVideoOverridesPreserveTheDefaultVersion() {
         let content = Song.videoContent(protobuf: .with {
             $0.id = 138; $0.media = ["mv_2d"]

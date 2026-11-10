@@ -24,7 +24,15 @@ public enum Unit: String, Hashable, CaseIterable, Codable, Sendable, SekaiCachab
     
     /// The unit name localized for the app’s current language.
     public var localizedName: String {
-        NSLocalizedString("Unit.\(self.rawValue)", bundle: #bundle, comment: "")
+        switch self.rawValue {
+            case "idol": NSLocalizedString("Unit.idol", bundle: #bundle, comment: "")
+            case "light_sound": NSLocalizedString("Unit.light_sound", bundle: #bundle, comment: "")
+            case "piapro": NSLocalizedString("Unit.piapro", bundle: #bundle, comment: "")
+            case "school_refusal": NSLocalizedString("Unit.school_refusal", bundle: #bundle, comment: "")
+            case "street": NSLocalizedString("Unit.street", bundle: #bundle, comment: "")
+            case "theme_park": NSLocalizedString("Unit.theme_park", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
     }
     
     /// A placeholder unit name repeated for all locales.

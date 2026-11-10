@@ -78,7 +78,12 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
         
         /// The event format name localized for the app’s current language.
         public var localizedName: String {
-            NSLocalizedString("Event.type.\(self.rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "cheerful_carnival": NSLocalizedString("Event.type.cheerful_carnival", bundle: #bundle, comment: "")
+            case "marathon": NSLocalizedString("Event.type.marathon", bundle: #bundle, comment: "")
+            case "world_bloom": NSLocalizedString("Event.type.world_bloom", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
     

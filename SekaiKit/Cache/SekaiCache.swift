@@ -119,8 +119,68 @@ public final class SekaiCache {
         case invocationElidable
     }
     
-    private static let cacheDateEncoder = PropertyListEncoder()
-    private static let cacheDateDecoder = PropertyListDecoder()
+    @TaskLocal
+    internal static var cacheDirectory = URL(filePath: NSHomeDirectory() + "/Library/Caches")
+
+    // Serialize cache and metadata writes so concurrent loads do not lose timestamps.
+    private actor DiskStorage {
+        static let shared = DiskStorage()
+
+        struct Entry<Value: Sendable>: Sendable {
+            var value: Value
+            var updated: TimeInterval?
+
+            var isFresh: Bool {
+                guard let updated else { return false }
+                let age = Date.now.timeIntervalSince1970 - updated
+                return age >= 0 && age < 24 * 60 * 60
+            }
+        }
+
+        func read<Value: Sendable & Cacheable>(
+            _ type: Value.Type, id: String, directory: URL
+        ) -> Entry<Value>? {
+            let key = "\(Value.self)_\(id)"
+            let url = directory.appending(path: "SekaiKit_\(key).cache")
+            guard let data = try? Data(contentsOf: url), let value = Value(fromCache: data) else { return nil }
+            return Entry(value: value, updated: dates(in: directory)[key])
+        }
+
+        func write<Value: Sendable & Cacheable>(_ value: Value, id: String, directory: URL) {
+            let key = "\(Value.self)_\(id)"
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                try value.dataForCache.write(to: directory.appending(path: "SekaiKit_\(key).cache"), options: .atomic)
+                var dates = dates(in: directory)
+                dates[key] = Date.now.timeIntervalSince1970
+                try PropertyListEncoder().encode(dates).write(
+                    to: directory.appending(path: "SekaiCacheInfo.plist"), options: .atomic
+                )
+            } catch {
+                // A failed write must not make an old cache appear fresh.
+            }
+        }
+
+        private func dates(in directory: URL) -> [String: TimeInterval] {
+            guard let data = try? Data(contentsOf: directory.appending(path: "SekaiCacheInfo.plist")),
+                  let dates = try? PropertyListDecoder().decode([String: TimeInterval].self, from: data) else { return [:] }
+            return dates
+        }
+    }
+
+    private static func refresh<Value: Sendable & Cacheable>(
+        id: String, trait: CacheTrait, directory: URL,
+        isolation: isolated (any Actor)? = #isolation,
+        invocation: () async -> Value?
+    ) async -> Value? {
+        guard !Task.isCancelled else { return nil }
+        let result = await $preferCachedNetworkSource.withValue(trait != .realTime, operation: invocation)
+        guard !Task.isCancelled else { return nil }
+        if let result {
+            await DiskStorage.shared.write(result, id: id, directory: directory)
+        }
+        return result
+    }
     
     /// Loads a value while delivering available disk cache data through a promise.
     ///
@@ -147,67 +207,19 @@ public final class SekaiCache {
         trait: CacheTrait = .invocationElidable,
         invocation: sending @escaping () async -> Result?
     ) -> Promise<Result?> {
-        let cacheURL = URL(filePath: NSHomeDirectory() + "/Library/Caches/SekaiKit_\(Result.self)_\(id).cache")
-        
+        let directory = cacheDirectory
         let promise: Promise<Result?> = .init()
-        
-//        #if canImport(SekaiAssetShims)
-//        let offlineAssetBehavior = SekaiOfflineAsset.localBehavior
-//        #endif
-        
         let task = Task.detached(priority: .userInitiated) {
-            var cachedResult: Result?
-            if let cachedData = try? Data(contentsOf: cacheURL) {
-                cachedResult = Result(fromCache: cachedData)
+            let cached = await DiskStorage.shared.read(Result.self, id: id, directory: directory)
+            if let cached {
+                await promise.updateValue(cached.value, from: .cache)
+                if trait == .invocationElidable && cached.isFresh { return }
             }
-            
-            if let cachedResult {
-                await promise.updateValue(cachedResult, from: .cache)
-                if trait == .invocationElidable {
-                    let cacheInfoURL = URL(filePath: NSHomeDirectory() + "/Library/Caches/SekaiCacheInfo.plist")
-                    let nowDate = Date.now
-                    let newCacheDates: [String: TimeInterval]
-                    if let _data = try? Data(contentsOf: cacheInfoURL),
-                       var cacheDates = try? cacheDateDecoder.decode([String: TimeInterval].self, from: _data) {
-                        if let thisDate = cacheDates["\(Result.self)_\(id)"],
-                           nowDate.timeIntervalSince1970 - thisDate <= 24 * 60 * 60 {
-                            // Current cache is new enough, we elide request from network
-                            return
-                        }
-                        cacheDates.updateValue(nowDate.timeIntervalSince1970, forKey: "\(Result.self)_\(id)")
-                        newCacheDates = cacheDates
-                    } else {
-                        newCacheDates = ["\(Result.self)_\(id)": nowDate.timeIntervalSince1970]
-                    }
-                    try? cacheDateEncoder.encode(newCacheDates).write(to: cacheInfoURL)
-                }
+            let result = await refresh(id: id, trait: trait, directory: directory, invocation: invocation)
+            guard !Task.isCancelled else { return }
+            if result != nil || cached == nil {
+                await promise.updateValue(result, from: .origin)
             }
-            
-//            #if canImport(SekaiAssetShims)
-//            // We have to explicitly call `withValue` to keep the localBehavior
-//            // because we're running in a detached task.
-//            let result = await SekaiOfflineAsset.$localBehavior.withValue(offlineAssetBehavior) {
-//                await $preferCachedNetworkSource.withValue(true, operation: invocation)
-//            }
-//            #else
-            let result = await $preferCachedNetworkSource.withValue(true, operation: invocation)
-//            #endif
-            
-            // If result is nil but there's data in cache,
-            // we don't update value of promise.
-            if result == nil && cachedResult != nil {
-                return
-            }
-            
-            await promise.updateValue(result, from: .origin)
-            
-            // Don't save cache if result is nil
-            if result == nil {
-                return
-            }
-            
-            let cache = result.dataForCache
-            try? cache.write(to: cacheURL)
         }
         
         promise.onCancel {
@@ -225,14 +237,14 @@ public final class SekaiCache {
     ///   - type: The cached result type.
     ///   - id: The cache identifier.
     public static func invalidate<T>(_ type: T.Type, withID id: String) {
-        let cacheURL = URL(filePath: NSHomeDirectory() + "/Library/Caches/SekaiKit_\(type)_\(id).cache")
+        let cacheURL = cacheDirectory.appending(path: "SekaiKit_\(type)_\(id).cache")
         try? FileManager.default.removeItem(at: cacheURL)
     }
     /// Removes SekaiKit cache files from the app’s cache directory.
     ///
     /// Missing files and removal errors are ignored. This does not clear the bundled cache.
     public static func invalidateAll() {
-        let cacheRootPath = NSHomeDirectory() + "/Library/Caches"
+        let cacheRootPath = cacheDirectory.path
         guard let files = try? FileManager.default.contentsOfDirectory(atPath: cacheRootPath) else { return }
         for file in files where file.hasPrefix("SekaiKit") && file.hasSuffix(".cache") && !file.hasPrefix(".") {
             try? FileManager.default.removeItem(atPath: "\(cacheRootPath)/\(file)")
@@ -241,35 +253,35 @@ public final class SekaiCache {
     
     /// Awaits a result using the specified disk cache policy.
     ///
-    /// The elidable policy returns the first delivered value. The real-time policy
-    /// waits for an origin update. If an origin request fails after cached data was
-    /// delivered, the current promise implementation suppresses that update and
-    /// this method can remain suspended.
+    /// The elidable policy returns available cache data immediately and refreshes
+    /// stale data in the background. The real-time policy waits for a new result,
+    /// falling back to cached data if loading fails. Cancellation returns `nil`
+    /// once the loading operation cooperates with cancellation.
     ///
     /// - Parameters:
     ///   - id: The cache identifier.
     ///   - trait: The policy governing reuse of cached values.
     ///   - invocation: The asynchronous operation used to obtain a value.
-    /// - Returns: The first result allowed by the policy, or `nil` when an allowed update has no value.
+    /// - Returns: The loaded or cached result, or `nil` when neither is available or the task is cancelled.
     public static func withDirectCache<Result: Sendable & Cacheable>(
         id: String,
         trait: CacheTrait = .invocationElidable,
         invocation: @Sendable @escaping () async -> Result?
     ) async -> Result? {
-        var hadReturned = false
-        
-        
-        let result = await withCheckedContinuation { continuation in
-            withCache(id: id, trait: trait, invocation: invocation)
-                .onUpdate { result, source in
-                    if !hadReturned && (source == .origin || trait == .invocationElidable) {
-                        continuation.resume(returning: result)
-                        hadReturned = true
-                    }
+        let directory = cacheDirectory
+        guard !Task.isCancelled else { return nil }
+        let cached = await DiskStorage.shared.read(Result.self, id: id, directory: directory)
+        guard !Task.isCancelled else { return nil }
+        if trait == .invocationElidable, let cached {
+            if !cached.isFresh {
+                Task.detached(priority: .userInitiated) {
+                    _ = await refresh(id: id, trait: trait, directory: directory, invocation: invocation)
                 }
+            }
+            return cached.value
         }
-        
-        return result
+        let result = await refresh(id: id, trait: trait, directory: directory, invocation: invocation)
+        return Task.isCancelled ? nil : (result ?? cached?.value)
     }
 }
 

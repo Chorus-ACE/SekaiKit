@@ -207,7 +207,16 @@ public struct Card: Hashable, Identifiable, Sendable, SekaiCachable, Localizatio
         
         /// The display name localized for the app’s current language.
         public var localizedName: String {
-            NSLocalizedString("Card.source-type.\(self.rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case 1: NSLocalizedString("Card.source-type.1", bundle: #bundle, comment: "")
+            case 2: NSLocalizedString("Card.source-type.2", bundle: #bundle, comment: "")
+            case 3: NSLocalizedString("Card.source-type.3", bundle: #bundle, comment: "")
+            case 4: NSLocalizedString("Card.source-type.4", bundle: #bundle, comment: "")
+            case 5: NSLocalizedString("Card.source-type.5", bundle: #bundle, comment: "")
+            case 6: NSLocalizedString("Card.source-type.6", bundle: #bundle, comment: "")
+            case 7: NSLocalizedString("Card.source-type.7", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
 }

@@ -13,6 +13,13 @@ extension Song {
         public var mediaType: MediaType
         public var assetBundleName: String
         public var caption: String?
+        public var audioAssetBundleName: String? = nil
+
+        public var audioURL: URL? {
+            guard let name = audioAssetBundleName, !name.isEmpty,
+                  !name.contains("/"), !name.contains("\\") else { return nil }
+            return URL(string: "https://storage.sekai.best/\(locale._assetsPath)/music/long/\(name)/\(name).mp3")
+        }
 
         /// The extracted movie filename comes from the bundle's own metadata.
         public func videoURL() async -> URL? {
@@ -49,14 +56,19 @@ extension Song {
             let overriddenVocals = Set(variants.map(\.musicVocalID))
             let hasDefaultVideo = variants.isEmpty || record.vocals.contains { !overriddenVocals.contains($0.id) }
             if hasDefaultVideo {
-                videos.append(MusicVideo(locale: locale, mediaType: type, assetBundleName: defaultBundle))
+                let vocals = record.vocals.filter { type == .originalMV || !overriddenVocals.contains($0.id) }
+                let preferredType = type == .originalMV ? "original_song" : "sekai"
+                let vocal = vocals.first { $0.musicVocalType == preferredType } ?? vocals.first
+                videos.append(MusicVideo(locale: locale, mediaType: type, assetBundleName: defaultBundle,
+                                         audioAssetBundleName: vocal?.assetbundleName))
             }
             if !variants.isEmpty {
                 for variant in variants.sorted(by: { ($0.seq, $0.id) < ($1.seq, $1.id) }) {
                     guard !videos.contains(where: { $0.mediaType == type && $0.assetBundleName == variant.assetbundleName }) else { continue }
                     let vocal = record.vocals.first { $0.id == variant.musicVocalID }
                     videos.append(MusicVideo(locale: locale, mediaType: type, assetBundleName: variant.assetbundleName,
-                                             caption: vocal.flatMap { $0.hasCaption ? $0.caption : nil }))
+                                             caption: vocal.flatMap { $0.hasCaption ? $0.caption : nil },
+                                             audioAssetBundleName: vocal?.assetbundleName))
                 }
             }
         }

@@ -121,6 +121,8 @@ extension Episode {
         episodeID = Int(p.id); parentID = Int(p.parentID); number = Int(p.number); title = p.title; chapterTitle = p.chapterTitle
         scenarioID = p.scenarioID; scenarioPath = p.scenarioPath; imagePath = p.hasImagePath ? p.imagePath : nil
         self.locale = locale; self.kind = kind
+        numberLabel = p.hasNumberLabel ? p.numberLabel : nil
+        characterID = p.hasGameCharacterID ? Int(p.gameCharacterID) : nil
     }
 }
 extension Gacha {

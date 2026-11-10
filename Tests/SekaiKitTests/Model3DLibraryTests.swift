@@ -23,6 +23,45 @@ final class Model3DLibraryTests: XCTestCase {
         return try JSONDecoder().decode(Model3DCatalog.self, from: JSONSerialization.data(withJSONObject: source))
     }
 
+    func testCardCostumesMatchExplicitRelationsAndGroupColors() throws {
+        let library = try Model3DLibrary(catalog: fixture())
+        let character = try XCTUnwrap(library.characters.first)
+        let previews = CardCostume3D.resolve(costumeIDs: [1002, 1004, 8, 201, 999999], character: character)
+        XCTAssertEqual(previews.count, 1)
+        let preview = try XCTUnwrap(previews.first)
+        XCTAssertEqual(preview.variant.costumeID, 1002)
+        XCTAssertEqual(preview.characterID, 1)
+        XCTAssertEqual(preview.selection.costumeID, preview.variant.id)
+        XCTAssertEqual(preview.selection.hairstyleID, character.defaultSelection()?.hairstyleID)
+        XCTAssertEqual(preview.selection.accessoryID, character.accessories.flatMap(\.variants).first { $0.costumeID == 8 }?.id)
+        XCTAssertNoThrow(try library.resolve(preview.selection))
+    }
+
+    func testCharacterCostumeIDsFollowTheCardsOwner() throws {
+        let relations = try JSONDecoder().decode([CardCostume3D.Relation].self, from: Data(#"[{"cardId":4,"costume3dId":29002},{"cardId":4,"costume3dId":29002},{"cardId":88,"costume3dId":30130},{"cardId":999,"costume3dId":99999}]"#.utf8))
+        let owners = [4: 1, 88: 2]
+        XCTAssertEqual(CardCostume3D.costumeIDs(forCharacterID: 1, cardCharacterIDs: owners, relations: relations), [29002])
+        XCTAssertEqual(CardCostume3D.costumeIDs(forCharacterID: 2, cardCharacterIDs: owners, relations: relations), [30130])
+        XCTAssertTrue(CardCostume3D.costumeIDs(forCharacterID: 3, cardCharacterIDs: owners, relations: relations).isEmpty)
+    }
+
+    func testCardWithoutAvailableBodyCostumeHasNoPreview() throws {
+        let character = try XCTUnwrap(Model3DLibrary(catalog: fixture()).characters.first)
+        XCTAssertTrue(CardCostume3D.resolve(costumeIDs: [], character: character).isEmpty)
+        XCTAssertTrue(CardCostume3D.resolve(costumeIDs: [8, 201, 999999], character: character).isEmpty)
+    }
+
+    func testCardCostumeUsesItsWardrobesRegionAndDefaults() throws {
+        let library = try Model3DLibrary(catalog: fixture(locale: .en))
+        let character = try XCTUnwrap(library.characters.first)
+        let preview = try XCTUnwrap(CardCostume3D.resolve(costumeIDs: [1002], character: character).first)
+        XCTAssertEqual(preview.selection.locale, .en)
+        XCTAssertEqual(preview.selection.characterID, character.id)
+        XCTAssertEqual(preview.selection.accessoryID, character.defaultSelection()?.accessoryID)
+        XCTAssertTrue(preview.variant.thumbnailImageURLs(in: .jp).isEmpty)
+        XCTAssertNoThrow(try library.resolve(preview.selection))
+    }
+
     func testDefaultCompleteHeadRemainsVisibleAndSelected() throws {
         let library = try Model3DLibrary(catalog: fixture(defaultHead: 9))
         let character = try XCTUnwrap(library.characters.first)

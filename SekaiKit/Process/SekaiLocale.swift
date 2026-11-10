@@ -316,16 +316,13 @@ public struct LocalizedData<T>: _DestructorSafeContainer {
     
     /// The locales with values, beginning with the available primary and secondary locales.
     ///
-    /// The current ordering can include a preferred locale more than once.
+    /// Each available locale appears once, even when both preferences are equal.
     public var allAvailableLocales: [SekaiLocale] {
-        let expectedLocales = [SekaiLocale.primaryLocale, SekaiLocale.secondaryLocale] + SekaiLocale.allCases.drop(while: { $0 == .primaryLocale || $0 == .secondaryLocale })
-        
-        var availableLocales: [SekaiLocale] = []
-        for locale in SekaiLocale.allCases where self.availableInLocale(locale) {
-            availableLocales.append(locale)
+        let preferredLocales = [SekaiLocale.primaryLocale, SekaiLocale.secondaryLocale]
+        var seen: Set<SekaiLocale> = []
+        return (preferredLocales + SekaiLocale.allCases).filter {
+            seen.insert($0).inserted && self.availableInLocale($0)
         }
-        
-        return expectedLocales.filter({ availableLocales.contains($0) })
     }
     
     /// The locales without values, in declaration order.

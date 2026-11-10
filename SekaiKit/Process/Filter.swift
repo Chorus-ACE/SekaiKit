@@ -127,12 +127,38 @@ public struct SekaiFilter: Hashable, Codable, Equatable, Sendable {
         public init(id: String, title: String? = nil, allowMultipleSelection: Bool = true, options: [Option], defaultOptions: [Option]? = nil
         ) {
             self.id = id
-            self.title = title ?? NSLocalizedString("Filter.key.\(id)", bundle: #bundle, comment: "")
+            self.title = title ?? Self.localizedTitle(for: id)
             self.allowMultipleSelection = allowMultipleSelection
             self.options = options
             self._defaultOptions = defaultOptions
         }
         
+        private static func localizedTitle(for id: String) -> String {
+            switch id {
+            case "attribute": NSLocalizedString("Filter.key.attribute", bundle: #bundle, comment: "")
+            case "card-skill": NSLocalizedString("Filter.key.card-skill", bundle: #bundle, comment: "")
+            case "card-source": NSLocalizedString("Filter.key.card-source", bundle: #bundle, comment: "")
+            case "character": NSLocalizedString("Filter.key.character", bundle: #bundle, comment: "")
+            case "eventType": NSLocalizedString("Filter.key.eventType", bundle: #bundle, comment: "")
+            case "fixtureLayout": NSLocalizedString("Filter.key.fixtureLayout", bundle: #bundle, comment: "")
+            case "fixtureSite": NSLocalizedString("Filter.key.fixtureSite", bundle: #bundle, comment: "")
+            case "fixtureType": NSLocalizedString("Filter.key.fixtureType", bundle: #bundle, comment: "")
+            case "gachaCost": NSLocalizedString("Filter.key.gachaCost", bundle: #bundle, comment: "")
+            case "gachaStatus": NSLocalizedString("Filter.key.gachaStatus", bundle: #bundle, comment: "")
+            case "gachaType": NSLocalizedString("Filter.key.gachaType", bundle: #bundle, comment: "")
+            case "locale": NSLocalizedString("Filter.key.locale", bundle: #bundle, comment: "")
+            case "rarity": NSLocalizedString("Filter.key.rarity", bundle: #bundle, comment: "")
+            case "song-has-append": NSLocalizedString("Filter.key.song-has-append", bundle: #bundle, comment: "")
+            case "song-level": NSLocalizedString("Filter.key.song-level", bundle: #bundle, comment: "")
+            case "song-media-type": NSLocalizedString("Filter.key.song-media-type", bundle: #bundle, comment: "")
+            case "song-type": NSLocalizedString("Filter.key.song-type", bundle: #bundle, comment: "")
+            case "stickerType": NSLocalizedString("Filter.key.stickerType", bundle: #bundle, comment: "")
+            case "supportUnit": NSLocalizedString("Filter.key.supportUnit", bundle: #bundle, comment: "")
+            case "unit": NSLocalizedString("Filter.key.unit", bundle: #bundle, comment: "")
+            default: NSLocalizedString("Filter.key.\(id)", bundle: #bundle, comment: "")
+            }
+        }
+
         /// An individual option displayed in a filter selector.
         public struct Option: Hashable, Codable, Identifiable, Sendable {
             /// The option identifier, or `nil` for the “other” option.

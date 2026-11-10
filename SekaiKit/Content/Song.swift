@@ -87,7 +87,13 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         
         /// The display name localized for the app’s current language.
         public var localizedName: String {
-            NSLocalizedString("Song.media.\(self.rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "image": NSLocalizedString("Song.media.image", bundle: #bundle, comment: "")
+            case "mv": NSLocalizedString("Song.media.mv", bundle: #bundle, comment: "")
+            case "mv_2d": NSLocalizedString("Song.media.mv_2d", bundle: #bundle, comment: "")
+            case "original": NSLocalizedString("Song.media.original", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
     

@@ -63,7 +63,17 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
         case plant = "plant"
         case surfaceAppearance = "surface_appearance"
         public var localizedName: String {
-            NSLocalizedString("Fixture.type.\(rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "canvas": NSLocalizedString("Fixture.type.canvas", bundle: #bundle, comment: "")
+            case "custom": NSLocalizedString("Fixture.type.custom", bundle: #bundle, comment: "")
+            case "gate": NSLocalizedString("Fixture.type.gate", bundle: #bundle, comment: "")
+            case "house_plant": NSLocalizedString("Fixture.type.house_plant", bundle: #bundle, comment: "")
+            case "normal": NSLocalizedString("Fixture.type.normal", bundle: #bundle, comment: "")
+            case "plant": NSLocalizedString("Fixture.type.plant", bundle: #bundle, comment: "")
+            case "surface_appearance": NSLocalizedString("Fixture.type.surface_appearance", bundle: #bundle, comment: "")
+            case "system": NSLocalizedString("Fixture.type.system", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
     public enum Site: String, CaseIterable, Hashable, Codable, Sendable, SekaiCachable {
@@ -71,7 +81,12 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
         case home = "home"
         case room = "room"
         public var localizedName: String {
-            NSLocalizedString("Fixture.site.\(rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "any": NSLocalizedString("Fixture.site.any", bundle: #bundle, comment: "")
+            case "home": NSLocalizedString("Fixture.site.home", bundle: #bundle, comment: "")
+            case "room": NSLocalizedString("Fixture.site.room", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
     public enum Layout: String, CaseIterable, Hashable, Codable, Sendable, SekaiCachable {
@@ -82,7 +97,15 @@ public struct MySekaiFixture: Hashable, Identifiable, Sendable, SekaiCachable, L
         case wall = "wall"
         case wallAppearance = "wall_appearance"
         public var localizedName: String {
-            NSLocalizedString("Fixture.layout.\(rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "floor": NSLocalizedString("Fixture.layout.floor", bundle: #bundle, comment: "")
+            case "floor_appearance": NSLocalizedString("Fixture.layout.floor_appearance", bundle: #bundle, comment: "")
+            case "road": NSLocalizedString("Fixture.layout.road", bundle: #bundle, comment: "")
+            case "rug": NSLocalizedString("Fixture.layout.rug", bundle: #bundle, comment: "")
+            case "wall": NSLocalizedString("Fixture.layout.wall", bundle: #bundle, comment: "")
+            case "wall_appearance": NSLocalizedString("Fixture.layout.wall_appearance", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
     public var availableLocales: [SekaiLocale] {

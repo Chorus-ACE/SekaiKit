@@ -1,5 +1,5 @@
 {
-  "originHash" : "1d2504a77e30eb291423ab791f597c720691e3ca02f33a069ab858b44cd35357",
+  "originHash" : "7b6fc74ec5e3e8b3d09a3ef8901fdca20c7427a6d4b180249ac832f37627bcd2",
   "pins" : [
     {
       "identity" : "alamofire",
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swift-library/swift-gyb",
       "state" : {
-        "revision" : "f76833ee01a7f9c8cf0dd0a7e2ddb7083bdc28dd",
-        "version" : "0.0.1"
+        "revision" : "a024080b44e9546715a3dc72bb2d57a9463cde97",
+        "version" : "0.2.0"
       }
     },
     {

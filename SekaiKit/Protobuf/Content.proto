@@ -210,6 +210,8 @@ message _Episode {
     string scenario_id = 7;
     string scenario_path = 8;
     optional string image_path = 9;
+    optional string number_label = 10;
+    optional int32 game_character_id = 11;
 }
 
 message _Character2D {

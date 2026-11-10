@@ -41,7 +41,14 @@ public struct Sticker: Hashable, Identifiable, Sendable, SekaiCachable, Localiza
 
         /// The category name localized for the app’s current language.
         public var localizedName: String {
-            NSLocalizedString("Sticker.type.\(self.rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "cheerful_carnival_message": NSLocalizedString("Sticker.type.cheerful_carnival_message", bundle: #bundle, comment: "")
+            case "illustration": NSLocalizedString("Sticker.type.illustration", bundle: #bundle, comment: "")
+            case "non_character_illustration": NSLocalizedString("Sticker.type.non_character_illustration", bundle: #bundle, comment: "")
+            case "text": NSLocalizedString("Sticker.type.text", bundle: #bundle, comment: "")
+            case "unknown": NSLocalizedString("Sticker.type.unknown", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
 

@@ -69,7 +69,13 @@ public struct Model3DDevicePartCatalog: Codable, Sendable {
             }
             public var localizedName: String {
                 if case .unknown(let raw) = self { return raw }
-                return NSLocalizedString("Model3DDevice.kind." + rawValue, bundle: .module, comment: "")
+                return switch self.rawValue {
+            case "body": NSLocalizedString("Model3DDevice.kind.body", bundle: #bundle, comment: "")
+            case "hair": NSLocalizedString("Model3DDevice.kind.hair", bundle: #bundle, comment: "")
+            case "head": NSLocalizedString("Model3DDevice.kind.head", bundle: #bundle, comment: "")
+            case "head_optional": NSLocalizedString("Model3DDevice.kind.head_optional", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
             }
             public init(from decoder: any Decoder) throws { self.init(rawValue: try decoder.singleValueContainer().decode(String.self)) }
             public func encode(to encoder: any Encoder) throws { var container = encoder.singleValueContainer(); try container.encode(rawValue) }
@@ -94,7 +100,12 @@ public struct Model3DDevicePartCatalog: Codable, Sendable {
             }
             public var localizedName: String {
                 if case .unknown(let raw) = self { return raw }
-                return NSLocalizedString("Model3DDevice.status." + rawValue, bundle: .module, comment: "")
+                return switch self.rawValue {
+            case "pending": NSLocalizedString("Model3DDevice.status.pending", bundle: #bundle, comment: "")
+            case "ready": NSLocalizedString("Model3DDevice.status.ready", bundle: #bundle, comment: "")
+            case "unsupportedRegion": NSLocalizedString("Model3DDevice.status.unsupportedRegion", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
             }
             public init(from decoder: any Decoder) throws { self.init(rawValue: try decoder.singleValueContainer().decode(String.self)) }
             public func encode(to encoder: any Encoder) throws { var container = encoder.singleValueContainer(); try container.encode(rawValue) }

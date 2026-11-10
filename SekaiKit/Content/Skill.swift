@@ -124,7 +124,13 @@ public struct Skill: Hashable, Identifiable, Sendable, SekaiCachable {
 
         /// The display name localized for the app’s current language.
         public var localizedName: String {
-            NSLocalizedString("Skill.style.\(rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case 1: NSLocalizedString("Skill.style.1", bundle: #bundle, comment: "")
+            case 2: NSLocalizedString("Skill.style.2", bundle: #bundle, comment: "")
+            case 3: NSLocalizedString("Skill.style.3", bundle: #bundle, comment: "")
+            case 4: NSLocalizedString("Skill.style.4", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
 }

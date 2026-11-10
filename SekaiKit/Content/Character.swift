@@ -102,7 +102,12 @@ public struct Character: Codable, Hashable, Identifiable, Sendable, SekaiCachabl
         
         /// The gender label localized for the app’s current language.
         public var localizedName: String {
-            NSLocalizedString("Character.gender.\(self.rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "female": NSLocalizedString("Character.gender.female", bundle: #bundle, comment: "")
+            case "male": NSLocalizedString("Character.gender.male", bundle: #bundle, comment: "")
+            case "secret": NSLocalizedString("Character.gender.secret", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
     

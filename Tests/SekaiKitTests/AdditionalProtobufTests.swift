@@ -119,7 +119,11 @@ final class AdditionalProtobufTests: XCTestCase {
                     let table = switch kind { case .event: "eventStories"; case .unit: "unitStories"; case .card: "cardEpisodes" }
                     let episodesResult = await Episode.all(in: locale, kind: kind)
                     let episodes = try XCTUnwrap(episodesResult)
-                    XCTAssertEqual(episodes, Episode.parse(try rows(table, locale), in: locale, kind: kind))
+                    let loadedCharacters = await Character.allInLocale(locale)
+                    let characters = try XCTUnwrap(loadedCharacters)
+                    let names = Dictionary(characters.map { ($0.id, $0.fullName.majorValue ?? "#\($0.id)") }, uniquingKeysWith: { first, _ in first })
+                    let sourceEpisodes = Episode.parse(try rows(table, locale), in: locale, kind: kind)
+                    XCTAssertEqual(episodes, Episode.applyingHeadings(to: sourceEpisodes, characterNames: names))
                 }
             }
             let metasResult = await MusicMeta.all()

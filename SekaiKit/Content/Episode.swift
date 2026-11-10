@@ -14,11 +14,19 @@ public struct Episode: Hashable, Codable, Identifiable, Sendable, SekaiCachable 
     public var imagePath: String?
     public var locale: SekaiLocale
     public var kind: Kind
+    /// The edition's own episode heading, independent of the ordering number.
+    public var numberLabel: String? = nil
+    public var characterID: Int? = nil
 
     public enum Kind: String, CaseIterable, Codable, Hashable, Sendable, SekaiCachable {
         case event, unit, card
         public var localizedName: String {
-            NSLocalizedString("Episode.kind.\(rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "card": NSLocalizedString("Episode.kind.card", bundle: #bundle, comment: "")
+            case "event": NSLocalizedString("Episode.kind.event", bundle: #bundle, comment: "")
+            case "unit": NSLocalizedString("Episode.kind.unit", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
     public var imageURL: URL? {
@@ -29,7 +37,62 @@ public struct Episode: Hashable, Codable, Identifiable, Sendable, SekaiCachable 
     }
     public static func all(in locale: SekaiLocale, kind: Kind) async -> [Episode]? {
         guard let list = await requestProtobuf("episode.aar", as: _EpisodeList.self) else { return nil }
-        return list.items(in: locale).filter { $0.kind == kind.rawValue }.map { Episode(protobuf: $0, locale: locale, kind: kind) }
+        var episodes = list.items(in: locale).filter { $0.kind == kind.rawValue }.map { Episode(protobuf: $0, locale: locale, kind: kind) }
+        // Older archives did not retain headings or World Link character associations.
+        if kind != .card, !episodes.contains(where: { $0.numberLabel != nil || $0.characterID != nil }),
+           let json = await requestJSON("https://raw.githubusercontent.com/Sekai-World/\(locale._databasePath)/main/\(kind == .unit ? "unitStories" : "eventStories").json"),
+           let rows = json.array {
+            let current = parse(rows, in: locale, kind: kind)
+            let headings = Dictionary(current.map { ($0.episodeID, $0) }, uniquingKeysWith: { first, _ in first })
+            for index in episodes.indices {
+                episodes[index].numberLabel = headings[episodes[index].episodeID]?.numberLabel
+                episodes[index].characterID = headings[episodes[index].episodeID]?.characterID
+            }
+        }
+        let characters = episodes.contains { $0.characterID != nil } ? await Character.allInLocale(locale) : nil
+        return applyingHeadings(to: episodes, characterNames: Dictionary((characters ?? []).map {
+            ($0.id, $0.fullName.majorValue ?? "#\($0.id)")
+        }, uniquingKeysWith: { first, _ in first }))
+    }
+
+    internal static func applyingHeadings(to episodes: [Episode], characterNames: [Int: String]) -> [Episode] {
+        var result = episodes
+        for group in Dictionary(grouping: episodes.indices, by: { episodes[$0].parentID }).values {
+            let ordered = group.sorted { episodes[$0].number < episodes[$1].number }
+            guard let firstCharacter = ordered.firstIndex(where: { episodes[$0].characterID != nil }),
+                  let lastCharacter = ordered.lastIndex(where: { episodes[$0].characterID != nil }),
+                  let first = ordered.first, episodes[first].kind == .event else { continue }
+            for (position, index) in ordered.enumerated() where result[index].numberLabel == nil {
+                let episode = episodes[index]
+                let peers: [Int]
+                let base: String
+                if let characterID = episode.characterID {
+                    peers = ordered.filter { episodes[$0].characterID == characterID }
+                    base = characterNames[characterID] ?? "#\(characterID)"
+                } else if position < firstCharacter {
+                    peers = Array(ordered[..<firstCharacter])
+                    base = headingWords(in: episode.locale).opening
+                } else if position > lastCharacter {
+                    peers = Array(ordered[(lastCharacter + 1)...])
+                    base = headingWords(in: episode.locale).ending
+                } else { continue }
+                let part = peers.firstIndex(of: index) ?? 0
+                let words = headingWords(in: episode.locale)
+                let suffix = peers.count == 2 ? (part == 0 ? words.first : words.second) : "\(part + 1)"
+                result[index].numberLabel = peers.count == 1 ? base : base + " " + suffix
+            }
+        }
+        return result
+    }
+
+    private static func headingWords(in locale: SekaiLocale) -> (opening: String, ending: String, first: String, second: String) {
+        switch locale {
+        case .jp: ("オープニング", "エンディング", "前編", "後編")
+        case .en: ("Opening", "Ending", "Part 1", "Part 2")
+        case .tw: ("序幕", "結尾", "前篇", "後篇")
+        case .cn: ("序幕", "结尾", "前篇", "后篇")
+        case .kr: ("오프닝", "엔딩", "전편", "후편")
+        }
     }
     internal static func parse(_ items: [JSON], in locale: SekaiLocale, kind: Kind) -> [Episode] {
         func episode(_ json: JSON, parentID: Int, chapter: String, bundle: String) -> Episode? {
@@ -51,6 +114,7 @@ public struct Episode: Hashable, Codable, Identifiable, Sendable, SekaiCachable 
             }
             return Episode(episodeID: id, parentID: parentID, number: json["episodeNo"].int ?? json["seq"].int ?? 0,
                            title: title, chapterTitle: chapter, scenarioID: scenario, scenarioPath: path, imagePath: image, locale: locale, kind: kind)
+                .withHeading(json)
         }
         return items.flatMap { item -> [Episode] in
             switch kind {
@@ -69,6 +133,15 @@ public struct Episode: Hashable, Codable, Identifiable, Sendable, SekaiCachable 
                 return [episode(item, parentID: item["cardId"].intValue, chapter: "", bundle: bundle)].compactMap { $0 }
             }
         }
+    }
+}
+
+extension Episode {
+    private func withHeading(_ json: JSON) -> Self {
+        var result = self
+        result.numberLabel = json["episodeNoLabel"].string
+        result.characterID = json["gameCharacterId"].int
+        return result
     }
 }
 

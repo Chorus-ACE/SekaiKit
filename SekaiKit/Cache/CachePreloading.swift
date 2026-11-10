@@ -24,64 +24,94 @@ extension SekaiCache {
     ///
     /// Keep the descriptor alive until the result or captured data is no longer needed.
     /// Releasing the descriptor cancels its task.
-    @safe
     public final class PreloadDescriptor<T: Sendable>: Sendable {
-        nonisolated(unsafe) private let sourceURLRef: UnsafeMutablePointer<URL?>
-        nonisolated(unsafe) private let sourceDataRef: UnsafeMutablePointer<Data?>
+        private let source: PreloadSource
         private let loadTask: Task<T?, Never>
-        
-        @safe
-        internal init(
-            sourceURLRef: UnsafeMutablePointer<URL?>,
-            sourceDataRef: UnsafeMutablePointer<Data?>,
-            perform action: sending @escaping () async -> T?
-        ) {
-            unsafe self.sourceURLRef = sourceURLRef
-            unsafe self.sourceDataRef = sourceDataRef
-            self.loadTask = Task.detached(operation: action)
+
+        internal init(perform action: sending @escaping () async -> T?) {
+            let source = PreloadSource()
+            self.source = source
+            self.loadTask = Task.detached {
+                // The task owns this state until it has actually stopped, including
+                // when the descriptor is released and cancellation is ignored.
+                defer { source.finish() }
+                return await $_finishedLoadSource.withValue({ url, data in
+                    source.store(data, for: url)
+                }, operation: action)
+            }
         }
-        
+
         deinit {
             loadTask.cancel()
-            unsafe sourceDataRef.deallocate()
-            unsafe sourceURLRef.deallocate()
         }
-        
+
         /// The preloaded result, waiting for the operation to finish if needed.
         public var value: T? {
-            get async {
-                await loadTask.value
-            }
+            get async { await loadTask.value }
         }
-        
-        internal func sourceData(for url: URL) async -> Data? {
-            if let _url = unsafe sourceURLRef.pointee {
-                if url != _url {
-                    return nil
-                }
-                if let data = unsafe sourceDataRef.pointee {
-                    return data
-                }
-            }
-            let timeout: CGFloat = 5
-            return await withCheckedContinuation { continuation in
-                let startTime = CFAbsoluteTimeGetCurrent()
-                while CFAbsoluteTimeGetCurrent() - startTime < timeout {
-                    if let _url = unsafe sourceURLRef.pointee {
-                        if url != _url {
-                            continuation.resume(returning: nil)
-                            return
-                        }
-                        if let data = unsafe sourceDataRef.pointee {
-                            continuation.resume(returning: data)
-                            return
-                        }
-                    }
-                }
-            }
+
+        internal func sourceData(for url: URL, timeout: Duration = .seconds(5)) async -> Data? {
+            await source.data(for: url, timeout: timeout)
         }
     }
-    
+
+    // All mutable state is protected by the lock. Each reader gets its own stream
+    // so publication, completion, timeout and cancellation can wake every reader.
+    private final class PreloadSource: @unchecked Sendable {
+        private let lock = NSLock()
+        private var source: (url: URL, data: Data)?
+        private var isFinished = false
+        private var readers: [UUID: AsyncStream<Void>.Continuation] = [:]
+
+        func store(_ data: Data, for url: URL) {
+            let readers = lock.withLock {
+                source = (url, data)
+                let pending = Array(self.readers.values)
+                self.readers.removeAll()
+                return pending
+            }
+            for reader in readers { reader.finish() }
+        }
+
+        func finish() {
+            let readers = lock.withLock {
+                isFinished = true
+                let pending = Array(self.readers.values)
+                self.readers.removeAll()
+                return pending
+            }
+            for reader in readers { reader.finish() }
+        }
+
+        func data(for url: URL, timeout: Duration) async -> Data? {
+            guard !Task.isCancelled else { return nil }
+            let id = UUID()
+            let (stream, continuation) = AsyncStream<Void>.makeStream()
+            let shouldWait = lock.withLock {
+                guard source == nil && !isFinished else { return false }
+                readers[id] = continuation
+                return true
+            }
+            if shouldWait {
+                let timer = Task {
+                    do {
+                        try await Task.sleep(for: timeout)
+                        continuation.finish()
+                    } catch {}
+                }
+                defer {
+                    timer.cancel()
+                    _ = lock.withLock { readers.removeValue(forKey: id) }
+                }
+                // Finishing the stream wakes the reader without blocking a thread.
+                // AsyncStream also ends iteration when this task is cancelled.
+                for await _ in stream {}
+            }
+            guard !Task.isCancelled else { return nil }
+            return lock.withLock { source?.url == url ? source?.data : nil }
+        }
+    }
+
     /// Starts loading a value for later use.
     ///
     /// Retain the returned descriptor while preloading. Await its `value` property to
@@ -99,22 +129,7 @@ extension SekaiCache {
     /// - Parameter closure: The asynchronous operation that loads the value.
     /// - Returns: A descriptor retaining the preload operation.
     public static func preload<T: Sendable>(_ closure: sending @escaping () async -> T?) -> PreloadDescriptor<T> {
-        let ptrSourceURL = UnsafeMutablePointer<URL?>.allocate(capacity: 1)
-        unsafe ptrSourceURL.initialize(to: nil)
-        let ptrSourceData = UnsafeMutablePointer<Data?>.allocate(capacity: 1)
-        unsafe ptrSourceData.initialize(to: nil)
-        let ptrRepSourceURL = Int(bitPattern: ptrSourceURL)
-        let ptrRepSourceData = Int(bitPattern: ptrSourceData)
-        
-        return PreloadDescriptor(
-            sourceURLRef: ptrSourceURL,
-            sourceDataRef: ptrSourceData
-        ) {
-            await $_finishedLoadSource.withValue({ url, data in
-                unsafe UnsafeMutablePointer(bitPattern: ptrRepSourceURL)!.pointee = url
-                unsafe UnsafeMutablePointer(bitPattern: ptrRepSourceData)!.pointee = data
-            }, operation: closure)
-        }
+        PreloadDescriptor(perform: closure)
     }
     
     /// Runs an operation with access to previously captured network sources.

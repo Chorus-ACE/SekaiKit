@@ -22,6 +22,17 @@ message _HonorRecord {
     optional string name = 8 [json_name = "name"];
     optional int32 seq = 9 [json_name = "seq"];
     optional double start_at = 10 [json_name = "startAt"];
+    _HonorGroup group = 11;
+}
+
+message _HonorGroup {
+    optional int32 id = 1;
+    optional string name = 2;
+    optional string pronunciation = 3;
+    optional string honor_type = 4 [json_name = "honorType"];
+    optional string background_assetbundle_name = 5 [json_name = "backgroundAssetbundleName"];
+    optional string frame_name = 6 [json_name = "frameName"];
+    optional bool is_medal_displayed = 7 [json_name = "isMedalDisplayed"];
 }
 
 message _HonorList {

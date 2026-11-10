@@ -49,7 +49,18 @@ public struct Gacha: Hashable, Identifiable, Sendable, SekaiCachable, Localizati
 
         /// The category name localized for the app’s current language.
         public var localizedName: String {
-            NSLocalizedString("Gacha.type.\(self.rawValue)", bundle: #bundle, comment: "")
+            switch self.rawValue {
+            case "beginner": NSLocalizedString("Gacha.type.beginner", bundle: #bundle, comment: "")
+            case "ceil": NSLocalizedString("Gacha.type.ceil", bundle: #bundle, comment: "")
+            case "gift": NSLocalizedString("Gacha.type.gift", bundle: #bundle, comment: "")
+            case "normal": NSLocalizedString("Gacha.type.normal", bundle: #bundle, comment: "")
+            case "return": NSLocalizedString("Gacha.type.return", bundle: #bundle, comment: "")
+            case "subeginner": NSLocalizedString("Gacha.type.subeginner", bundle: #bundle, comment: "")
+            case "sunormal": NSLocalizedString("Gacha.type.sunormal", bundle: #bundle, comment: "")
+            case "sureturn": NSLocalizedString("Gacha.type.sureturn", bundle: #bundle, comment: "")
+            case "unknown": NSLocalizedString("Gacha.type.unknown", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            }
         }
     }
 

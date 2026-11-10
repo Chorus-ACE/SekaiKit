@@ -41,6 +41,25 @@ final class LiveTitleTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(title.imageURL(level: 2)).path.hasSuffix("level_two/degree_main.webp"))
     }
 
+    func testTitleArtworkUsesGroupLayersAndLevelOnlyAssets() throws {
+        let ranked = try Honor(protobuf: _HonorRecord(jsonString: #"{"id":1870,"name":"Master","assetbundleName":"common/tier_25","honorRarity":"highest","group":{"id":217,"honorType":"rank_match","backgroundAssetbundleName":"season_2022_summer"}}"#))
+        let rank = try XCTUnwrap(ranked.artwork(in: .en))
+        XCTAssertTrue(rank.backgroundURLs[0].path.hasSuffix("rank_live/honor/season_2022_summer/degree_main.webp"))
+        XCTAssertTrue(rank.overlayURLs[0].path.hasSuffix("rank_live/honor/common/tier_25/main.webp"))
+        XCTAssertTrue(rank.backgroundURLs.allSatisfy { $0.path.contains("sekai-en-assets") })
+        let achievement = try Honor(protobuf: _HonorRecord(jsonString: #"{"id":3009,"name":"Easy","honorMissionType":"easy_full_combo","levels":[{"level":1,"assetbundleName":"honor_3009_100","honorRarity":"low"},{"level":11,"assetbundleName":"honor_3009_200","honorRarity":"middle"}]}"#))
+        XCTAssertTrue(try XCTUnwrap(achievement.imageURL()).path.hasSuffix("honor_3009_100/degree_main.webp"))
+        XCTAssertTrue(try XCTUnwrap(achievement.imageURL(level: 11)).path.hasSuffix("honor_3009_200/degree_main.webp"))
+        XCTAssertEqual(achievement.artwork(level: 11)?.rarity, .middle)
+        XCTAssertTrue(try XCTUnwrap(achievement.artwork()?.overlayURLs.first).path.hasSuffix("scroll.webp"))
+        let event = try Honor(protobuf: _HonorRecord(jsonString: #"{"id":1,"name":"TOP100","assetbundleName":"ranking_cp1","group":{"honorType":"event","backgroundAssetbundleName":"event_background"}}"#))
+        XCTAssertEqual(event.artwork()?.overlayRect.width, 1)
+        XCTAssertTrue(try XCTUnwrap(event.imageURL()).path.hasSuffix("event_background/degree_main.webp"))
+        let en = try Honor(protobuf: _HonorRecord(jsonString: #"{"id":1,"name":"EN","assetbundleName":"en"}"#))
+        let combined = try XCTUnwrap(Honor.combineLocalizations([.en: en], defaultLocale: .en))
+        XCTAssertNil(combined.artwork(in: .kr))
+    }
+
     func testFullRegionalGeneratedArchivesWhenProvided() throws {
         guard let folder = ProcessInfo.processInfo.environment["SEKAI_LIVE_TITLE_FIXTURES"] else { throw XCTSkip("Full upstream fixtures are optional") }
         let directory = URL(filePath: folder).appending(path: "generated")

@@ -1,6 +1,7 @@
 import Foundation
 import SekaiKitMacro
 internal import SwiftProtobuf
+internal import SwiftyJSON
 
 /// Regional master-data values; absent scalar fields remain nil.
 public struct HonorLevel: Codable, Hashable, Sendable, SekaiCachable {
@@ -22,8 +23,33 @@ public struct HonorLevel: Codable, Hashable, Sendable, SekaiCachable {
     }
 }
 
+/// Regional layout metadata used to compose a title's artwork.
+public struct HonorGroup: Codable, Hashable, Sendable, SekaiCachable {
+    public var id: Int?
+    public var name: String?
+    public var pronunciation: String?
+    public var honorType: String?
+    public var backgroundAssetBundleName: String?
+    public var frameName: String?
+    public var isMedalDisplayed: Bool?
+    enum CodingKeys: String, CodingKey {
+        case id, name, pronunciation, honorType, frameName, isMedalDisplayed
+        case backgroundAssetBundleName = "backgroundAssetbundleName"
+    }
+    internal init(protobuf p: _HonorGroup) {
+        id = p.hasID ? Int(p.id) : nil
+        name = p.hasName ? p.name : nil
+        pronunciation = p.hasPronunciation ? p.pronunciation : nil
+        honorType = p.hasHonorType ? p.honorType : nil
+        backgroundAssetBundleName = p.hasBackgroundAssetbundleName ? p.backgroundAssetbundleName : nil
+        frameName = p.hasFrameName ? p.frameName : nil
+        isMedalDisplayed = p.hasIsMedalDisplayed ? p.isMedalDisplayed : nil
+    }
+}
+
 /// Regional master-data values; absent scalar fields remain nil.
 public struct HonorConfiguration: Codable, Hashable, Sendable, SekaiCachable {
+    public var group: HonorGroup? = nil
     public var assetBundleName: String?
     public var groupID: Int?
     public var honorMissionType: String?
@@ -35,6 +61,7 @@ public struct HonorConfiguration: Codable, Hashable, Sendable, SekaiCachable {
     public var seq: Int?
     public var startAt: Double?
     enum CodingKeys: String, CodingKey {
+        case group
         case assetBundleName = "assetbundleName"
         case groupID = "groupId"
         case honorMissionType = "honorMissionType"
@@ -65,7 +92,25 @@ public struct Honor: Hashable, Identifiable, Sendable, SekaiCachable, Localizati
 extension Honor: ListGettable, GettableByID {
     public static func allInLocale(_ locale: SekaiLocale) async -> [Honor]? {
         guard let list = await requestProtobuf("honor.aar", as: _HonorList.self) else { return nil }
-        return try? list.items(in: locale).map { try Honor(protobuf: $0) }
+        let records = list.items(in: locale)
+        // Existing archives predate group/background metadata. Enrich them only
+        // from the selected edition while those archives remain in circulation.
+        if records.contains(where: { !$0.hasGroup }),
+           let json = await requestJSON("https://raw.githubusercontent.com/Sekai-World/\(locale._databasePath)/main/honorGroups.json"),
+           let rows = json.array,
+           let data = try? JSONSerialization.data(withJSONObject: rows.map(\.object)),
+           let groups = try? JSONDecoder().decode([HonorGroup].self, from: data) {
+            let lookup = Dictionary(groups.compactMap { group in group.id.map { ($0, group) } }, uniquingKeysWith: { first, _ in first })
+            return try? records.map { wire in
+                var model = try Honor(protobuf: wire)
+                if !wire.hasGroup, let group = lookup[Int(wire.groupID)], var configuration = model.record.majorValue {
+                    configuration.group = group
+                    model.record = .unlocalized(configuration)
+                }
+                return model
+            }
+        }
+        return try? records.map { try Honor(protobuf: $0) }
     }
 }
 
@@ -448,7 +493,14 @@ extension Honor {
         case low = "low"
         case middle = "middle"
         case unknown
-        public var localizedName: String { NSLocalizedString("Honor.rarity.\(rawValue)", bundle: #bundle, comment: "") }
+        public var localizedName: String { switch self.rawValue {
+            case "high": NSLocalizedString("Honor.rarity.high", bundle: #bundle, comment: "")
+            case "highest": NSLocalizedString("Honor.rarity.highest", bundle: #bundle, comment: "")
+            case "low": NSLocalizedString("Honor.rarity.low", bundle: #bundle, comment: "")
+            case "middle": NSLocalizedString("Honor.rarity.middle", bundle: #bundle, comment: "")
+            case "unknown": NSLocalizedString("Honor.rarity.unknown", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            } }
     }
 }
 
@@ -461,7 +513,16 @@ extension VirtualLive {
         case streaming = "streaming"
         case virtualMessage = "virtual_message"
         case unknown
-        public var localizedName: String { NSLocalizedString("VirtualLive.livetype.\(rawValue)", bundle: #bundle, comment: "") }
+        public var localizedName: String { switch self.rawValue {
+            case "beginner": NSLocalizedString("VirtualLive.livetype.beginner", bundle: #bundle, comment: "")
+            case "cheerful_carnival": NSLocalizedString("VirtualLive.livetype.cheerful_carnival", bundle: #bundle, comment: "")
+            case "normal": NSLocalizedString("VirtualLive.livetype.normal", bundle: #bundle, comment: "")
+            case "solo_virtual_live": NSLocalizedString("VirtualLive.livetype.solo_virtual_live", bundle: #bundle, comment: "")
+            case "streaming": NSLocalizedString("VirtualLive.livetype.streaming", bundle: #bundle, comment: "")
+            case "unknown": NSLocalizedString("VirtualLive.livetype.unknown", bundle: #bundle, comment: "")
+            case "virtual_message": NSLocalizedString("VirtualLive.livetype.virtual_message", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            } }
     }
 }
 
@@ -479,6 +540,7 @@ extension HonorLevel {
 
 extension HonorConfiguration {
     internal init(protobuf p: _HonorRecord) {
+        group = p.hasGroup ? HonorGroup(protobuf: p.group) : nil
         assetBundleName = p.hasAssetbundleName ? p.assetbundleName : nil
         groupID = p.hasGroupID ? Int(p.groupID) : nil
         honorMissionType = p.hasHonorMissionType ? p.honorMissionType : nil
@@ -681,16 +743,6 @@ extension VirtualLiveConfiguration {
     }
 }
 
-extension Honor {
-    /// The regional title artwork. Level-specific bundles take priority when provided.
-    public func imageURL(in locale: SekaiLocale? = nil, level: Int? = nil) -> URL? {
-        let locale = locale ?? record.majorLocale ?? .primaryLocale
-        guard let configuration = record.value(in: locale) else { return nil }
-        let bundle = configuration.levels?.first { $0.level == level }?.assetBundleName ?? configuration.assetBundleName
-        guard let bundle, !bundle.isEmpty else { return nil }
-        return URL(string: "https://storage.sekai.best/\(locale._assetsPath)/honor/\(bundle)/degree_main.webp")
-    }
-}
 extension HonorConfiguration {
     public var rarity: Honor.Rarity { Honor.Rarity(rawValue: honorRarity ?? "") ?? .unknown }
 }
@@ -704,7 +756,12 @@ extension VirtualLiveConfiguration {
 extension VirtualLive {
     public enum SetlistType: String, Codable, Hashable, Sendable, SekaiCachable, CaseIterable {
         case music, mc, unknown
-        public var localizedName: String { NSLocalizedString("VirtualLive.setlist-type.\(rawValue)", bundle: #bundle, comment: "") }
+        public var localizedName: String { switch self.rawValue {
+            case "mc": NSLocalizedString("VirtualLive.setlist-type.mc", bundle: #bundle, comment: "")
+            case "music": NSLocalizedString("VirtualLive.setlist-type.music", bundle: #bundle, comment: "")
+            case "unknown": NSLocalizedString("VirtualLive.setlist-type.unknown", bundle: #bundle, comment: "")
+            default: String(describing: self.rawValue)
+            } }
     }
 }
 extension VirtualLiveSetlistEntry {
