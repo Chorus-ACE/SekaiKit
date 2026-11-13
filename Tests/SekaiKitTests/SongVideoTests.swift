@@ -83,6 +83,20 @@ final class SongVideoTests: XCTestCase {
         XCTAssertEqual(content.videos[0].audioURL?.absoluteString, "https://storage.sekai.best/sekai-tc-assets/music/long/regional_sekai/regional_sekai.mp3")
     }
 
+    func testMusicVideoPaddingUsesItsOwnRegionalRecord() {
+        for (locale, padding) in [(SekaiLocale.jp, 2.75), (.en, 1.5), (.tw, 0)] {
+            let content = Song.videoContent(protobuf: .with {
+                $0.id = 138; $0.media = ["mv_2d", "original"]; $0.fillerSec = padding
+                $0.vocals = [.with { $0.id = 287 }, .with { $0.id = 1560 }]
+                $0.assetVariants = [.with {
+                    $0.id = 1; $0.musicVocalID = 1560; $0.musicAssetType = "mv"; $0.assetbundleName = "8007"
+                }]
+            }, locale: locale)
+            XCTAssertEqual(content.videos.count, 3)
+            XCTAssertTrue(content.videos.allSatisfy { $0.startOffset == padding && $0.locale == locale })
+        }
+    }
+
     func testPartialVideoOverridesPreserveTheDefaultVersion() {
         let content = Song.videoContent(protobuf: .with {
             $0.id = 138; $0.media = ["mv_2d"]

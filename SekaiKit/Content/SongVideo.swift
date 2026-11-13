@@ -14,6 +14,8 @@ extension Song {
         public var assetBundleName: String
         public var caption: String?
         public var audioAssetBundleName: String? = nil
+        /// Leading padding from this region's music record, shared with its soundtrack.
+        public var startOffset: Double = 0
 
         public var audioURL: URL? {
             guard let name = audioAssetBundleName, !name.isEmpty,
@@ -60,7 +62,7 @@ extension Song {
                 let preferredType = type == .originalMV ? "original_song" : "sekai"
                 let vocal = vocals.first { $0.musicVocalType == preferredType } ?? vocals.first
                 videos.append(MusicVideo(locale: locale, mediaType: type, assetBundleName: defaultBundle,
-                                         audioAssetBundleName: vocal?.assetbundleName))
+                                         audioAssetBundleName: vocal?.assetbundleName, startOffset: record.fillerSec))
             }
             if !variants.isEmpty {
                 for variant in variants.sorted(by: { ($0.seq, $0.id) < ($1.seq, $1.id) }) {
@@ -68,7 +70,7 @@ extension Song {
                     let vocal = record.vocals.first { $0.id == variant.musicVocalID }
                     videos.append(MusicVideo(locale: locale, mediaType: type, assetBundleName: variant.assetbundleName,
                                              caption: vocal.flatMap { $0.hasCaption ? $0.caption : nil },
-                                             audioAssetBundleName: vocal?.assetbundleName))
+                                             audioAssetBundleName: vocal?.assetbundleName, startOffset: record.fillerSec))
                 }
             }
         }

@@ -13,7 +13,12 @@ public enum SekaiLyrics {
 
     public static func lyrics(forSongID id: Int) async throws -> Song.Lyrics? {
         guard id > 0 else { throw Failure.invalidSongID }
-        let url = baseURL.appending(path: "music_\(id).json")
+        let documentURL = baseURL.appending(path: "music_\(id).json")
+        // Bypass cached responses from the withdrawn Wiki supplement. The
+        // mirror now contains only the documents published by MoeSekai.
+        let url = documentURL.isFileURL ? documentURL : documentURL.appending(queryItems: [
+            URLQueryItem(name: "source", value: "moesekai")
+        ])
         func decode(_ data: Data) throws -> Song.Lyrics {
             let lyrics = try JSONDecoder().decode(Song.Lyrics.self, from: data)
             guard lyrics.songID == id else { throw Failure.mismatchedSongID }
