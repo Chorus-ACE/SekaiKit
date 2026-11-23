@@ -56,7 +56,8 @@ extension ListGettable where Self: SekaiCachable {
     /// - Returns: The combined records, or `nil` if no result is available.
     public static func allWithCache(trait: SekaiCache.CacheTrait = .invocationElidable) async -> [Self]? {
         let baseURL = SekaiProtobuf.baseURL
-        let usesProtobuf = Self.self == Character.self || Self.self == Event.self || Self.self == Card.self || Self.self == Honor.self || Self.self == VirtualLive.self
+        let usesProtobuf = Self.self == Character.self || Self.self == Event.self || Self.self == Card.self
+            || Self.self == Song.self || Self.self == Honor.self || Self.self == VirtualLive.self
         let suffix = (usesProtobuf ? "_protobuf_\(SekaiProtobuf.cacheKey)" : "") + (Self.self == Honor.self ? "_artwork-v2" : "")
         return await SekaiCache.withDirectCache(id: "All\(String(describing: Self.Type.self))\(suffix)", trait: trait, invocation: {
             // SekaiCache uses a detached task, so carry the selected source explicitly.

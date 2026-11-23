@@ -89,6 +89,11 @@ extension Event: SekaiSearchable {
 }
 
 extension Song: SekaiSearchable {
+    /// The focus label in every available locale.
+    public var _searchStrings: [String] {
+        SekaiLocale.allCases.compactMap { focusCharacterLabel(in: $0) }
+    }
+
     /// The localized strings searched across all available locales for this record.
     public var _searchLocalizedStrings: [LocalizableData<String>] {
         [self.title, self.creatorArtist, self.lyricist, self.composer, self.arranger]

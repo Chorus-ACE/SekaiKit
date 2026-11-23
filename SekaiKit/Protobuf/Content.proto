@@ -157,6 +157,9 @@ message _Song {
     _ReleaseCondition release_condition = 24;
     repeated string original_video_links = 25;
     repeated _MusicAssetVariant asset_variants = 26;
+    // Canonical focus metadata from the associated Japanese event.
+    optional int32 focus_character_id = 27;
+    optional int32 focus_character_index = 28;
 }
 
 message _MusicAssetVariant {

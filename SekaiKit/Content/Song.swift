@@ -41,6 +41,10 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
     
     /// The song’s categories, including unit affiliations.
     public var categories: [Song.Category]
+    /// The character featured by the song’s associated focus event, if available.
+    public var focusCharacterID: Int?
+    /// The associated event’s rotation number for the focus character, if available.
+    public var focusCharacterIndex: Int?
     /// The background media available for the song, including music videos and a static image.
     public var availableMedia: [Song.MediaType]
     
@@ -215,6 +219,16 @@ public struct Song: Hashable, Codable, Sendable, Identifiable, SekaiCachable, Lo
         } else {
             return .other
         }
+    }
+
+    /// The focus character’s localized given name and event rotation number for the primary locale.
+    public var focusCharacterLabel: String? {
+        focusCharacterLabel()
+    }
+
+    /// Returns the focus character’s localized given name and event rotation number, when available.
+    public func focusCharacterLabel(in locale: SekaiLocale = .primaryLocale) -> String? {
+        SekaiCache.preCache.focusCharacterLabel(id: focusCharacterID, index: focusCharacterIndex, in: locale)
     }
 }
 

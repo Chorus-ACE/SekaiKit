@@ -32,6 +32,11 @@ extension SekaiCache {
         public func character(id: Int) -> CachedCharacter? {
             return self.characters.first(where: { $0.id == id })
         }
+
+        internal func focusCharacterLabel(id: Int?, index: Int?, in locale: SekaiLocale) -> String? {
+            guard let id, let index, let name = character(id: id)?.givenName.forLocale(locale) else { return nil }
+            return "\(name)\(locale == .en ? " " : "")\(index)"
+        }
         
         /// A compact character record stored in the bundled cache.
         public struct CachedCharacter: Codable, Hashable, Identifiable, SekaiCachable, Sendable {

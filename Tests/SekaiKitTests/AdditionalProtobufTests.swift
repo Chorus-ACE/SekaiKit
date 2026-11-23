@@ -55,6 +55,28 @@ final class AdditionalProtobufTests: XCTestCase {
         XCTAssertEqual(skill.effects.first?.details.first?.valueType, .unknown)
     }
 
+    func testSongFocusSearchMatchesEventLabels() throws {
+        let record = _Song.with {
+            $0.id = 761
+            $0.title = "Focus song"
+            $0.focusCharacterID = 17
+            $0.focusCharacterIndex = 7
+        }
+        let song = try Song(protobuf: _Song(serializedBytes: record.serializedData()))
+        let oldSong = Song(protobuf: .with { $0.id = 762; $0.title = "Another song" })
+        let event = Event(protobuf: .with { $0.focusCharacterID = 17; $0.focusCharacterIndex = 7 })
+
+        XCTAssertEqual(song.focusCharacterID, 17)
+        XCTAssertEqual(song.focusCharacterIndex, 7)
+        XCTAssertEqual(song._searchStrings, event._searchStrings)
+        XCTAssertEqual(song.focusCharacterLabel(in: .en), "Kanade 7")
+        XCTAssertEqual([song, oldSong].search(for: "Kanade 7").map(\.id), [761])
+        XCTAssertEqual([song, oldSong].search(for: "奏7").map(\.id), [761])
+        XCTAssertNil(oldSong.focusCharacterID)
+        XCTAssertNil(oldSong.focusCharacterIndex)
+        XCTAssertTrue(oldSong._searchStrings.isEmpty)
+    }
+
     func testGeneratedArchivesAcrossAllRegions() async throws {
         guard let directory = ProcessInfo.processInfo.environment["SEKAI_ADDITIONAL_PROTOBUF_ASSETS"],
               let sources = ProcessInfo.processInfo.environment["SEKAI_PROTOBUF_MASTER_DATA"] else {

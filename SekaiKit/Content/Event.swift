@@ -122,12 +122,7 @@ public struct Event: Codable, Hashable, Identifiable, Sendable, SekaiCachable, L
     /// - Parameter locale: The locale whose spacing convention is used. The default is the primary locale.
     /// - Returns: The formatted label, or `nil` if the focus character, event count, or character name is unavailable.
     public func focusCharacterLabel(in locale: SekaiLocale = .primaryLocale) -> String? {
-        if let id = self.focusCharacterID,
-           let index = self.focusCharacterIndex,
-           let name = SekaiCache.preCache.character(id: id)?.givenName.forLocale(locale) {
-            return "\(name)\(locale == .en ? " " : "")\(index)"
-        }
-        return nil
+        SekaiCache.preCache.focusCharacterLabel(id: focusCharacterID, index: focusCharacterIndex, in: locale)
     }
 }
 

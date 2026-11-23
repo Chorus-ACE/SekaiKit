@@ -21,11 +21,22 @@ public struct ExtendedEvent: SekaiCachable, GettableByID, Hashable, Codable, Sen
     /// Finds events whose regional event-card associations include the card.
     /// Returns nil if the event archive cannot be loaded.
     public static func events(containingCardID cardID: Int) async -> [Event]? {
+        await events(containing: cardID, in: \.cardIds)
+    }
+
+    /// Finds events whose regional event-song associations include the song.
+    /// Returns nil if the event archive cannot be loaded.
+    public static func events(containingSongID songID: Int) async -> [Event]? {
+        await events(containing: songID, in: \.musicIds)
+    }
+
+    private static func events(containing id: Int, in association: KeyPath<_Event, [Int32]>) async -> [Event]? {
+        guard let id = Int32(exactly: id) else { return [] }
         async let archive = requestProtobuf("event.aar", as: _EventList.self)
         async let events = Event.allWithCache()
         guard let archive = await archive, let events = await events else { return nil }
         let ids = Set(SekaiLocale.allCases.flatMap { locale in
-            archive.items(in: locale).filter { $0.cardIds.contains(Int32(cardID)) }.map { Int($0.id) }
+            archive.items(in: locale).filter { $0[keyPath: association].contains(id) }.map { Int($0.id) }
         })
         return events.filter { ids.contains($0.id) }
     }

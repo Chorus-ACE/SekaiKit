@@ -82,6 +82,8 @@ extension Song {
         creatorArtist = .unlocalized(p.creator); composer = .unlocalized(p.composer); arranger = .unlocalized(p.arranger); lyricist = .unlocalized(p.lyricist)
         publishDate = protobufDate(p.publishedAt, present: p.hasPublishedAt); _releaseDate = protobufDate(p.releasedAt, present: p.hasReleasedAt)
         categories = p.tags.compactMap(Category.init(rawValue:)); availableMedia = p.media.compactMap(MediaType.init(rawValue:))
+        focusCharacterID = p.hasFocusCharacterID ? Int(p.focusCharacterID) : nil
+        focusCharacterIndex = p.hasFocusCharacterIndex ? Int(p.focusCharacterIndex) : nil
         difficultyLevel = Dictionary(p.charts.compactMap { chart in Difficulty(rawValue: chart.musicDifficulty).map { ($0, Int(chart.playLevel)) } }, uniquingKeysWith: { _, last in last })
         noteCounts = Dictionary(p.charts.compactMap { chart in Difficulty(rawValue: chart.musicDifficulty).map { ($0, Int(chart.totalNoteCount)) } }, uniquingKeysWith: { _, last in last })
         liveStageID = Int(p.liveStageID); dancerCount = Int(p.dancerCount); selfDancerPosition = Int(p.selfDancerPosition); releaseConditionID = Int(p.releaseConditionID)

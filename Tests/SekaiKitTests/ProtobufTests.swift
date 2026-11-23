@@ -125,7 +125,10 @@ final class ProtobufTests: XCTestCase {
             $0.jp = [.with { $0.id = 908765; $0.title = "Event"; $0.outline = "日本語"; $0.cardIds = [1]; $0.musicIds = [12] }]
         }
         var localizedEvents = events
-        localizedEvents.en = [.with { $0.id = 908765; $0.outline = "English" }]
+        localizedEvents.en = [
+            .with { $0.id = 908765; $0.outline = "English"; $0.musicIds = [12] },
+            .with { $0.id = 908766; $0.musicIds = [12] }
+        ]
         localizedEvents.tc = [.with { $0.id = 908765; $0.outline = "繁體中文" }]
         localizedEvents.cn = [.with { $0.id = 908765; $0.outline = "简体中文" }]
         localizedEvents.kr = [.with { $0.id = 908765; $0.outline = "한국어" }]
@@ -146,6 +149,10 @@ final class ProtobufTests: XCTestCase {
             XCTAssertEqual(event?.event.outline.localizedData?.tw, "繁體中文")
             XCTAssertEqual(event?.event.outline.localizedData?.cn, "简体中文")
             XCTAssertEqual(event?.event.outline.localizedData?.kr, "한국어")
+            let songEvents = await ExtendedEvent.events(containingSongID: 12)
+            XCTAssertEqual(songEvents?.map(\.id).sorted(), [908765, 908766])
+            let unmatchedSongEvents = await ExtendedEvent.events(containingSongID: 13)
+            XCTAssertEqual(unmatchedSongEvents, [])
         }
     }
 
@@ -158,10 +165,12 @@ final class ProtobufTests: XCTestCase {
         await SekaiProtobuf.$baseURL.withValue(directory) {
             let characters = await Character.allInLocale(.jp)
             let events = await Event.allInLocale(.jp)
+            let songEvents = await ExtendedEvent.events(containingSongID: 12)
             let cards = await Card.allInLocale(.jp)
             let allCards = await Card.all()
             XCTAssertNil(characters)
             XCTAssertNil(events)
+            XCTAssertNil(songEvents)
             XCTAssertNil(cards)
             XCTAssertNil(allCards)
         }
